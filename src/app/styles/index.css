@@ -34,6 +34,78 @@
 .tiptap u { text-decoration: underline; }
 .tiptap s { text-decoration: line-through; }
 
+/* Print & PDF Export Styles */
+@media print {
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  .print\\:break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print\\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\\:bg-white {
+    background: white !important;
+  }
+
+  .print\\:border {
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .print\\:border-slate-300 {
+    border-color: #cbd5e1 !important;
+  }
+
+  .tiptap {
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .tiptap h1 {
+    font-size: 18pt;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+  }
+
+  .tiptap h2 {
+    font-size: 14pt;
+    margin-top: 10pt;
+    margin-bottom: 4pt;
+  }
+
+  .tiptap h3 {
+    font-size: 12pt;
+    margin-top: 8pt;
+    margin-bottom: 4pt;
+  }
+
+  .tiptap p {
+    margin-bottom: 6pt;
+  }
+
+  finding-node,
+  chart-node,
+  executive-summary-node,
+  callout-node {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
 @layer base {
   :root {
     /* --- DIGITAL PAPER THEME (LIGHT DEFAULT) --- */
@@ -231,5 +303,21 @@
 
   .perf-low .glass-card:hover {
     @apply shadow-md;
+  }
+
+  /* Animations */
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
   }
 }

@@ -283,10 +283,9 @@ export default function ReportLibraryPage() {
                 const StatusIcon = statusCfg.icon;
 
                 return (
-                  <button
+                  <div
                     key={report.id}
-                    onClick={() => handleReportClick(report.id)}
-                    className="group relative bg-white rounded-2xl border-2 border-slate-200 overflow-hidden hover:border-blue-400 hover:shadow-xl transition-all text-left"
+                    className="group relative bg-white rounded-2xl border-2 border-slate-200 overflow-hidden hover:border-blue-400 hover:shadow-xl transition-all"
                   >
                     {/* Cover Abstract / Header */}
                     <div className={clsx('p-6 border-b-2', RISK_COLORS[report.risk_level])}>
@@ -360,11 +359,28 @@ export default function ReportLibraryPage() {
                             : 'Düşük Risk'}
                         </span>
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
+                        <button
+                          onClick={() => navigate(`/reporting/view/${report.id}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          <Eye size={16} />
+                          Görüntüle
+                        </button>
+                        <button
+                          onClick={() => handleReportClick(report.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                        >
+                          Düzenle
+                        </button>
+                      </div>
                     </div>
 
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  </button>
+                  </div>
                 );
               })}
             </div>
