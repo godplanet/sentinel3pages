@@ -91,6 +91,8 @@ import AdvisoryWorkspacePage from '@/pages/advisory/AdvisoryWorkspacePage';
 import AuditProgramsPage from '@/pages/library/AuditProgramsPage';
 import RiskLibraryPage from '@/pages/library/RiskLibraryPage';
 import ProceduresPage from '@/pages/library/ProceduresPage';
+import ProgramLibraryPage from '@/pages/library/ProgramLibraryPage';
+import ProgramBuilderPage from '@/pages/library/ProgramBuilderPage';
 import ConstitutionDemoPage from '@/pages/demo/ConstitutionDemoPage';
 import UniverseModule2Page from '@/pages/universe/UniverseModule2Page';
 import AuditUniversePage from '@/pages/strategy/AuditUniversePage';
@@ -234,6 +236,8 @@ export const AppRoutes = () => {
       <Route path="/library/audit-programs" element={<ProtectedRoute><AuditProgramsPage /></ProtectedRoute>} />
       <Route path="/library/risk-library" element={<ProtectedRoute><RiskLibraryPage /></ProtectedRoute>} />
       <Route path="/library/procedures" element={<ProtectedRoute><ProceduresPage /></ProtectedRoute>} />
+      <Route path="/library/programs" element={<ProtectedRoute><ProgramLibraryPage /></ProtectedRoute>} />
+      <Route path="/library/builder/:id" element={<ProtectedRoute><ProgramBuilderPage /></ProtectedRoute>} />
 
       <Route path="/vendor-portal" element={<VendorPortalPage />} />
       <Route path="/vendor-portal/:token" element={<VendorPortalPage />} />

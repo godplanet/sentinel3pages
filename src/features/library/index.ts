@@ -1,3 +1,6 @@
+// Re-export existing library hooks
 export * from './api/useLibrary';
-export * from './template-engine';
-export { TemplateLoaderModal } from './ui/TemplateLoaderModal';
+
+// Program Template System (new)
+export * from './injection-engine';
+export { ProgramDeployModal } from './ProgramDeployModal';
