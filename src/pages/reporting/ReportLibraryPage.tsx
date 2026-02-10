@@ -235,17 +235,18 @@ export default function ReportLibraryPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <PageHeader
           title="Rapor Kütüphanesi"
-          subtitle="Denetim raporları, soruşturmalar ve yönetim sunumları"
-          icon={<FileText className="text-blue-600" />}
-        >
-          <button
-            onClick={() => setShowTemplateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            <Plus size={18} />
-            Yeni Rapor Oluştur
-          </button>
-        </PageHeader>
+          description="Denetim raporları, soruşturmalar ve yönetim sunumları"
+          icon={FileText}
+          action={
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <Plus size={18} />
+              Yeni Rapor Oluştur
+            </button>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto p-6">
           {/* Search Bar */}
