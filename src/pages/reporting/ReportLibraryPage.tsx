@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Clock,
   Eye,
-  MoreVertical,
+  X,
   TrendingUp,
   Shield,
   Building2,
@@ -97,128 +97,351 @@ export default function ReportLibraryPage() {
     return counts;
   }, []);
 
-  const handleDelete = async (id: string) => {
-    setMenuOpen(null);
-    await reportApi.deleteReport(id);
-    setReports((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  const templateMap = new Map(templates.map((t) => [t.id, t]));
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Sentinel Studio"
-        description="Denetim raporlarini olusturun, duzenleyin ve yayinlayin"
-      />
+    <div className="flex h-screen bg-slate-50">
+      {/* Sidebar Filters */}
+      <div className="w-72 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter size={18} className="text-slate-600" />
+            <h3 className="text-sm font-bold text-slate-900">Filtreler</h3>
+          </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-500">
-          {reports.length} rapor
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 mb-2 block">YIL</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="ALL">Tüm Yıllar</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 mb-2 block">RAPOR TİPİ</label>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedType('ALL')}
+                  className={clsx(
+                    'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors',
+                    selectedType === 'ALL'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  )}
+                >
+                  Tümü ({MOCK_REPORT_ARCHIVE.length})
+                </button>
+                {Object.entries(MOCK_REPORT_TYPES).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedType(label)}
+                    className={clsx(
+                      'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors flex items-center justify-between',
+                      selectedType === label
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    )}
+                  >
+                    <span>{label}</span>
+                    <span className="text-xs">{typeCounts[label] || 0}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 mb-2 block">RİSK SEVİYESİ</label>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedRiskLevel('ALL')}
+                  className={clsx(
+                    'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors',
+                    selectedRiskLevel === 'ALL'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  )}
+                >
+                  Tümü
+                </button>
+                {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setSelectedRiskLevel(level)}
+                    className={clsx(
+                      'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors',
+                      selectedRiskLevel === level
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    )}
+                  >
+                    {level === 'CRITICAL'
+                      ? 'Kritik'
+                      : level === 'HIGH'
+                      ? 'Yüksek'
+                      : level === 'MEDIUM'
+                      ? 'Orta'
+                      : 'Düşük'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 mb-2 block">DURUM</label>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedStatus('ALL')}
+                  className={clsx(
+                    'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors',
+                    selectedStatus === 'ALL'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  )}
+                >
+                  Tümü
+                </button>
+                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedStatus(key)}
+                    className={clsx(
+                      'w-full px-3 py-2 rounded-lg text-sm font-medium text-left transition-colors',
+                      selectedStatus === key
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    )}
+                  >
+                    {cfg.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => setShowTemplatePicker(true)}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold text-sm flex items-center gap-2 shadow-sm hover:shadow-md"
-        >
-          <Plus size={16} />
-          Yeni Rapor
-        </button>
+
+        <div className="p-4 text-xs text-slate-500 text-center border-t border-slate-200 mt-auto">
+          Toplam {filteredReports.length} rapor gösteriliyor
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="animate-spin text-blue-500" size={32} />
-        </div>
-      ) : reports.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm text-center py-20">
-          <FileText className="mx-auto text-slate-300 mb-4" size={64} />
-          <p className="text-slate-700 font-semibold text-lg mb-2">Henuz rapor olusturulmadi</p>
-          <p className="text-slate-400 text-sm mb-6">Sablon secin ve ilk raporunuzu olusturun</p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <PageHeader
+          title="Rapor Kütüphanesi"
+          subtitle="Denetim raporları, soruşturmalar ve yönetim sunumları"
+          icon={<FileText className="text-blue-600" />}
+        >
           <button
-            onClick={() => setShowTemplatePicker(true)}
-            className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm inline-flex items-center gap-2 hover:bg-blue-700 transition-colors"
+            onClick={() => setShowTemplateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            <Plus size={16} />
-            Yeni Rapor
+            <Plus size={18} />
+            Yeni Rapor Oluştur
           </button>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {reports.map((report) => {
-            const tmpl = report.template_id ? templateMap.get(report.template_id) : null;
-            const tmplType = tmpl?.type || 'CUSTOM';
-            const Icon = TYPE_ICONS[tmplType] || FileText;
+        </PageHeader>
 
-            return (
-              <div
-                key={report.id}
-                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group cursor-pointer relative"
-                onClick={() => navigate(`/reporting/edit/${report.id}`)}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative max-w-xl">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rapor ara... (başlık, açıklama, denetçi)"
+                className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Report Cards Grid */}
+          {filteredReports.length === 0 ? (
+            <div className="text-center py-16">
+              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Rapor Bulunamadı</h3>
+              <p className="text-slate-500 mb-4">Farklı filtreler deneyin veya yeni rapor oluşturun</p>
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <div className={clsx(
-                  'h-2 rounded-t-xl bg-gradient-to-r',
-                  TYPE_COLORS[tmplType] || TYPE_COLORS.CUSTOM
-                )} />
+                Yeni Rapor Oluştur
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-6">
+              {filteredReports.map((report) => {
+                const TypeIcon = TYPE_ICONS[report.type] || FileText;
+                const statusCfg = STATUS_CONFIG[report.status];
+                const StatusIcon = statusCfg.icon;
 
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={clsx(
-                      'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-sm',
-                      TYPE_COLORS[tmplType] || TYPE_COLORS.CUSTOM
-                    )}>
-                      <Icon size={18} className="text-white" />
+                return (
+                  <button
+                    key={report.id}
+                    onClick={() => handleReportClick(report.id)}
+                    className="group relative bg-white rounded-2xl border-2 border-slate-200 overflow-hidden hover:border-blue-400 hover:shadow-xl transition-all text-left"
+                  >
+                    {/* Cover Abstract / Header */}
+                    <div className={clsx('p-6 border-b-2', RISK_COLORS[report.risk_level])}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-white rounded-lg shadow-sm">
+                            <TypeIcon size={18} className="text-slate-700" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-700">{report.type}</span>
+                        </div>
+                        <span
+                          className={clsx(
+                            'px-2 py-1 text-xs font-bold rounded-full',
+                            statusCfg.color
+                          )}
+                        >
+                          {statusCfg.label}
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-slate-900 mb-2 line-clamp-2 group-hover:text-blue-700 transition-colors">
+                        {report.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {report.cover_abstract}
+                      </p>
                     </div>
 
-                    <div className="relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === report.id ? null : report.id); }}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
-                      {menuOpen === report.id && (
-                        <div className="absolute right-0 top-8 bg-white border border-slate-200 rounded-lg shadow-xl z-10 py-1 w-36">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(report.id); }}
-                            className="w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 text-left"
-                          >
-                            <Trash2 size={12} /> Sil
-                          </button>
+                    {/* Card Body */}
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <User size={14} />
+                          <span>{report.auditor_name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Calendar size={14} />
+                          <span>{new Date(report.created_at).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                      </div>
+
+                      {report.finding_count > 0 && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg">
+                          <AlertTriangle size={14} className="text-orange-600" />
+                          <span className="text-xs font-semibold text-slate-700">
+                            {report.finding_count} Bulgu
+                          </span>
                         </div>
                       )}
+
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <span
+                          className={clsx(
+                            'px-2 py-0.5 rounded font-medium',
+                            report.risk_level === 'CRITICAL'
+                              ? 'bg-red-100 text-red-700'
+                              : report.risk_level === 'HIGH'
+                              ? 'bg-orange-100 text-orange-700'
+                              : report.risk_level === 'MEDIUM'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-blue-100 text-blue-700'
+                          )}
+                        >
+                          {report.risk_level === 'CRITICAL'
+                            ? 'Kritik Risk'
+                            : report.risk_level === 'HIGH'
+                            ? 'Yüksek Risk'
+                            : report.risk_level === 'MEDIUM'
+                            ? 'Orta Risk'
+                            : 'Düşük Risk'}
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Template Selection Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Rapor Şablonu Seçin</h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  Standart şablonlardan biri ile başlayın veya boş sayfa ile devam edin
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              <button
+                onClick={() => handleCreateReport()}
+                className="w-full text-left border-2 border-dashed border-slate-300 rounded-xl p-6 hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                    <Plus size={32} className="text-slate-400 group-hover:text-blue-600" />
                   </div>
-
-                  <h3 className="text-sm font-bold text-slate-900 mb-1 line-clamp-2 leading-snug">
-                    {report.title}
-                  </h3>
-                  {report.description && (
-                    <p className="text-xs text-slate-400 line-clamp-1 mb-3">{report.description}</p>
-                  )}
-
-                  <div className="flex items-center justify-between mt-3">
-                    <span className={clsx('px-2 py-0.5 rounded-md text-[10px] font-bold', STATUS_COLORS[report.status])}>
-                      {STATUS_LABELS[report.status] || report.status}
-                    </span>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                      <Clock size={10} />
-                      {new Date(report.updated_at).toLocaleDateString('tr-TR')}
-                    </span>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Boş Rapor</h3>
+                    <p className="text-sm text-slate-600">
+                      Sıfırdan başlayın, istediğiniz gibi özelleştirin
+                    </p>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              </button>
 
-      {showTemplatePicker && (
-        <TemplatePicker
-          templates={templates}
-          onSelect={handleCreateFromTemplate}
-          onBlank={handleCreateBlank}
-          onClose={() => setShowTemplatePicker(false)}
-        />
+              {MOCK_REPORT_TEMPLATES.map((template) => {
+                const TemplateIcon = TYPE_ICONS[template.type] || FileText;
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => handleCreateReport(template.id)}
+                    className="w-full text-left border-2 border-slate-200 rounded-xl p-6 hover:border-blue-400 hover:bg-blue-50/50 transition-all group"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                        <TemplateIcon size={32} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{template.title}</h3>
+                        <p className="text-sm text-slate-600 mb-2">{template.description}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                            {template.estimated_time}
+                          </span>
+                          {template.use_cases.slice(0, 2).map((useCase, i) => (
+                            <span key={i} className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                              {useCase}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
