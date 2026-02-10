@@ -279,8 +279,8 @@ export default function ReportLibraryPage() {
             <div className="grid grid-cols-3 gap-6">
               {filteredReports.map((report) => {
                 const TypeIcon = TYPE_ICONS[report.type] || FileText;
-                const statusCfg = STATUS_CONFIG[report.status];
-                const StatusIcon = statusCfg.icon;
+                const statusCfg = STATUS_CONFIG[report.status] || STATUS_CONFIG.draft;
+                const StatusIcon = statusCfg?.icon || Clock;
 
                 return (
                   <div
