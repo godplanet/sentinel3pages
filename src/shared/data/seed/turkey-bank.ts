@@ -28,7 +28,10 @@ export class TurkeyBankSeeder {
     console.log('🏦 Starting Sentinel Katılım Bankası Seeder (HARDENED)...');
 
     try {
-      await this.step1_CreateTenant();
+      // Use existing tenant_id from database
+      this.tenantId = '11111111-1111-1111-1111-111111111111';
+      console.log(`📊 Using existing tenant ID: ${this.tenantId}`);
+
       await this.step2_CreateUsers();
       await this.step3_CreateHierarchy();
       await this.step4_CreateRiskLibrary();
@@ -775,11 +778,31 @@ export class TurkeyBankSeeder {
   }
 
   static async checkDatabaseEmpty(): Promise<boolean> {
-    const { count } = await supabase
-      .from('audit_entities')
-      .select('*', { count: 'exact', head: true });
+    // Check multiple tables to ensure comprehensive seed detection
+    const [entities, engagements, workpapers, findings] = await Promise.all([
+      supabase.from('audit_entities').select('*', { count: 'exact', head: true }),
+      supabase.from('audit_engagements').select('*', { count: 'exact', head: true }),
+      supabase.from('workpapers').select('*', { count: 'exact', head: true }),
+      supabase.from('audit_findings').select('*', { count: 'exact', head: true })
+    ]);
 
-    return count === 0;
+    // Database is "empty" if ANY critical table has insufficient data
+    const isInsufficient =
+      (entities.count ?? 0) < 5 ||
+      (engagements.count ?? 0) < 3 ||
+      (workpapers.count ?? 0) < 5 ||
+      (findings.count ?? 0) < 5;
+
+    if (isInsufficient) {
+      console.log('📊 Database needs seeding:', {
+        entities: entities.count,
+        engagements: engagements.count,
+        workpapers: workpapers.count,
+        findings: findings.count
+      });
+    }
+
+    return isInsufficient;
   }
 
   static async emergencyWipe(): Promise<void> {
