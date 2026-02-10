@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { AppShell } from '@/app/layout/AppShell';
 import { AppRoutes } from '@/app/routes';
 import { UniversalSeeder } from '@/shared/data/seed';
+import { PersonaSeeder } from '@/shared/data/seed/persona-seeder';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +28,11 @@ function App() {
           console.log('📦 Database is empty. Starting data seeding...');
           setIsSeeding(true);
           await UniversalSeeder.seed();
+
+          // Seed persona-specific data
+          console.log('🎭 Seeding persona-specific data...');
+          await PersonaSeeder.seedAll();
+
           setSeedingComplete(true);
           setIsSeeding(false);
           console.log('✅ Demo verileri yüklendi! (Demo data loaded!)');

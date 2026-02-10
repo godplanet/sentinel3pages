@@ -30,6 +30,9 @@ interface UIState {
   setAuditeeMode: (mode: boolean) => void;
 }
 
+export { usePersonaStore, PERSONAS } from './persona-store';
+export type { PersonaRole, PersonaConfig } from './persona-store';
+
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({

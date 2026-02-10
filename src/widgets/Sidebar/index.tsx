@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/shared/stores/ui-store';
 import { useChatStore } from '@/shared/stores/chat-store';
+import { usePersonaStore, PERSONAS, type PersonaRole } from '@/shared/stores/persona-store';
 import { getEnvClasses } from '@/shared/lib/theme';
 import { navigationConfig, type NavigationItem } from '@/shared/config/navigation';
 import {
@@ -11,6 +12,12 @@ import {
   Sparkles,
   User,
   LogOut,
+  UserCog,
+  Shield,
+  Eye,
+  Building,
+  Package,
+  CheckCircle,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
@@ -26,22 +33,22 @@ export const Sidebar = () => {
   const { t } = useTranslation();
   const { isSidebarOpen, environment, sidebarColor, setAuditeeMode } = useUIStore();
   const { setChatOpen } = useChatStore();
+  const { currentPersona, setPersona, isPathAllowed, getCurrentPersonaConfig } = usePersonaStore();
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedModule, setExpandedModule] = useState<string | null>('dashboard');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('sentinel_user');
-    if (userStr) {
-      try {
-        setUserData(JSON.parse(userStr));
-      } catch (e) {
-        console.error('Failed to parse user data:', e);
-      }
-    }
-  }, []);
+    const config = getCurrentPersonaConfig();
+    setUserData({
+      name: config.name,
+      role: config.title,
+      title: config.title,
+    });
+  }, [currentPersona, getCurrentPersonaConfig]);
 
   const toggleModule = (moduleId: string) => {
     if (!isSidebarOpen) return;
@@ -96,10 +103,54 @@ export const Sidebar = () => {
         return 'bg-green-500 text-white';
       case 'purple':
         return 'bg-purple-500 text-white';
+      case 'emerald':
+        return 'bg-emerald-500 text-white';
       default:
         return 'bg-amber-500 text-white';
     }
   };
+
+  const getPersonaIcon = (role: PersonaRole) => {
+    switch (role) {
+      case 'CAE': return Shield;
+      case 'AUDITOR': return UserCog;
+      case 'EXECUTIVE': return Eye;
+      case 'AUDITEE': return Building;
+      case 'SUPPLIER': return Package;
+      default: return User;
+    }
+  };
+
+  const getPersonaColor = (role: PersonaRole) => {
+    switch (role) {
+      case 'CAE': return 'text-purple-400';
+      case 'AUDITOR': return 'text-blue-400';
+      case 'EXECUTIVE': return 'text-amber-400';
+      case 'AUDITEE': return 'text-green-400';
+      case 'SUPPLIER': return 'text-orange-400';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const handlePersonaSwitch = (role: PersonaRole) => {
+    setPersona(role);
+    setShowPersonaMenu(false);
+    setShowUserMenu(false);
+    navigate('/dashboard');
+  };
+
+  // Filter navigation based on persona
+  const filteredNavigation = navigationConfig.filter(module => {
+    if (!module.path && !module.children) return true;
+    if (module.path && !isPathAllowed(module.path)) return false;
+    if (module.children) {
+      const hasAllowedChildren = module.children.some(child =>
+        child.path && isPathAllowed(child.path)
+      );
+      return hasAllowedChildren;
+    }
+    return true;
+  });
 
   return (
     <aside
@@ -124,7 +175,7 @@ export const Sidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-white/10">
-        {navigationConfig.map((module) => {
+        {filteredNavigation.map((module) => {
           const isExpanded = expandedModule === module.id;
           const isActive = isModuleActive(module);
           const Icon = module.icon;
@@ -198,7 +249,7 @@ export const Sidebar = () => {
 
               {isSidebarOpen && isExpanded && module.children && (
                 <div className="ml-3 pl-3 border-l-2 border-white/10 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                  {module.children.map((subItem) => {
+                  {module.children.filter(child => !child.path || isPathAllowed(child.path)).map((subItem) => {
                     if (!subItem.path) return null;
                     const isSubActive = isSubmenuActive(subItem.path);
                     const SubIcon = subItem.icon;
@@ -265,6 +316,46 @@ export const Sidebar = () => {
         </button>
 
         <div className="relative">
+          {showPersonaMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowPersonaMenu(false)}
+              />
+              <div className="absolute bottom-full left-0 right-0 mb-2 z-50 bg-slate-800 border border-white/20 rounded-lg shadow-2xl overflow-hidden max-h-96 overflow-y-auto">
+                <div className="px-4 py-2 bg-white/5 border-b border-white/10">
+                  <div className="text-xs font-bold text-white uppercase tracking-wider">Rol Simülasyonu</div>
+                </div>
+                {(Object.keys(PERSONAS) as PersonaRole[]).map((role) => {
+                  const persona = PERSONAS[role];
+                  const Icon = getPersonaIcon(role);
+                  const isActive = currentPersona === role;
+                  return (
+                    <button
+                      key={role}
+                      onClick={() => handlePersonaSwitch(role)}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors',
+                        isActive
+                          ? 'bg-blue-500/20 text-blue-300 border-l-4 border-blue-500'
+                          : 'text-white hover:bg-white/10'
+                      )}
+                    >
+                      <Icon size={18} className={getPersonaColor(role)} />
+                      <div className="flex-1">
+                        <div className="font-semibold">{persona.name}</div>
+                        <div className="text-xs opacity-70">{persona.title}</div>
+                      </div>
+                      {isActive && (
+                        <CheckCircle className="text-blue-500" size={16} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
           {showUserMenu && (
             <>
               <div
@@ -285,14 +376,13 @@ export const Sidebar = () => {
                 <div className="border-t border-white/10" />
                 <button
                   onClick={() => {
-                    setAuditeeMode(true);
-                    navigate('/auditee');
+                    setShowPersonaMenu(true);
                     setShowUserMenu(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-amber-300 hover:bg-amber-500/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm text-purple-300 hover:bg-purple-500/10 transition-colors"
                 >
-                  <User size={16} />
-                  <span>Denetlenen Modu</span>
+                  <UserCog size={16} />
+                  <span>Rol Değiştir</span>
                 </button>
                 <div className="border-t border-white/10" />
                 <button

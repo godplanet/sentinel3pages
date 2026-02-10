@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { UniversalSeeder, type SeedProgress } from '@/shared/lib/universal-seeder';
+import PersonaSwitcher from '@/widgets/PersonaSwitcher';
 import {
   Database,
   RefreshCw,
@@ -193,6 +194,33 @@ export default function SystemHealthPage() {
               FACTORY RESET
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Persona Switcher */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <PersonaSwitcher />
+        </div>
+        <div className="lg:col-span-2 bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
+                Rol Simülasyonu Aktif
+              </h3>
+              <p className="text-sm text-slate-700 mb-3">
+                Sentinel v3.0 artık 5 farklı kullanıcı rolü simülasyonu yapabilir. Her rol için farklı erişim izinleri ve demo verileri otomatik olarak yüklenir.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-purple-500 text-white rounded-full text-xs font-bold">CAE (Admin)</span>
+                <span className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-bold">Auditor</span>
+                <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold">Executive (GMY)</span>
+                <span className="px-3 py-1 bg-green-500 text-white rounded-full text-xs font-bold">Auditee</span>
+                <span className="px-3 py-1 bg-orange-500 text-white rounded-full text-xs font-bold">Supplier</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

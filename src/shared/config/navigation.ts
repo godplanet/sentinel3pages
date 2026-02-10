@@ -533,6 +533,14 @@ export const navigationConfig: NavigationItem[] = [
         badge: 'DEV',
         badgeColor: 'purple',
       },
+      {
+        id: 'page-audit',
+        label: 'Sayfa Denetim Aracı',
+        path: '/dev/page-audit',
+        icon: FileSearch,
+        badge: 'DEV',
+        badgeColor: 'red',
+      },
     ],
   },
 ];

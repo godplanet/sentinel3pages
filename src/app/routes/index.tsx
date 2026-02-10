@@ -98,6 +98,7 @@ import RiskSimulationPage from '@/pages/strategy/RiskSimulationPage';
 import NeuralMapPage from '@/pages/strategy/NeuralMapPage';
 import FieldAgentPage from '@/pages/execution/FieldAgentPage';
 import SiteMapPage from '@/pages/dev/SiteMapPage';
+import PageAuditPage from '@/pages/dev/PageAuditPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -250,6 +251,7 @@ export const AppRoutes = () => {
       <Route path="/findings" element={<Navigate to="/execution/findings" replace />} />
 
       <Route path="/dev-map" element={<ProtectedRoute><SiteMapPage /></ProtectedRoute>} />
+      <Route path="/dev/page-audit" element={<ProtectedRoute><PageAuditPage /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
