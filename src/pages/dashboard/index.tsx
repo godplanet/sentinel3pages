@@ -10,8 +10,9 @@ import { StrategicAnalyticsView } from '@/widgets/dashboard/StrategicAnalyticsVi
 import { EcosystemView } from '@/widgets/dashboard/EcosystemView';
 import { RiskHeatMap } from '@/widgets/dashboard/RiskHeatMap';
 import { PredictiveRadar } from '@/widgets/PredictiveRadar';
-import { mockWelcome, mockAIBrief, mockTasks, mockActivities } from './mockData';
 import { useDashboardStats, buildKPICards } from './useDashboardStats';
+import { useDashboardLiveData } from './useDashboardLiveData';
+import { mockWelcome, mockAIBrief, mockTasks, mockActivities } from './mockData';
 import clsx from 'clsx';
 
 type TabKey = 'mission-control' | 'strategic-analysis' | 'ecosystem';
@@ -25,7 +26,13 @@ const TABS = [
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('mission-control');
   const { data: stats } = useDashboardStats();
+  const { data: liveData } = useDashboardLiveData();
   const kpiCards = buildKPICards(stats);
+
+  const welcome = liveData?.welcome || mockWelcome;
+  const aiBrief = liveData?.aiBrief || mockAIBrief;
+  const tasks = liveData?.tasks || mockTasks;
+  const activities = liveData?.activities || mockActivities;
 
   return (
     <div className="space-y-6">
@@ -63,18 +70,18 @@ export default function DashboardPage() {
 
       {activeTab === 'mission-control' && (
         <div className="space-y-6">
-          <MissionControlHero welcome={mockWelcome} aiBrief={mockAIBrief} />
+          <MissionControlHero welcome={welcome} aiBrief={aiBrief} />
 
           <KPITicker kpis={kpiCards} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <TaskWorkbench tasks={mockTasks} />
+              <TaskWorkbench tasks={tasks} />
             </div>
 
             <div className="space-y-6">
               <SystemHealthWidget />
-              <LivePulse activities={mockActivities} />
+              <LivePulse activities={activities} />
             </div>
           </div>
 
