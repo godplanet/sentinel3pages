@@ -48,39 +48,10 @@ export class TurkeyBankSeeder {
   }
 
   private static async step1_CreateTenant(): Promise<void> {
-    console.log('📊 Step 1/7: Creating Tenant - Sentinel Katılım Bankası A.Ş.');
-
-    const tenant = {
-      id: '00000000-0000-4000-8000-100000000001',
-      name: 'Sentinel Katılım Bankası A.Ş.',
-      slug: 'sentinel-katilim',
-      type: 'HEAD_OFFICE',
-      environment: 'PROD',
-      settings: {
-        language: 'tr',
-        currency: 'TRY',
-        fiscal_year_end: '12-31',
-        risk_methodology: 'KERD_2026',
-        banking_type: 'Participation Bank',
-        regulatory_body: 'BDDK',
-        sharia_board: 'Danışma Komitesi'
-      }
-    };
-
-    const { data, error } = await supabase
-      .from('tenants')
-      .upsert(tenant, { onConflict: 'id' })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('❌ Failed to create tenant:', error);
-      throw error;
-    }
-
-    this.tenantId = data.id;
-    this.result.tenant = data;
-    console.log(`   ✓ Created/Updated tenant: ${data.name} (ID: ${this.tenantId})`);
+    // DEPRECATED: Using hardcoded tenant_id instead
+    // Tenant creation is handled by migrations, not client-side seeding
+    console.log('📊 Step 1/7: Skipping tenant creation (using existing tenant)');
+    this.result.tenant = { id: this.tenantId, name: 'Demo Bank' };
   }
 
   private static async step2_CreateUsers(): Promise<void> {
