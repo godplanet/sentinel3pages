@@ -41,6 +41,8 @@ export class TurkeyBankSeeder {
     const tenant = {
       name: 'Sentinel Katılım Bankası A.Ş.',
       slug: 'sentinel-katilim',
+      type: 'HEAD_OFFICE',
+      environment: 'PROD',
       settings: {
         language: 'tr',
         currency: 'TRY',
@@ -418,9 +420,25 @@ export class TurkeyBankSeeder {
       }
     ];
 
+    const risksFormatted = risks.map(r => ({
+      tenant_id: r.tenant_id,
+      risk_code: r.risk_code,
+      risk_title: r.risk_title,
+      risk_description: r.risk_description,
+      risk_category: r.risk_category,
+      inherent_impact: r.inherent_impact,
+      inherent_likelihood: r.inherent_likelihood,
+      residual_impact: r.residual_impact,
+      residual_likelihood: r.residual_likelihood,
+      control_effectiveness: r.control_effectiveness,
+      custom_fields: r.metadata,
+      is_active: true,
+      risk_status: 'ACTIVE'
+    }));
+
     const { data, error } = await supabase
-      .from('audit_risks')
-      .insert(risks)
+      .from('rkm_risks')
+      .insert(risksFormatted)
       .select();
 
     if (error) throw error;
