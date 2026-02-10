@@ -1,0 +1,146 @@
+import { PageHeader } from '@/shared/ui';
+import { SidebarColorPicker } from '@/features/theme-switcher';
+import { Palette, Paintbrush, Monitor, Moon, Sun } from 'lucide-react';
+
+export default function AppearancePage() {
+  return (
+    <div className="p-6 space-y-6">
+      <PageHeader
+        title="Görünüm"
+        description="Sidebar renkleri, tema ve görsel özelleştirme ayarları"
+        badge="MODÜL 8: AYARLAR"
+      />
+
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0">
+            <Palette className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Chameleon Engine - Dinamik Renk Sistemi</h3>
+            <p className="text-slate-600 text-sm">
+              Sentinel, ortam bazlı otomatik renk değişimi (PROD=Navy, TEST=Green) ve manuel renk seçimi destekler.
+              Ayrıca Light/Dark mode ve VDI optimizasyonu ile tüm kullanım senaryolarını destekler.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Paintbrush size={20} className="text-purple-600" />
+              Sidebar Renk Özelleştirme
+            </h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Sidebar rengini kurum kimliğinize göre özelleştirin
+            </p>
+          </div>
+          <div className="p-8">
+            <SidebarColorPicker />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Monitor size={20} className="text-blue-600" />
+                Tema Modu
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
+              <button className="w-full flex items-center justify-between p-4 border-2 border-blue-500 bg-blue-50 rounded-lg transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <Sun className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-slate-800">Açık Mod</div>
+                    <div className="text-xs text-slate-600">Digital Paper</div>
+                  </div>
+                </div>
+                <div className="w-5 h-5 rounded-full bg-blue-600 border-4 border-white shadow-sm"></div>
+              </button>
+
+              <button className="w-full flex items-center justify-between p-4 border-2 border-slate-200 hover:border-slate-300 rounded-lg transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                    <Moon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-slate-800">Koyu Mod</div>
+                    <div className="text-xs text-slate-600">Yakında</div>
+                  </div>
+                </div>
+                <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>
+              </button>
+
+              <div className="pt-3 border-t border-slate-200">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
+                      <Monitor className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-slate-800 text-sm">VDI Modu</div>
+                      <div className="text-xs text-slate-600">Citrix/RDP için optimize</div>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Palette size={20} className="text-green-600" />
+                Renk Profilleri
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                Hazır Renkler
+              </div>
+              <button className="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800"></div>
+                <span className="text-sm font-medium text-slate-800">Corporate Navy</span>
+              </button>
+              <button className="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-600 to-green-800"></div>
+                <span className="text-sm font-medium text-slate-800">Test Green</span>
+              </button>
+              <button className="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800"></div>
+                <span className="text-sm font-medium text-slate-800">Innovation Purple</span>
+              </button>
+              <button className="w-full flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:border-slate-500 hover:bg-slate-50 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900"></div>
+                <span className="text-sm font-medium text-slate-800">Professional Dark</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <div className="flex items-start gap-3">
+          <Monitor className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-1">Dual-Physics Rendering</h4>
+            <p className="text-sm text-blue-800">
+              Sentinel otomatik olarak performansı algılar. Yüksek performanslı sistemlerde <strong>backdrop-blur</strong> (Glass) efekti,
+              VDI/Citrix ortamlarında ise <strong>solid white</strong> (No Blur) kullanır. Bu sayede tüm platformlarda optimum performans sağlanır.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

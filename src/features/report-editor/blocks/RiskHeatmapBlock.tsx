@@ -1,0 +1,285 @@
+/**
+ * Risk Heatmap Block - Live SVG Heatmap Embedded in Report
+ *
+ * This component renders the actual live risk heatmap (Comet Chart)
+ * directly in the document editor and PDF exports.
+ */
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/shared/api/supabase';
+import { Loader2, AlertTriangle } from 'lucide-react';
+
+interface RiskEntity {
+  entity_name: string;
+  risk_score: number;
+  path: string;
+  risk_velocity?: number;
+  strategic_zone?: string;
+}
+
+interface RiskHeatmapBlockProps {
+  width?: number;
+  height?: number;
+  showTitle?: boolean;
+}
+
+export function RiskHeatmapBlock({
+  width = 800,
+  height = 600,
+  showTitle = true,
+}: RiskHeatmapBlockProps) {
+  const [entities, setEntities] = useState<RiskEntity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRiskData();
+  }, []);
+
+  const fetchRiskData = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error: err } = await supabase
+        .from('audit_universe')
+        .select('entity_name, risk_score, path, risk_velocity, strategic_zone')
+        .gte('risk_score', 40)
+        .order('risk_score', { ascending: false })
+        .limit(20);
+
+      if (err) throw err;
+
+      setEntities(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load risk data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="flex items-center justify-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg"
+        style={{ width, height }}
+      >
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-slate-600">Loading Risk Heatmap...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="flex items-center justify-center bg-red-50 border-2 border-dashed border-red-300 rounded-lg"
+        style={{ width, height }}
+      >
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxScore = Math.max(...entities.map((e) => e.risk_score));
+  const minScore = Math.min(...entities.map((e) => e.risk_score));
+
+  const getRiskColor = (score: number): string => {
+    if (score >= 90) return '#dc2626';
+    if (score >= 70) return '#f97316';
+    if (score >= 40) return '#fbbf24';
+    return '#22c55e';
+  };
+
+  const getScaledRadius = (score: number): number => {
+    const minRadius = 8;
+    const maxRadius = 24;
+    const normalized = (score - minScore) / (maxScore - minScore);
+    return minRadius + normalized * (maxRadius - minRadius);
+  };
+
+  const margin = { top: 40, right: 60, bottom: 60, left: 60 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  const xScale = (index: number) => (index / (entities.length - 1)) * chartWidth;
+  const yScale = (score: number) => chartHeight - (score / 100) * chartHeight;
+
+  return (
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+      {showTitle && (
+        <div className="px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+          <h3 className="font-bold text-sm">Strategic Risk Heatmap</h3>
+          <p className="text-xs text-slate-400">
+            Top {entities.length} entities by risk score (as of {new Date().toLocaleDateString()})
+          </p>
+        </div>
+      )}
+
+      <svg width={width} height={height} className="bg-gradient-to-br from-slate-50 to-white">
+        <defs>
+          <linearGradient id="gridGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#94a3b8" stopOpacity="0.05" />
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g transform={`translate(${margin.left},${margin.top})`}>
+          {[0, 25, 50, 75, 100].map((val) => (
+            <g key={val}>
+              <line
+                x1={0}
+                y1={yScale(val)}
+                x2={chartWidth}
+                y2={yScale(val)}
+                stroke="url(#gridGradient)"
+                strokeWidth={val === 0 ? 2 : 1}
+              />
+              <text
+                x={-10}
+                y={yScale(val)}
+                textAnchor="end"
+                alignmentBaseline="middle"
+                className="text-xs fill-slate-500"
+              >
+                {val}
+              </text>
+              {val === 40 && (
+                <line
+                  x1={0}
+                  y1={yScale(val)}
+                  x2={chartWidth}
+                  y2={yScale(val)}
+                  stroke="#fbbf24"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                />
+              )}
+              {val === 70 && (
+                <line
+                  x1={0}
+                  y1={yScale(val)}
+                  x2={chartWidth}
+                  y2={yScale(val)}
+                  stroke="#f97316"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                />
+              )}
+              {val === 90 && (
+                <line
+                  x1={0}
+                  y1={yScale(val)}
+                  x2={chartWidth}
+                  y2={yScale(val)}
+                  stroke="#dc2626"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                />
+              )}
+            </g>
+          ))}
+
+          {entities.map((entity, index) => {
+            const cx = xScale(index);
+            const cy = yScale(entity.risk_score);
+            const radius = getScaledRadius(entity.risk_score);
+            const color = getRiskColor(entity.risk_score);
+
+            return (
+              <g key={entity.path}>
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius + 4}
+                  fill={color}
+                  opacity={0.2}
+                  filter="url(#glow)"
+                />
+                <circle cx={cx} cy={cy} r={radius} fill={color} opacity={0.8} />
+                <text
+                  x={cx}
+                  y={cy}
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                  className="text-[10px] font-bold fill-white"
+                >
+                  {entity.risk_score}
+                </text>
+              </g>
+            );
+          })}
+
+          <text
+            x={chartWidth / 2}
+            y={chartHeight + 40}
+            textAnchor="middle"
+            className="text-xs fill-slate-600 font-medium"
+          >
+            Entities (Sorted by Risk Score)
+          </text>
+
+          <text
+            x={-30}
+            y={chartHeight / 2}
+            textAnchor="middle"
+            transform={`rotate(-90, -30, ${chartHeight / 2})`}
+            className="text-xs fill-slate-600 font-medium"
+          >
+            Risk Score (0-100)
+          </text>
+        </g>
+
+        <g transform={`translate(${width - margin.right + 10}, ${margin.top})`}>
+          <text x={0} y={0} className="text-xs font-bold fill-slate-700">
+            Risk Zones
+          </text>
+          {[
+            { label: 'Critical', color: '#dc2626', range: '90-100' },
+            { label: 'High', color: '#f97316', range: '70-89' },
+            { label: 'Medium', color: '#fbbf24', range: '40-69' },
+            { label: 'Low', color: '#22c55e', range: '0-39' },
+          ].map((zone, i) => (
+            <g key={zone.label} transform={`translate(0, ${20 + i * 20})`}>
+              <circle cx={5} cy={0} r={4} fill={zone.color} />
+              <text x={12} y={0} alignmentBaseline="middle" className="text-[10px] fill-slate-600">
+                {zone.label} ({zone.range})
+              </text>
+            </g>
+          ))}
+        </g>
+      </svg>
+
+      <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
+        <div className="grid grid-cols-3 gap-4 text-xs">
+          <div>
+            <div className="text-slate-500">Total Entities</div>
+            <div className="font-bold text-slate-900">{entities.length}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">Avg Risk Score</div>
+            <div className="font-bold text-slate-900">
+              {(entities.reduce((sum, e) => sum + e.risk_score, 0) / entities.length).toFixed(1)}
+            </div>
+          </div>
+          <div>
+            <div className="text-slate-500">Critical (≥90)</div>
+            <div className="font-bold text-red-600">
+              {entities.filter((e) => e.risk_score >= 90).length}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
