@@ -101,6 +101,7 @@ import NeuralMapPage from '@/pages/strategy/NeuralMapPage';
 import FieldAgentPage from '@/pages/execution/FieldAgentPage';
 import SiteMapPage from '@/pages/dev/SiteMapPage';
 import PageAuditPage from '@/pages/dev/PageAuditPage';
+import DiagnosticsPage from '@/pages/dev/DiagnosticsPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -256,6 +257,7 @@ export const AppRoutes = () => {
 
       <Route path="/dev-map" element={<ProtectedRoute><SiteMapPage /></ProtectedRoute>} />
       <Route path="/dev/page-audit" element={<ProtectedRoute><PageAuditPage /></ProtectedRoute>} />
+      <Route path="/dev/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

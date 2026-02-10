@@ -484,6 +484,14 @@ export const navigationConfig: NavigationItem[] = [
         badgeColor: 'red',
       },
       {
+        id: 'diagnostics',
+        label: 'Test & Tanı',
+        path: '/dev/diagnostics',
+        icon: Activity,
+        badge: 'TEST',
+        badgeColor: 'blue',
+      },
+      {
         id: 'risk-constitution',
         label: 'Risk Anayasası',
         path: '/settings/risk-constitution',
