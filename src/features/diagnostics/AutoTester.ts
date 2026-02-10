@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/api/supabase';
+import { TurkeyBankSeeder, PERSONA_IDS } from '@/shared/data/seed/turkey-bank';
 
 export interface TestResult {
   test: string;
@@ -23,17 +24,21 @@ export interface DiagnosticReport {
     findingCount: number;
     workpaperCount: number;
   };
+  selfHealed?: boolean;
 }
 
 export class AutoTester {
   private results: TestResult[] = [];
   private testEngagementId: string | null = null;
   private testFindingId: string | null = null;
+  private selfHealed: boolean = false;
 
   async runFullDiagnostics(): Promise<DiagnosticReport> {
-    console.log('🤖 Starting Sentinel Auto-Tester...');
+    console.log('🤖 Starting Sentinel Auto-Tester (SELF-HEALING)...');
 
     const startTime = Date.now();
+
+    await this.preFlight_SelfHeal();
 
     await this.test1_DatabaseConnectivity();
     await this.test2_SystemData();
@@ -58,11 +63,36 @@ export class AutoTester {
       warned,
       tests: this.results,
       systemHealth,
+      selfHealed: this.selfHealed,
     };
 
     console.log(`✅ Diagnostics complete: ${passed}/${this.results.length} tests passed`);
 
     return report;
+  }
+
+  private async preFlight_SelfHeal(): Promise<void> {
+    console.log('🔍 Pre-Flight: Checking Database Health...');
+
+    const { count: userCount } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true });
+
+    if (userCount === 0) {
+      console.warn('⚠️ EMPTY DATABASE DETECTED! Initiating Emergency Self-Healing...');
+      console.log('🧬 Running Turkey Bank Seeder...');
+
+      try {
+        await TurkeyBankSeeder.seed();
+        this.selfHealed = true;
+        console.log('✅ Self-Healing Complete! Database restored. Resuming tests...\n');
+      } catch (error) {
+        console.error('❌ Self-Healing Failed:', error);
+        throw new Error('AutoTester cannot proceed: Database is empty and seeder failed.');
+      }
+    } else {
+      console.log(`✓ Database healthy: ${userCount} users found. Proceeding...\n`);
+    }
   }
 
   private async test1_DatabaseConnectivity(): Promise<void> {
@@ -140,20 +170,13 @@ export class AutoTester {
 
       if (!entity) throw new Error('No entities found');
 
-      const { data: user } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('role', 'auditor')
-        .limit(1)
-        .single();
-
       const engagement = {
         name: 'AUTO-TEST Engagement',
         engagement_code: `TEST-${Date.now()}`,
         engagement_type: 'Operational Audit',
         status: 'PLANNED',
         entity_id: entity.id,
-        lead_auditor_id: user?.id,
+        lead_auditor_id: PERSONA_IDS.AUDITOR_AHMET,
         planned_start_date: new Date().toISOString().split('T')[0],
         planned_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       };

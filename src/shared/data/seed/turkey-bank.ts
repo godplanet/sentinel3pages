@@ -1,5 +1,14 @@
 import { supabase } from '@/shared/api/supabase';
 
+export const PERSONA_IDS = {
+  CAE_HAKAN: '00000000-0000-4000-8000-000000000001',
+  AUDITOR_AHMET: '00000000-0000-4000-8000-000000000002',
+  AUDITEE_MEHMET: '00000000-0000-4000-8000-000000000003',
+  AUDITEE_AYSE: '00000000-0000-4000-8000-000000000004',
+  EXECUTIVE_IBRAHIM: '00000000-0000-4000-8000-000000000005',
+  AUDITOR_ZEYNEP: '00000000-0000-4000-8000-000000000006',
+} as const;
+
 interface TurkeyBankSeedResult {
   tenant: any;
   users: any[];
@@ -16,7 +25,7 @@ export class TurkeyBankSeeder {
   private static result: Partial<TurkeyBankSeedResult> = {};
 
   static async seed(): Promise<void> {
-    console.log('🏦 Starting Sentinel Katılım Bankası Seeder...');
+    console.log('🏦 Starting Sentinel Katılım Bankası Seeder (HARDENED)...');
 
     try {
       await this.step1_CreateTenant();
@@ -39,6 +48,7 @@ export class TurkeyBankSeeder {
     console.log('📊 Step 1/7: Creating Tenant - Sentinel Katılım Bankası A.Ş.');
 
     const tenant = {
+      id: '00000000-0000-4000-8000-100000000001',
       name: 'Sentinel Katılım Bankası A.Ş.',
       slug: 'sentinel-katilim',
       type: 'HEAD_OFFICE',
@@ -56,27 +66,32 @@ export class TurkeyBankSeeder {
 
     const { data, error } = await supabase
       .from('tenants')
-      .insert(tenant)
+      .upsert(tenant, { onConflict: 'id' })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Failed to create tenant:', error);
+      throw error;
+    }
 
     this.tenantId = data.id;
     this.result.tenant = data;
-    console.log(`   ✓ Created tenant: ${data.name} (ID: ${this.tenantId})`);
+    console.log(`   ✓ Created/Updated tenant: ${data.name} (ID: ${this.tenantId})`);
   }
 
   private static async step2_CreateUsers(): Promise<void> {
-    console.log('📊 Step 2/7: Creating Users (RBAC)');
+    console.log('📊 Step 2/7: Creating Users (RBAC) with Hardcoded UUIDs');
 
     const users = [
       {
+        id: PERSONA_IDS.CAE_HAKAN,
         tenant_id: this.tenantId,
         email: 'hakan@sentinel.com',
         full_name: 'Hakan Yılmaz',
         role: 'admin',
         title: 'İç Denetim Başkanı (CAE)',
+        avatar_url: null,
         metadata: {
           certifications: ['CIA', 'CFE', 'CISA'],
           persona: 'CAE',
@@ -86,11 +101,13 @@ export class TurkeyBankSeeder {
         }
       },
       {
+        id: PERSONA_IDS.AUDITOR_AHMET,
         tenant_id: this.tenantId,
         email: 'ahmet@sentinel.com',
         full_name: 'Ahmet Demir',
         role: 'auditor',
         title: 'Kıdemli Denetçi',
+        avatar_url: null,
         metadata: {
           certifications: ['CIA', 'CISA'],
           persona: 'AUDITOR',
@@ -101,11 +118,13 @@ export class TurkeyBankSeeder {
         }
       },
       {
+        id: PERSONA_IDS.AUDITEE_MEHMET,
         tenant_id: this.tenantId,
         email: 'mehmet@kadikoy.bank',
         full_name: 'Mehmet Kaya',
         role: 'auditee',
         title: 'Kadıköy Şube Müdürü',
+        avatar_url: null,
         metadata: {
           persona: 'AUDITEE',
           department: 'Şube Ağı',
@@ -115,11 +134,13 @@ export class TurkeyBankSeeder {
         }
       },
       {
+        id: PERSONA_IDS.AUDITEE_AYSE,
         tenant_id: this.tenantId,
         email: 'ayse@umraniye.bank',
         full_name: 'Ayşe Şahin',
         role: 'auditee',
         title: 'Ümraniye Şube Müdürü',
+        avatar_url: null,
         metadata: {
           persona: 'AUDITEE',
           department: 'Şube Ağı',
@@ -129,11 +150,13 @@ export class TurkeyBankSeeder {
         }
       },
       {
+        id: PERSONA_IDS.EXECUTIVE_IBRAHIM,
         tenant_id: this.tenantId,
         email: 'danisma@sentinel.com',
         full_name: 'Prof. Dr. İbrahim Öztürk',
         role: 'guest',
         title: 'Danışma Komitesi Üyesi',
+        avatar_url: null,
         metadata: {
           persona: 'EXECUTIVE',
           department: 'Danışma Komitesi',
@@ -142,11 +165,13 @@ export class TurkeyBankSeeder {
         }
       },
       {
+        id: PERSONA_IDS.AUDITOR_ZEYNEP,
         tenant_id: this.tenantId,
         email: 'zeynep@sentinel.com',
         full_name: 'Zeynep Arslan',
         role: 'auditor',
         title: 'BT Denetçisi',
+        avatar_url: null,
         metadata: {
           certifications: ['CISA', 'CISSP'],
           persona: 'AUDITOR',
@@ -158,13 +183,19 @@ export class TurkeyBankSeeder {
 
     const { data, error } = await supabase
       .from('user_profiles')
-      .insert(users)
+      .upsert(users, { onConflict: 'id' })
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Failed to seed users:', error.message, error);
+      throw error;
+    }
 
     this.result.users = data || [];
-    console.log(`   ✓ Created ${data?.length} users`);
+    console.log(`   ✓ Created/Updated ${data?.length} users`);
+    console.log(`   → CAE (Hakan): ${PERSONA_IDS.CAE_HAKAN}`);
+    console.log(`   → Auditor (Ahmet): ${PERSONA_IDS.AUDITOR_AHMET}`);
+    console.log(`   → Auditee (Mehmet): ${PERSONA_IDS.AUDITEE_MEHMET}`);
   }
 
   private static async step3_CreateHierarchy(): Promise<void> {
@@ -303,10 +334,13 @@ export class TurkeyBankSeeder {
 
     const { data, error } = await supabase
       .from('audit_entities')
-      .insert(entities)
+      .upsert(entities, { onConflict: 'tenant_id,code' })
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Failed to create entities:', error);
+      throw error;
+    }
 
     this.result.entities = data || [];
     console.log(`   ✓ Created ${data?.length} entities (HQ + Departments + Branches)`);
@@ -327,11 +361,13 @@ export class TurkeyBankSeeder {
         residual_impact: 3,
         residual_likelihood: 2,
         control_effectiveness: 0.7,
-        metadata: {
+        custom_fields: {
           regulatory_reference: 'TKBB Şeriat Standartları, AAOIFI',
           is_sharia_risk: true,
           framework: 'GIAS2024'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       },
       {
         tenant_id: this.tenantId,
@@ -344,11 +380,13 @@ export class TurkeyBankSeeder {
         residual_impact: 3,
         residual_likelihood: 2,
         control_effectiveness: 0.75,
-        metadata: {
+        custom_fields: {
           regulatory_reference: 'BDDK Katılma Hesapları Yönetmeliği',
           is_financial_crime: false,
           framework: 'GIAS2024'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       },
       {
         tenant_id: this.tenantId,
@@ -361,11 +399,13 @@ export class TurkeyBankSeeder {
         residual_impact: 2,
         residual_likelihood: 2,
         control_effectiveness: 0.8,
-        metadata: {
+        custom_fields: {
           regulatory_reference: 'İç Kontrol Talimatı',
           is_key_control: true,
           framework: 'COSO'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       },
       {
         tenant_id: this.tenantId,
@@ -378,11 +418,13 @@ export class TurkeyBankSeeder {
         residual_impact: 3,
         residual_likelihood: 1,
         control_effectiveness: 0.85,
-        metadata: {
+        custom_fields: {
           regulatory_reference: 'BDDK BT Risk Yönetimi Rehberi',
           disaster_recovery_plan: true,
           framework: 'COBIT'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       },
       {
         tenant_id: this.tenantId,
@@ -395,11 +437,13 @@ export class TurkeyBankSeeder {
         residual_impact: 3,
         residual_likelihood: 2,
         control_effectiveness: 0.7,
-        metadata: {
+        custom_fields: {
           regulatory_reference: 'BDDK Kredi Sınıflandırma Tebliği',
           is_credit_risk: true,
           framework: 'Basel III'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       },
       {
         tenant_id: this.tenantId,
@@ -412,36 +456,25 @@ export class TurkeyBankSeeder {
         residual_impact: 2,
         residual_likelihood: 1,
         control_effectiveness: 0.9,
-        metadata: {
+        custom_fields: {
           regulatory_reference: '5549 Sayılı Kanun, MASAK Tebliğleri',
           is_regulatory: true,
           framework: 'GIAS2024'
-        }
+        },
+        is_active: true,
+        risk_status: 'ACTIVE'
       }
     ];
 
-    const risksFormatted = risks.map(r => ({
-      tenant_id: r.tenant_id,
-      risk_code: r.risk_code,
-      risk_title: r.risk_title,
-      risk_description: r.risk_description,
-      risk_category: r.risk_category,
-      inherent_impact: r.inherent_impact,
-      inherent_likelihood: r.inherent_likelihood,
-      residual_impact: r.residual_impact,
-      residual_likelihood: r.residual_likelihood,
-      control_effectiveness: r.control_effectiveness,
-      custom_fields: r.metadata,
-      is_active: true,
-      risk_status: 'ACTIVE'
-    }));
-
     const { data, error } = await supabase
       .from('rkm_risks')
-      .insert(risksFormatted)
+      .upsert(risks, { onConflict: 'tenant_id,risk_code' })
       .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Failed to create risks:', error);
+      throw error;
+    }
 
     this.result.risks = data || [];
     console.log(`   ✓ Created ${data?.length} participation banking risks`);
@@ -468,11 +501,14 @@ export class TurkeyBankSeeder {
 
     const { data: templateData, error: templateError } = await supabase
       .from('program_templates')
-      .insert(template)
+      .upsert(template, { onConflict: 'tenant_id,name' })
       .select()
       .single();
 
-    if (templateError) throw templateError;
+    if (templateError) {
+      console.error('❌ Failed to create template:', templateError);
+      throw templateError;
+    }
 
     const riskIds = this.result.risks?.map(r => r.id) || [];
     const steps = [
@@ -544,12 +580,17 @@ export class TurkeyBankSeeder {
       }
     ];
 
+    await supabase.from('template_steps').delete().eq('template_id', templateData.id);
+
     const { data: stepsData, error: stepsError } = await supabase
       .from('template_steps')
       .insert(steps)
       .select();
 
-    if (stepsError) throw stepsError;
+    if (stepsError) {
+      console.error('❌ Failed to create template steps:', stepsError);
+      throw stepsError;
+    }
 
     this.result.templates = [templateData];
     console.log(`   ✓ Created template: "${templateData.name}" with ${stepsData?.length} steps`);
@@ -558,7 +599,6 @@ export class TurkeyBankSeeder {
   private static async step6_CreateActiveEngagement(): Promise<void> {
     console.log('📊 Step 6/7: Creating Active Engagement');
 
-    const auditor = this.result.users?.find(u => u.email === 'ahmet@sentinel.com');
     const kadikoybranch = this.result.entities?.find(e => e.code === 'BR_KADIKOY');
 
     const engagement = {
@@ -568,7 +608,7 @@ export class TurkeyBankSeeder {
       engagement_type: 'Operational Audit',
       status: 'FIELDWORK',
       entity_id: kadikoybranch?.id,
-      lead_auditor_id: auditor?.id,
+      lead_auditor_id: PERSONA_IDS.AUDITOR_AHMET,
       planned_start_date: '2026-01-15',
       planned_end_date: '2026-02-28',
       actual_start_date: '2026-01-15',
@@ -586,11 +626,14 @@ export class TurkeyBankSeeder {
 
     const { data, error } = await supabase
       .from('audit_engagements')
-      .insert(engagement)
+      .upsert(engagement, { onConflict: 'tenant_id,engagement_code' })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Failed to create engagement:', error);
+      throw error;
+    }
 
     this.result.engagements = [data];
     console.log(`   ✓ Created engagement: "${data.name}" (Status: ${data.status})`);
@@ -600,8 +643,6 @@ export class TurkeyBankSeeder {
     console.log('📊 Step 7/7: Creating Workpapers & Findings');
 
     const engagement = this.result.engagements?.[0];
-    const auditor = this.result.users?.find(u => u.email === 'ahmet@sentinel.com');
-    const auditee = this.result.users?.find(u => u.email === 'mehmet@kadikoy.bank');
     const kadikoybranch = this.result.entities?.find(e => e.code === 'BR_KADIKOY');
 
     const workpapers = [
@@ -613,8 +654,8 @@ export class TurkeyBankSeeder {
         description: 'Kadıköy şubesinde kasa anahtarlarının çift kişi kontrolü sürecinin incelenmesi',
         workpaper_type: 'Test of Controls',
         status: 'COMPLETED',
-        assigned_to: auditor?.id,
-        prepared_by: auditor?.id,
+        assigned_to: PERSONA_IDS.AUDITOR_AHMET,
+        prepared_by: PERSONA_IDS.AUDITOR_AHMET,
         prepared_date: '2026-01-20',
         reviewed_by: null,
         reviewed_date: null,
@@ -632,8 +673,8 @@ export class TurkeyBankSeeder {
         description: 'Son 10 iş gününün kasa sayım tutanaklarının incelenmesi ve limit kontrolü',
         workpaper_type: 'Test of Controls',
         status: 'IN_PROGRESS',
-        assigned_to: auditor?.id,
-        prepared_by: auditor?.id,
+        assigned_to: PERSONA_IDS.AUDITOR_AHMET,
+        prepared_by: PERSONA_IDS.AUDITOR_AHMET,
         prepared_date: '2026-01-22',
         reviewed_by: null,
         reviewed_date: null,
@@ -646,10 +687,13 @@ export class TurkeyBankSeeder {
 
     const { data: wpData, error: wpError } = await supabase
       .from('workpapers')
-      .insert(workpapers)
+      .upsert(workpapers, { onConflict: 'tenant_id,engagement_id,ref_number' })
       .select();
 
-    if (wpError) throw wpError;
+    if (wpError) {
+      console.error('❌ Failed to create workpapers:', wpError);
+      throw wpError;
+    }
 
     this.result.workpapers = wpData || [];
     console.log(`   ✓ Created ${wpData?.length} workpapers`);
@@ -664,9 +708,9 @@ export class TurkeyBankSeeder {
       finding_type: 'Deficiency',
       severity: 'MODERATE',
       status: 'ISSUED_FOR_RESPONSE',
-      identified_by: auditor?.id,
+      identified_by: PERSONA_IDS.AUDITOR_AHMET,
       identified_date: '2026-01-22',
-      assigned_to: auditee?.id,
+      assigned_to: PERSONA_IDS.AUDITEE_MEHMET,
       due_date: '2026-02-05',
       metadata: {
         root_cause: 'Prosedür bilgisi eksikliği',
@@ -679,11 +723,14 @@ export class TurkeyBankSeeder {
 
     const { data: findingData, error: findingError } = await supabase
       .from('audit_findings')
-      .insert(finding)
+      .upsert(finding, { onConflict: 'tenant_id,finding_code' })
       .select()
       .single();
 
-    if (findingError) throw findingError;
+    if (findingError) {
+      console.error('❌ Failed to create finding:', findingError);
+      throw findingError;
+    }
 
     const secret = {
       finding_id: findingData.id,
@@ -703,12 +750,12 @@ export class TurkeyBankSeeder {
       corrective_action: 'Veznedar izin planlamasında yedekleme sağlanmalı. Kasa sayımı için sabit zaman dilimi belirlenmeli.',
       metadata: {
         interview_date: '2026-01-23',
-        interviewer: auditor?.id,
-        interviewee: auditee?.id
+        interviewer: PERSONA_IDS.AUDITOR_AHMET,
+        interviewee: PERSONA_IDS.AUDITEE_MEHMET
       }
     };
 
-    await supabase.from('finding_secrets').insert(secret);
+    await supabase.from('finding_secrets').upsert(secret, { onConflict: 'finding_id' });
 
     this.result.findings = [findingData];
     console.log(`   ✓ Created finding: "${findingData.title}" (Assigned to: Mehmet Kaya)`);
@@ -733,6 +780,35 @@ export class TurkeyBankSeeder {
       .select('*', { count: 'exact', head: true });
 
     return count === 0;
+  }
+
+  static async emergencyWipe(): Promise<void> {
+    console.log('🧹 Starting Emergency Database Wipe...');
+
+    const tables = [
+      'finding_secrets',
+      'finding_workflow_history',
+      'audit_findings',
+      'workpapers',
+      'audit_engagements',
+      'template_steps',
+      'program_templates',
+      'rkm_risks',
+      'audit_entities',
+      'user_profiles',
+      'tenants'
+    ];
+
+    for (const table of tables) {
+      try {
+        await supabase.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        console.log(`   ✓ Wiped ${table}`);
+      } catch (error) {
+        console.warn(`   ⚠ Could not wipe ${table}:`, error);
+      }
+    }
+
+    console.log('✅ Emergency Wipe Complete');
   }
 }
 

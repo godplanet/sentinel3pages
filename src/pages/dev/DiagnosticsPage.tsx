@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Activity, Play, CheckCircle2, XCircle, AlertTriangle, Database, Users, Building2, FileText, AlertCircle, Trash2 } from 'lucide-react';
+import { Activity, Play, CheckCircle2, XCircle, AlertTriangle, Database, Users, Building2, FileText, AlertCircle, Trash2, Wrench, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { AutoTester, type DiagnosticReport } from '@/features/diagnostics/AutoTester';
+import { TurkeyBankSeeder } from '@/shared/data/seed/turkey-bank';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 export default function DiagnosticsPage() {
   const [report, setReport] = useState<DiagnosticReport | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isReseeding, setIsReseeding] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [autoCleanup, setAutoCleanup] = useState(true);
 
@@ -22,11 +24,15 @@ export default function DiagnosticsPage() {
       setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
     };
 
-    addLog('🤖 Initializing Sentinel Auto-Tester...');
+    addLog('🤖 Initializing Sentinel Auto-Tester (SELF-HEALING)...');
     addLog('📋 Running full system diagnostics...');
 
     try {
       const result = await tester.runFullDiagnostics();
+
+      if (result.selfHealed) {
+        addLog('🧬 NOTE: Database was empty. Auto-seeded with Turkey Bank demo data.');
+      }
 
       result.tests.forEach(test => {
         const icon = test.status === 'PASS' ? '✅' : test.status === 'FAIL' ? '❌' : '⚠️';
@@ -51,6 +57,41 @@ export default function DiagnosticsPage() {
     }
   };
 
+  const forceReseed = async () => {
+    if (!confirm('⚠️ UYARI: Bu işlem VERİTABANINI SİLER ve demo verileri yeniden yükler. Devam etmek istiyor musunuz?')) {
+      return;
+    }
+
+    setIsReseeding(true);
+    setLogs([]);
+    setReport(null);
+
+    const addLog = (message: string) => {
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    };
+
+    addLog('🧹 EMERGENCY FORCE RESEED initiated...');
+    addLog('⚠️ Wiping database...');
+
+    try {
+      await TurkeyBankSeeder.emergencyWipe();
+      addLog('✅ Database wiped successfully');
+
+      addLog('🏦 Reseeding with Turkey Bank demo data...');
+      await TurkeyBankSeeder.seed();
+      addLog('✅ Database reseeded successfully');
+
+      addLog('🔄 Reloading page in 2 seconds...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      addLog(`❌ Force reseed failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsReseeding(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -58,6 +99,34 @@ export default function DiagnosticsPage() {
         description="Automated E2E testing and health monitoring for Sentinel GRC v3.0"
         icon={Activity}
       />
+
+      {report && report.systemHealth.userCount === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border-2 border-red-300 rounded-xl p-6"
+        >
+          <div className="flex items-start gap-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-red-900 mb-2">
+                ⚠️ SİSTEMDE KULLANICI YOK - TEST YAPILAMAZ
+              </h3>
+              <p className="text-sm text-red-700 mb-4">
+                Veritabanı boş. Test simülasyonları çalışmayacak. Demo verileri yüklemek için aşağıdaki butona tıklayın.
+              </p>
+              <button
+                onClick={forceReseed}
+                disabled={isReseeding}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+              >
+                <Wrench size={18} />
+                {isReseeding ? 'Yükleniyor...' : 'ZORLA ONAR (Force Reseed)'}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {report && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -71,7 +140,7 @@ export default function DiagnosticsPage() {
             label="Users"
             value={report.systemHealth.userCount}
             icon={Users}
-            color="green"
+            color={report.systemHealth.userCount === 0 ? 'red' : 'green'}
           />
           <StatCard
             label="Entities"
@@ -119,11 +188,34 @@ export default function DiagnosticsPage() {
               Auto-cleanup test data
             </label>
             <button
+              onClick={forceReseed}
+              disabled={isReseeding || isRunning}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-3 rounded-lg font-semibold text-white transition-all',
+                isReseeding || isRunning
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700 shadow-sm hover:shadow-md'
+              )}
+              title="Wipes database and reseeds with demo data"
+            >
+              {isReseeding ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Reseeding...
+                </>
+              ) : (
+                <>
+                  <Wrench size={18} />
+                  Force Reseed
+                </>
+              )}
+            </button>
+            <button
               onClick={runDiagnostics}
-              disabled={isRunning}
+              disabled={isRunning || isReseeding}
               className={clsx(
                 'flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-white transition-all',
-                isRunning
+                isRunning || isReseeding
                   ? 'bg-slate-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 shadow-sm hover:shadow-md'
               )}
