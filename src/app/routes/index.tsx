@@ -170,6 +170,8 @@ export const AppRoutes = () => {
       <Route path="/monitoring/market" element={<ProtectedRoute><MarketMonitoringPage /></ProtectedRoute>} />
 
       <Route path="/reporting/library" element={<ProtectedRoute><ReportLibraryPage /></ProtectedRoute>} />
+      <Route path="/reporting/editor/new" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
+      <Route path="/reporting/editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/edit/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/builder" element={<ProtectedRoute><ReportBuilderPage /></ProtectedRoute>} />
       <Route path="/reporting/executive" element={<ProtectedRoute><ExecutiveDashboardPage /></ProtectedRoute>} />
