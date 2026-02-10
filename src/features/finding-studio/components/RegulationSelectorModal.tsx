@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { X, Search, BookOpen, CheckCircle, Scale, FileText, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Search, BookOpen, CheckCircle, Scale, FileText, Shield, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
+import { supabase } from '@/shared/api/supabase';
 
 interface Regulation {
   id: string;
@@ -17,99 +18,6 @@ interface RegulationSelectorModalProps {
   onClose: () => void;
   onSelect: (regulation: Regulation) => void;
 }
-
-const MOCK_REGULATIONS: Regulation[] = [
-  {
-    id: 'bddk-001',
-    code: 'BDDK',
-    title: 'Bilgi Sistemleri ve Elektronik Bankacılık Hizmetleri Hakkında Yönetmelik',
-    category: 'BDDK',
-    article: 'Madde 12 - Güvenlik Kontrolleri',
-    description: 'Bankaların bilgi sistemlerinde güvenlik kontrollerini sağlaması, yedekleme ve kurtarma prosedürlerini uygulaması zorunludur.',
-    severity: 'critical',
-  },
-  {
-    id: 'bddk-002',
-    code: 'BDDK',
-    title: 'İç Sistemler ve İç Sermaye Değerlendirme Süreci Hakkında Yönetmelik',
-    category: 'BDDK',
-    article: 'Madde 8 - İç Kontrol Sistemi',
-    description: 'Bankalar, risk yönetimi süreçlerini destekleyen etkin bir iç kontrol sistemi kurmak zorundadır.',
-    severity: 'high',
-  },
-  {
-    id: 'bddk-003',
-    code: 'BDDK',
-    title: 'Bankaların İç Denetim Fonksiyonları Hakkında Yönetmelik',
-    category: 'BDDK',
-    article: 'Madde 5 - Denetim Planı',
-    description: 'İç denetim birimi, yıllık denetim planını risk bazlı yaklaşım ile hazırlar ve yönetim kurulunun onayına sunar.',
-    severity: 'high',
-  },
-  {
-    id: 'tcmb-001',
-    code: 'TCMB',
-    title: 'Ödeme ve Menkul Kıymet Mutabakat Sistemleri Hakkında Kanun',
-    category: 'TCMB',
-    article: 'Madde 6 - Operasyonel Risk',
-    description: 'Ödeme sistemleri, operasyonel riskleri minimize edecek prosedürler ve teknolojik altyapıya sahip olmalıdır.',
-    severity: 'high',
-  },
-  {
-    id: 'tcmb-002',
-    code: 'TCMB',
-    title: 'Döviz İşlemleri Hakkında Tebliğ',
-    category: 'TCMB',
-    article: 'Madde 4 - Dokümantasyon',
-    description: 'Döviz alım-satım işlemlerinde müşteri kimlik bilgileri ve işlem dokümantasyonu eksiksiz tutulmalıdır.',
-    severity: 'medium',
-  },
-  {
-    id: 'masak-001',
-    code: 'MASAK',
-    title: 'Suç Gelirlerinin Aklanmasının Önlenmesi Hakkında Kanun',
-    category: 'MASAK',
-    article: 'Madde 15 - Şüpheli İşlem Bildirimi',
-    description: 'Yükümlüler, şüpheli işlemleri gecikmeksizin MASAK\'a bildirmekle yükümlüdür.',
-    severity: 'critical',
-  },
-  {
-    id: 'masak-002',
-    code: 'MASAK',
-    title: 'Uyum Programı Rehberi',
-    category: 'MASAK',
-    article: 'Bölüm 3 - Müşterini Tanı (KYC)',
-    description: 'Müşteri kimlik tespiti ve doğrulaması süreçleri, risk bazlı yaklaşım ile gerçekleştirilmelidir.',
-    severity: 'critical',
-  },
-  {
-    id: 'kvkk-001',
-    code: 'KVKK',
-    title: 'Kişisel Verilerin Korunması Kanunu',
-    category: 'KVKK',
-    article: 'Madde 12 - Veri Güvenliği',
-    description: 'Veri sorumlusu, kişisel verilerin hukuka aykırı işlenmesini ve erişilmesini önlemek için uygun güvenlik tedbirlerini almak zorundadır.',
-    severity: 'critical',
-  },
-  {
-    id: 'spk-001',
-    code: 'SPK',
-    title: 'Sermaye Piyasası Kurulu Tebliği',
-    category: 'SPK',
-    article: 'Madde 7 - Bilgi Güvenliği',
-    description: 'Aracı kurumlar, müşteri bilgilerinin gizliliğini ve bütünlüğünü koruyacak sistemler kurmakla yükümlüdür.',
-    severity: 'high',
-  },
-  {
-    id: 'basel-001',
-    code: 'BASEL III',
-    title: 'Basel III Sermaye Yeterliliği Çerçevesi',
-    category: 'DIGER',
-    article: 'Operasyonel Risk Yönetimi',
-    description: 'Bankalar, operasyonel risk için sermaye yükümlülüğü hesaplamak ve yönetmek zorundadır.',
-    severity: 'high',
-  },
-];
 
 const CATEGORY_CONFIG = {
   BDDK: { label: 'BDDK', color: 'blue', icon: Shield },
@@ -130,10 +38,38 @@ const SEVERITY_CONFIG = {
 export function RegulationSelectorModal({ isOpen, onClose, onSelect }: RegulationSelectorModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [regulations, setRegulations] = useState<Regulation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadRegulations();
+    }
+  }, [isOpen]);
+
+  const loadRegulations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('compliance_regulations')
+        .select('id, code, title, category, article, description, severity')
+        .eq('is_active', true)
+        .order('category', { ascending: true })
+        .order('title', { ascending: true });
+
+      if (error) throw error;
+
+      setRegulations(data || []);
+    } catch (error) {
+      console.error('Error loading regulations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
-  const filteredRegulations = MOCK_REGULATIONS.filter((reg) => {
+  const filteredRegulations = regulations.filter((reg) => {
     const matchesSearch =
       searchQuery === '' ||
       reg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -150,6 +86,11 @@ export function RegulationSelectorModal({ isOpen, onClose, onSelect }: Regulatio
     onSelect(regulation);
     onClose();
   };
+
+  const categoryCounts = regulations.reduce((acc, reg) => {
+    acc[reg.category] = (acc[reg.category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -197,10 +138,10 @@ export function RegulationSelectorModal({ isOpen, onClose, onSelect }: Regulatio
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               )}
             >
-              Tümü ({MOCK_REGULATIONS.length})
+              Tümü ({regulations.length})
             </button>
             {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
-              const count = MOCK_REGULATIONS.filter((r) => r.category === key).length;
+              const count = categoryCounts[key] || 0;
               return (
                 <button
                   key={key}
@@ -221,7 +162,12 @@ export function RegulationSelectorModal({ isOpen, onClose, onSelect }: Regulatio
 
         {/* Regulations List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
-          {filteredRegulations.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader2 className="mx-auto text-slate-400 mb-3 animate-spin" size={48} />
+              <p className="text-slate-500 font-medium">Mevzuatlar yükleniyor...</p>
+            </div>
+          ) : filteredRegulations.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="mx-auto text-slate-300 mb-3" size={48} />
               <p className="text-slate-500 font-medium">Mevzuat bulunamadı</p>
@@ -285,7 +231,7 @@ export function RegulationSelectorModal({ isOpen, onClose, onSelect }: Regulatio
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
           <p className="text-xs text-slate-500 text-center">
-            {filteredRegulations.length} mevzuat gösteriliyor
+            {loading ? 'Yükleniyor...' : `${filteredRegulations.length} mevzuat gösteriliyor`}
             {searchQuery && ` (Arama: "${searchQuery}")`}
           </p>
         </div>

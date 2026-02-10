@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutList,
@@ -11,8 +11,10 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { supabase } from '@/shared/api/supabase';
 
 interface Finding {
   id: string;
@@ -26,63 +28,59 @@ interface Finding {
 
 type ViewMode = 'list' | 'card' | 'kanban';
 
-const MOCK_FINDINGS: Finding[] = [
-  {
-    id: '22222222-2222-2222-2222-222222222221',
-    code: 'AUD-2026-88-64',
-    title: 'Kasa İşlemlerinde Çift Anahtar Kuralı İhlali',
-    severity: 'CRITICAL',
-    stage: 'AUDITEE_REVIEWING',
-    dueDate: '2026-02-09',
-    status: 'Bekleyen',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    code: 'AUD-2026-42-15',
-    title: 'Kredi Onay Limitlerinde Yetki Aşımı',
-    severity: 'HIGH',
-    stage: 'SENT_TO_AUDITEE',
-    dueDate: '2026-02-12',
-    status: 'Bekleyen',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222223',
-    code: 'AUD-2026-33-22',
-    title: 'Müşteri Bilgileri Güncelleme Prosedürü Eksikliği',
-    severity: 'MEDIUM',
-    stage: 'AUDITEE_ACCEPTED',
-    dueDate: '2026-02-16',
-    status: 'Kabul Edildi',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222225',
-    code: 'AUD-2026-19-33',
-    title: 'Şifre Politikası Uygunsuzluğu',
-    severity: 'MEDIUM',
-    stage: 'AUDITEE_REVIEWING',
-    dueDate: '2026-02-07',
-    status: 'Bekleyen',
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222224',
-    code: 'AUD-2026-55-78',
-    title: 'BT Sistem Yedekleme Politikası Uygunsuzluğu',
-    severity: 'HIGH',
-    stage: 'REMEDIATION_STARTED',
-    dueDate: '2026-03-04',
-    status: 'Giderimde',
-  },
-];
-
 export const AuditeeDashboard = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [findings, setFindings] = useState<Finding[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadFindings();
+  }, []);
+
+  const loadFindings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('audit_findings')
+        .select('id, title, severity, process_stage, remediation_date, details')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedFindings: Finding[] = (data || []).map((f) => {
+        const code = f.details?.finding_code || `AUD-${f.id.slice(0, 8)}`;
+        const stage = f.process_stage || 'SENT_TO_AUDITEE';
+
+        let status = 'Bekleyen';
+        if (stage.includes('ACCEPTED')) status = 'Kabul Edildi';
+        else if (stage.includes('REJECTED')) status = 'Reddedildi';
+        else if (stage.includes('REMEDIATION')) status = 'Giderimde';
+
+        return {
+          id: f.id,
+          code,
+          title: f.title,
+          severity: (f.severity?.toUpperCase() || 'MEDIUM') as any,
+          stage,
+          dueDate: f.remediation_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          status,
+        };
+      });
+
+      setFindings(formattedFindings);
+    } catch (error) {
+      console.error('Error loading findings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredFindings = useMemo(() => {
-    return MOCK_FINDINGS.filter((finding) => {
+    return findings.filter((finding) => {
       const matchesSearch =
         finding.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (finding.code?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
@@ -90,17 +88,17 @@ export const AuditeeDashboard = () => {
       const matchesStatus = selectedStatus === 'all' || finding.status === selectedStatus;
       return matchesSearch && matchesSeverity && matchesStatus;
     });
-  }, [searchQuery, selectedSeverity, selectedStatus]);
+  }, [findings, searchQuery, selectedSeverity, selectedStatus]);
 
   const statsByStatus = useMemo(() => {
     const stats = {
-      total: MOCK_FINDINGS.length,
-      pending: MOCK_FINDINGS.filter((f) => f.status === 'Bekleyen').length,
-      accepted: MOCK_FINDINGS.filter((f) => f.status === 'Kabul Edildi').length,
-      rejected: MOCK_FINDINGS.filter((f) => f.status === 'Reddedildi').length,
+      total: findings.length,
+      pending: findings.filter((f) => f.status === 'Bekleyen').length,
+      accepted: findings.filter((f) => f.status === 'Kabul Edildi').length,
+      rejected: findings.filter((f) => f.status === 'Reddedildi').length,
     };
     return stats;
-  }, []);
+  }, [findings]);
 
   const handleFindingClick = (finding: Finding) => {
     navigate(`/auditee-portal/finding/${finding.id}`);
@@ -154,25 +152,36 @@ export const AuditeeDashboard = () => {
       {
         id: 'pending',
         title: 'Toplam Atanma',
-        findings: MOCK_FINDINGS,
+        findings: findings,
       },
       {
         id: 'reviewing',
         title: 'Bekleyen',
-        findings: MOCK_FINDINGS.filter((f) => f.status === 'Bekleyen'),
+        findings: findings.filter((f) => f.status === 'Bekleyen'),
       },
       {
         id: 'accepted',
         title: 'Kabul Edildi',
-        findings: MOCK_FINDINGS.filter((f) => f.status === 'Kabul Edildi'),
+        findings: findings.filter((f) => f.status === 'Kabul Edildi'),
       },
       {
         id: 'rejected',
         title: 'Reddedildi',
-        findings: MOCK_FINDINGS.filter((f) => f.status === 'Reddedildi'),
+        findings: findings.filter((f) => f.status === 'Reddedildi'),
       },
     ];
-  }, []);
+  }, [findings]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
+          <p className="text-gray-600">Bulgular yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

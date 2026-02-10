@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { usePlanningStore } from '@/entities/planning/model/store';
 import { useUniverseStore } from '@/entities/universe/model/store';
-import { MOCK_AUDITORS } from '@/entities/planning/api/mock-data';
 import { GanttBar } from './GanttBar';
 import type { AuditEngagement } from '@/entities/planning/model/types';
+import { supabase } from '@/shared/api/supabase';
 
 const MONTHS = [
   'Ocak',
@@ -29,6 +29,19 @@ interface GanttTimelineProps {
 export function GanttTimeline({ planId, year, onEngagementClick }: GanttTimelineProps) {
   const allEngagements = usePlanningStore((s) => s.engagements);
   const entities = useUniverseStore((s) => s.entities);
+  const [auditors, setAuditors] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadAuditors();
+  }, []);
+
+  const loadAuditors = async () => {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, title')
+      .eq('role', 'auditor');
+    setAuditors(data || []);
+  };
 
   const engagements = useMemo(
     () => allEngagements.filter((eng) => eng.plan_id === planId),
@@ -144,7 +157,7 @@ export function GanttTimeline({ planId, year, onEngagementClick }: GanttTimeline
                   {row.engagements.map((engagement) => {
                     const entity = entities.find((e) => e.id === engagement.entity_id);
                     const assignedAuditor = engagement.assigned_auditor_id
-                      ? MOCK_AUDITORS.find((a) => a.id === engagement.assigned_auditor_id)
+                      ? auditors.find((a) => a.id === engagement.assigned_auditor_id)
                       : undefined;
 
                     return (
