@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,9 +9,14 @@ import {
   Glasses,
   FileText,
   MoreVertical,
+  Sidebar as SidebarIcon,
+  X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { MOCK_REPORT_ARCHIVE, MOCK_REPORT_TEMPLATES } from '@/shared/data/mock-reports';
+import { EditorCanvas, ResourceSidebar, WarmthSlider } from '@/widgets/ReportStudio';
+import { applyTemplate } from '@/features/reporting/templates';
+import type { Finding } from '@/entities/finding/model/types';
 
 const STATUS_CONFIG = {
   draft: { label: 'Taslak', color: 'bg-slate-100 text-slate-700', icon: Clock },
@@ -34,9 +39,42 @@ export default function ReportEditorPage() {
     (report?.status as any) || 'draft'
   );
   const [zenMode, setZenMode] = useState(false);
+  const [warmth, setWarmth] = useState(0);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [content, setContent] = useState(() => {
+    if (template && templateId) {
+      return applyTemplate(templateId);
+    }
+    return report?.content || '';
+  });
+  const editorRef = useRef<any>(null);
 
   const statusCfg = STATUS_CONFIG[status];
   const StatusIcon = statusCfg.icon;
+
+  const handleInsertFinding = (finding: Finding) => {
+    if (editorRef.current) {
+      const findingNode = {
+        type: 'findingNode',
+        attrs: {
+          findingId: finding.id,
+          title: finding.title,
+          severity: finding.severity,
+        },
+      };
+      editorRef.current.chain().focus().insertContent(findingNode).run();
+    }
+  };
+
+  const handleInsertChart = () => {
+    if (editorRef.current) {
+      editorRef.current.chain().focus().insertContent('<chart-node></chart-node>').run();
+    }
+  };
+
+  const handleSave = () => {
+    console.log('Saving report...', { title, status, content });
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
@@ -50,6 +88,13 @@ export default function ReportEditorPage() {
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <ArrowLeft size={20} className="text-slate-600" />
+              </button>
+
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <SidebarIcon size={20} className="text-slate-600" />
               </button>
 
               <div className="flex items-center gap-2">
@@ -79,7 +124,10 @@ export default function ReportEditorPage() {
                 </button>
               </div>
 
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm">
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
                 <Save size={16} />
                 Kaydet
               </button>
@@ -89,20 +137,31 @@ export default function ReportEditorPage() {
       )}
 
       {/* Main Editor Area */}
-      <div className="flex-1 overflow-y-auto py-12 px-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Paper Canvas */}
-          <div className="bg-white shadow-2xl rounded-xl min-h-[calc(100vh-12rem)] p-12">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Resources */}
+        {showSidebar && !zenMode && (
+          <div className="w-80 flex-shrink-0 overflow-hidden">
+            <ResourceSidebar
+              engagementId={report?.engagement_id}
+              onInsertFinding={handleInsertFinding}
+              onInsertChart={handleInsertChart}
+            />
+          </div>
+        )}
+
+        {/* Editor Canvas */}
+        <div className="flex-1 overflow-y-auto py-12 px-6">
+          <div className="max-w-4xl mx-auto">
             {/* Editable Title */}
-            <div className="mb-8 border-b border-slate-200 pb-6">
+            <div className="mb-8">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-4xl font-bold text-slate-900 border-none focus:outline-none focus:ring-0 placeholder-slate-300"
+                className="w-full text-4xl font-bold text-slate-900 border-none focus:outline-none focus:ring-0 placeholder-slate-300 bg-transparent mb-4"
                 placeholder="Rapor Başlığı..."
               />
-              <div className="flex items-center gap-4 mt-4">
+              <div className="flex items-center gap-4">
                 <span className="text-sm text-slate-500">
                   {isNew ? 'Yeni Rapor' : `Oluşturulma: ${new Date(report?.created_at || '').toLocaleDateString('tr-TR')}`}
                 </span>
@@ -115,88 +174,88 @@ export default function ReportEditorPage() {
               </div>
             </div>
 
-            {/* Empty State / Content Placeholder */}
-            <div className="py-20 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="text-slate-400" size={32} />
-              </div>
-              <p className="text-lg font-semibold text-slate-700 mb-2">
-                Rapor içeriği yükleniyor...
-              </p>
-              <p className="text-sm text-slate-500 mb-6">
-                (Faz 3 Bekleniyor - TipTap Entegrasyonu)
-              </p>
-
-              {template && (
-                <div className="max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">
-                    Seçilen Şablon: {template.title}
-                  </p>
-                  <p className="text-xs text-blue-700 mb-3">{template.description}</p>
-                  <div className="space-y-2">
-                    {template.structure_json.slice(0, 3).map((block, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-blue-600">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                        <span>{block.block_type}: {(block.content as any).text?.substring(0, 50) || 'Content block'}</span>
-                      </div>
-                    ))}
-                    {template.structure_json.length > 3 && (
-                      <p className="text-xs text-blue-500 pl-4">
-                        +{template.structure_json.length - 3} daha fazla blok
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {isNew && !template && (
-                <div className="max-w-md mx-auto text-left space-y-2 mt-6">
-                  <p className="text-sm text-slate-600">Bu sayfada şunlar hazır olacak:</p>
-                  <ul className="text-sm text-slate-500 space-y-1 pl-4">
-                    <li>• TipTap zengin metin düzenleyici</li>
-                    <li>• Blok tabanlı içerik (başlık, paragraf, bulgu referansı)</li>
-                    <li>• Canlı grafik ve metrik blokları</li>
-                    <li>• Otomatik kayıt ve versiyon geçmişi</li>
-                    <li>• PDF/Word dışa aktarma</li>
-                  </ul>
-                </div>
-              )}
-            </div>
+            {/* Editor */}
+            <EditorCanvas
+              initialContent={content}
+              onChange={setContent}
+              warmth={warmth}
+              zenMode={false}
+              onInsertFinding={() => {}}
+            />
           </div>
         </div>
+
+        {/* Right Sidebar - Tools */}
+        {!zenMode && (
+          <div className="w-72 flex-shrink-0 bg-white border-l border-slate-200 p-4 space-y-4 overflow-y-auto">
+            <WarmthSlider value={warmth} onChange={setWarmth} />
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Kısayollar</h3>
+              <div className="space-y-2 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Slash Menü</span>
+                  <kbd className="px-2 py-1 bg-white rounded border border-slate-300">/</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Kaydet</span>
+                  <kbd className="px-2 py-1 bg-white rounded border border-slate-300">Ctrl+S</kbd>
+                </div>
+                <div className="flex justify-between">
+                  <span>Zen Modu</span>
+                  <kbd className="px-2 py-1 bg-white rounded border border-slate-300">Ctrl+Z</kbd>
+                </div>
+              </div>
+            </div>
+
+            {template && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2">Aktif Şablon</h3>
+                <p className="text-xs text-blue-700">{template.title}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Zen Mode Overlay */}
       {zenMode && (
-        <div className="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-slate-900 z-50 flex">
           <button
             onClick={() => setZenMode(false)}
-            className="absolute top-6 right-6 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+            className="absolute top-6 right-6 p-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
           >
-            Zen Modundan Çık
+            <X size={20} />
           </button>
 
-          <div className="max-w-4xl w-full mx-auto px-6">
-            <div className="bg-white shadow-2xl rounded-xl p-12">
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="max-w-4xl w-full">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-3xl font-bold text-slate-900 border-none focus:outline-none focus:ring-0 placeholder-slate-300 mb-8"
+                className="w-full text-3xl font-bold text-white border-none focus:outline-none focus:ring-0 placeholder-slate-400 mb-8 bg-transparent"
                 placeholder="Rapor Başlığı..."
               />
 
-              <div className="py-20 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="text-slate-400" size={32} />
-                </div>
-                <p className="text-lg font-semibold text-slate-700 mb-2">
-                  Zen Modu Hazırlanıyor...
-                </p>
-                <p className="text-sm text-slate-500">
-                  (Faz 3 - Tam Ekran Odaklanma Deneyimi)
-                </p>
-              </div>
+              <EditorCanvas
+                initialContent={content}
+                onChange={setContent}
+                warmth={warmth}
+                zenMode={true}
+                onInsertFinding={() => {}}
+              />
+            </div>
+          </div>
+
+          <div className="w-72 bg-slate-800 p-4 space-y-4 overflow-y-auto">
+            <WarmthSlider value={warmth} onChange={setWarmth} zenMode={true} />
+
+            <div className="bg-slate-700/50 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-white mb-3">Zen Modu</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Dikkatinizi yazıya odaklayın. Tüm dikkat dağıtıcı unsurlar gizlendi.
+              </p>
             </div>
           </div>
         </div>
