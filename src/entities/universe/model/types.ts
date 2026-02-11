@@ -42,6 +42,21 @@ export interface SubsidiaryMetadata {
   consolidated?: boolean;
 }
 
+export type AuditFrequency = 'Yıllık' | '2 Yılda Bir' | '3 Yılda Bir' | 'Sürekli';
+
+export interface AuditCycleInfo {
+  last_audit_date?: string | null;
+  audit_frequency?: AuditFrequency | null;
+  next_audit_due?: string | null;
+}
+
+export interface RiskComponents {
+  risk_operational?: number | null;
+  risk_it?: number | null;
+  risk_compliance?: number | null;
+  risk_financial?: number | null;
+}
+
 export interface AuditEntity {
   id: string;
   tenant_id: string;
@@ -60,6 +75,13 @@ export interface AuditEntity {
   is_synced?: boolean;
   sync_source?: string;
   risk_signals?: string[];
+  last_audit_date?: string | null;
+  audit_frequency?: string | null;
+  next_audit_due?: string | null;
+  risk_operational?: number | null;
+  risk_it?: number | null;
+  risk_compliance?: number | null;
+  risk_financial?: number | null;
 }
 
 export interface UniverseTreeNode extends AuditEntity {

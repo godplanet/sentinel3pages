@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, X, Loader2 } from 'lucide-react';
+import { Building2, X, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { useCreateEntity, useUpdateEntity, useAuditEntities } from '@/entities/universe';
-import type { AuditEntity, EntityType } from '@/entities/universe/model/types';
+import type { AuditEntity, EntityType, AuditFrequency } from '@/entities/universe/model/types';
+import { calculateNextAuditDue } from '../lib/audit-health';
 
 const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: 'HEADQUARTERS', label: 'Genel Müdürlük' },
@@ -35,6 +36,16 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
   // Type-specific metadata
   const [metadata, setMetadata] = useState<Record<string, any>>(entity?.metadata ?? {});
 
+  // Audit cycle fields
+  const [auditFrequency, setAuditFrequency] = useState<string>(entity?.audit_frequency ?? '');
+  const [lastAuditDate, setLastAuditDate] = useState<string>(entity?.last_audit_date ?? '');
+
+  // Risk components
+  const [riskOperational, setRiskOperational] = useState<number>(entity?.risk_operational ?? 0);
+  const [riskIT, setRiskIT] = useState<number>(entity?.risk_it ?? 0);
+  const [riskCompliance, setRiskCompliance] = useState<number>(entity?.risk_compliance ?? 0);
+  const [riskFinancial, setRiskFinancial] = useState<number>(entity?.risk_financial ?? 0);
+
   const isEdit = !!entity;
   const isPending = createEntity.isPending || updateEntity.isPending;
 
@@ -61,26 +72,34 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
   const handleSubmit = async () => {
     if (!name.trim()) return;
 
+    const nextAuditDue = calculateNextAuditDue(lastAuditDate || null, auditFrequency || null);
+
+    const payload = {
+      name: name.trim(),
+      type,
+      parent_id: parentId || null,
+      risk_score: riskScore,
+      status,
+      metadata,
+      audit_frequency: auditFrequency || null,
+      last_audit_date: lastAuditDate || null,
+      next_audit_due: nextAuditDue,
+      risk_operational: riskOperational || null,
+      risk_it: riskIT || null,
+      risk_compliance: riskCompliance || null,
+      risk_financial: riskFinancial || null,
+    };
+
     if (isEdit) {
       await updateEntity.mutateAsync({
         id: entity.id,
-        name: name.trim(),
-        type,
-        parent_id: parentId || null,
-        risk_score: riskScore,
-        status,
-        metadata,
+        ...payload,
       });
     } else {
       await createEntity.mutateAsync({
-        name: name.trim(),
-        type,
-        parent_id: parentId || null,
+        ...payload,
         path: generatePath(),
-        risk_score: riskScore,
         velocity_multiplier: 1.0,
-        status,
-        metadata,
       });
     }
     onClose();
@@ -303,6 +322,109 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
               </div>
             </div>
           )}
+
+          {/* AUDIT CYCLE SECTION */}
+          <div className="border border-emerald-200 bg-emerald-50 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 mb-2">
+              <Calendar size={14} />
+              Denetim Döngüsü (BDDK/GIAS)
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">Denetim Sıklığı</label>
+                <select
+                  value={auditFrequency}
+                  onChange={e => setAuditFrequency(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                >
+                  <option value="">Seçiniz</option>
+                  <option value="Yıllık">Yıllık</option>
+                  <option value="2 Yılda Bir">2 Yılda Bir</option>
+                  <option value="3 Yılda Bir">3 Yılda Bir</option>
+                  <option value="Sürekli">Sürekli İzleme</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">Son Denetim Tarihi</label>
+                <input
+                  type="date"
+                  value={lastAuditDate}
+                  onChange={e => setLastAuditDate(e.target.value)}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                />
+              </div>
+            </div>
+            {lastAuditDate && auditFrequency && (
+              <div className="text-xs text-emerald-700 bg-emerald-100 rounded px-2 py-1.5 mt-2">
+                📅 Sonraki Denetim: <span className="font-bold">
+                  {new Date(calculateNextAuditDue(lastAuditDate, auditFrequency) || '').toLocaleDateString('tr-TR')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* RISK COMPONENTS SECTION */}
+          <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-700 mb-2">
+              <AlertTriangle size={14} />
+              Risk Bileşenleri (0-100)
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">⚙️ Operasyonel Risk</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskOperational}
+                  onChange={e => setRiskOperational(Math.min(100, Math.max(0, +e.target.value)))}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-center font-semibold"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">💻 BT Riski</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskIT}
+                  onChange={e => setRiskIT(Math.min(100, Math.max(0, +e.target.value)))}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-center font-semibold"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">⚖️ Uyum Riski</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskCompliance}
+                  onChange={e => setRiskCompliance(Math.min(100, Math.max(0, +e.target.value)))}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-center font-semibold"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">💰 Finansal Risk</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={riskFinancial}
+                  onChange={e => setRiskFinancial(Math.min(100, Math.max(0, +e.target.value)))}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm text-center font-semibold"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="text-xs text-amber-700 bg-amber-100 rounded px-2 py-1.5 mt-2">
+              🎯 Maksimum Risk: <span className="font-bold">
+                {Math.max(riskOperational, riskIT, riskCompliance, riskFinancial)}
+              </span> (Ana risk skoru olarak kullanılır)
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>

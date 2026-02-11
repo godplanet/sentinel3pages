@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useAuditEntities, useDeleteEntity } from '@/entities/universe';
-import { ArrowUpDown, ChevronRight, Edit2, Trash2, AlertCircle, Sparkles } from 'lucide-react';
+import { ArrowUpDown, ChevronRight, Edit2, Trash2, AlertCircle, Sparkles, Calendar, Info } from 'lucide-react';
 import type { AuditEntity, EntityType } from '@/entities/universe/model/types';
 import { EntityFormModal } from './EntityFormModal';
 import { calculateDynamicRisk, getRiskColor as getRiskColorByLevel, getTypeColor } from '../lib/risk-scoring';
+import { getAuditHealth, formatAuditDate, getFrequencyLabel, getRiskBreakdown, RISK_COMPONENT_LABELS } from '../lib/audit-health';
 
 const TYPE_LABELS: Record<EntityType, string> = {
   HOLDING: 'Holding',
@@ -133,9 +134,19 @@ export function UniverseListView() {
                   </span>
                 </SortButton>
               </th>
-              <th className="px-6 py-3 text-center">
+              <th className="px-6 py-3 text-left">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  RİSK HIZI
+                  DENETİM SIKLIĞI
+                </span>
+              </th>
+              <th className="px-6 py-3 text-left">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  SON DENETİM
+                </span>
+              </th>
+              <th className="px-6 py-3 text-left">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  SONRAKİ DENETİM
                 </span>
               </th>
               <th className="px-6 py-3 text-right">
@@ -152,6 +163,8 @@ export function UniverseListView() {
               const riskResult = calculateDynamicRisk(entity);
               const typeColor = getTypeColor(entity.type);
               const isSynced = entity.metadata?.is_synced === true;
+              const auditHealth = getAuditHealth(entity);
+              const riskBreakdown = getRiskBreakdown(entity);
 
               return (
                 <tr
@@ -189,9 +202,49 @@ export function UniverseListView() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-md text-sm font-bold tabular-nums ${getRiskColorByLevel(riskResult.level)}`}>
-                        {riskResult.calculated_score.toFixed(0)}
-                      </span>
+                      <div className="group/risk relative">
+                        <span className={`px-2 py-1 rounded-md text-sm font-bold tabular-nums cursor-help ${getRiskColorByLevel(riskResult.level)}`}>
+                          {riskResult.calculated_score.toFixed(0)}
+                        </span>
+                        {riskBreakdown.hasData && (
+                          <div className="invisible group-hover/risk:visible absolute z-20 bottom-full left-0 mb-2 w-64 p-4 bg-slate-900 text-white text-xs rounded-lg shadow-2xl">
+                            <div className="font-bold mb-3 text-sm flex items-center gap-2">
+                              <Info size={14} />
+                              Risk Bileşenleri
+                            </div>
+                            <div className="space-y-2">
+                              {Object.entries(RISK_COMPONENT_LABELS).map(([key, { label, icon }]) => {
+                                const value = riskBreakdown[key as keyof typeof riskBreakdown];
+                                if (typeof value !== 'number') return null;
+                                return (
+                                  <div key={key} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span>{icon}</span>
+                                      <span className="text-slate-300">{label}</span>
+                                    </div>
+                                    <span className={`font-bold tabular-nums ${
+                                      value >= 90 ? 'text-red-400' :
+                                      value >= 75 ? 'text-amber-400' :
+                                      value >= 60 ? 'text-yellow-400' :
+                                      'text-emerald-400'
+                                    }`}>
+                                      {value}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-700">
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">
+                                Maksimum Risk
+                              </div>
+                              <div className={`text-lg font-bold ${getRiskColorByLevel(riskResult.level)}`}>
+                                {Math.max(riskBreakdown.operational, riskBreakdown.it, riskBreakdown.compliance, riskBreakdown.financial)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       {riskResult.signals.length > 0 && (
                         <div className="group/tooltip relative">
                           <AlertCircle size={14} className="text-orange-500 cursor-help" />
@@ -209,14 +262,47 @@ export function UniverseListView() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${getRiskBadge(
-                        (entity.velocity_multiplier || 1) * 50
-                      )}`}
-                    >
-                      {entity.velocity_multiplier?.toFixed(2)}x
+                  <td className="px-6 py-4">
+                    <span className="text-xs text-slate-600 font-medium">
+                      {getFrequencyLabel(entity.audit_frequency)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} className="text-slate-400" />
+                      <span className="text-xs text-slate-600">
+                        {formatAuditDate(entity.last_audit_date)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      {auditHealth.status !== 'UNKNOWN' && (
+                        <>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold border ${auditHealth.badgeColor}`}>
+                            {auditHealth.statusLabel}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {formatAuditDate(entity.next_audit_due)}
+                          </span>
+                          {auditHealth.status === 'OVERDUE' && (
+                            <span className="text-[10px] text-red-600 font-bold">
+                              ({auditHealth.daysOverdue} gün)
+                            </span>
+                          )}
+                          {auditHealth.status === 'UPCOMING' && (
+                            <span className="text-[10px] text-amber-600 font-semibold">
+                              ({auditHealth.daysUntilDue} gün)
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {auditHealth.status === 'UNKNOWN' && (
+                        <span className="text-xs text-slate-400 italic">
+                          Planlanmamış
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
