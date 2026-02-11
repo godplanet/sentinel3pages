@@ -11,13 +11,15 @@ interface DashboardStats {
   criticalCount: number;
   highCount: number;
   avgRiskScore: number;
+  openAlertCount: number;
+  openActionCount: number;
 }
 
 export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async (): Promise<DashboardStats> => {
-      const [entitiesRes, assessmentsRes] = await Promise.all([
+      const [entitiesRes, assessmentsRes, alertsRes, actionsRes] = await Promise.all([
         supabase
           .from('audit_entities')
           .select('id', { count: 'exact', head: true })
@@ -26,11 +28,22 @@ export function useDashboardStats() {
           .from('risk_assessments')
           .select('inherent_risk_score, residual_score')
           .eq('tenant_id', TENANT),
+        supabase
+          .from('ccm_alerts')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['OPEN', 'INVESTIGATING']),
+        supabase
+          .from('actions')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', TENANT)
+          .in('status', ['OPEN', 'IN_PROGRESS', 'OVERDUE']),
       ]);
 
       const entityCount = entitiesRes.count ?? 0;
       const assessments = assessmentsRes.data ?? [];
       const assessmentCount = assessments.length;
+      const openAlertCount = alertsRes.count ?? 0;
+      const openActionCount = actionsRes.count ?? 0;
 
       let criticalCount = 0;
       let highCount = 0;
@@ -53,6 +66,8 @@ export function useDashboardStats() {
         criticalCount,
         highCount,
         avgRiskScore,
+        openAlertCount,
+        openActionCount,
       };
     },
     staleTime: 30_000,
@@ -65,7 +80,8 @@ export function buildKPICards(stats: DashboardStats | undefined): KPICard[] {
       { id: 'risk-score', label: 'Kurumsal Risk Skoru', value: '-', trend: 'flat', status: 'warning' },
       { id: 'entity-count', label: 'Denetim Evreni', value: '-', trend: 'flat', status: 'success' },
       { id: 'critical-risks', label: 'Kritik Risk Sayisi', value: '-', trend: 'flat', status: 'danger' },
-      { id: 'high-risks', label: 'Yuksek Risk Sayisi', value: '-', trend: 'flat', status: 'warning' },
+      { id: 'open-alerts', label: 'Acik Alarm', value: '-', trend: 'flat', status: 'warning' },
+      { id: 'open-actions', label: 'Acik Aksiyon', value: '-', trend: 'flat', status: 'warning' },
     ];
   }
 
@@ -95,11 +111,18 @@ export function buildKPICards(stats: DashboardStats | undefined): KPICard[] {
       status: stats.criticalCount > 0 ? 'danger' : 'success',
     },
     {
-      id: 'assessment-count',
-      label: 'Canli Degerlendirme',
-      value: String(stats.assessmentCount),
-      trend: 'up',
-      status: stats.assessmentCount > 0 ? 'success' : 'warning',
+      id: 'open-alerts',
+      label: 'CCM Alarm',
+      value: String(stats.openAlertCount),
+      trend: stats.openAlertCount > 3 ? 'up' : 'flat',
+      status: stats.openAlertCount > 3 ? 'danger' : stats.openAlertCount > 0 ? 'warning' : 'success',
+    },
+    {
+      id: 'open-actions',
+      label: 'Acik Aksiyon',
+      value: String(stats.openActionCount),
+      trend: stats.openActionCount > 5 ? 'up' : 'flat',
+      status: stats.openActionCount > 5 ? 'danger' : stats.openActionCount > 0 ? 'warning' : 'success',
     },
   ];
 }
