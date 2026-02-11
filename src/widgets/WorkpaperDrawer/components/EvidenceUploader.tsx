@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Upload, Check, FileText, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 
 interface UploadedFile {
   id?: string;
@@ -84,7 +85,7 @@ export const EvidenceUploader = ({ workpaperId }: EvidenceUploaderProps) => {
           file_name: file.name,
           file_size_bytes: file.size,
           sha256_hash: hash,
-          uploaded_by: '00000000-0000-0000-0000-000000000000',
+          uploaded_by: ACTIVE_TENANT_ID,
         })
         .select()
         .single();

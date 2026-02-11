@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Calendar, Target } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createEngagement, CreateEngagementInput, AuditType } from '@/entities/planning';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 
 interface NewEngagementModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface NewEngagementModalProps {
   entities: Array<{ id: string; name: string; risk_score?: number }>;
 }
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000000';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export default function NewEngagementModal({
   isOpen,
@@ -29,11 +30,7 @@ export default function NewEngagementModal({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (input: CreateEngagementInput) => {
-      const result = await createEngagement(input);
-      if (!result) throw new Error('Failed to create engagement');
-      return result;
-    },
+    mutationFn: (input: CreateEngagementInput) => createEngagement(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['audit-engagements-list'] });
       queryClient.invalidateQueries({ queryKey: ['audit-engagements'] });

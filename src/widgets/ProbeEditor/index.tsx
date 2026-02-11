@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { Probe, QueryType, ProbeLog } from '@/entities/probe';
 import { simulateProbeExecution } from '@/entities/probe';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 
 interface ProbeEditorProps {
   probe?: Probe;
@@ -65,7 +66,7 @@ export function ProbeEditor({ probe, onSave, onClose }: ProbeEditorProps) {
         schedule_cron: scheduleCron,
         risk_threshold: riskThreshold,
         is_active: isActive,
-        tenant_id: '00000000-0000-0000-0000-000000000000',
+        tenant_id: ACTIVE_TENANT_ID,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

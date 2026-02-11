@@ -1,7 +1,7 @@
 import type { RiskLibraryItem } from './types';
 
 const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
-const MOCK_USER_ID = '00000000-0000-0000-0000-000000000002';
+const MOCK_USER_ID = '11111111-1111-1111-1111-000000000002';
 
 export const mockRiskLibraryData: RiskLibraryItem[] = [
   {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFinding, CreateFindingInput, FindingSeverity } from '@/entities/finding';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 
 interface QuickFindingModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface QuickFindingModalProps {
   engagements: Array<{ id: string; title: string }>;
 }
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000000';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export default function QuickFindingModal({
   isOpen,

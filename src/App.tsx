@@ -4,12 +4,14 @@ import { AppShell } from '@/app/layout/AppShell';
 import { AppRoutes } from '@/app/routes';
 import { SystemInitOverlay } from '@/app/layout/SystemInitOverlay';
 import { useSystemInit } from '@/shared/hooks/useSystemInit';
+import { DebugBar } from '@/shared/ui/DebugBar';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
@@ -20,6 +22,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <DebugBar />
         {isInitializing && (
           <SystemInitOverlay progress={progress} error={error} />
         )}
