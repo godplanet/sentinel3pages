@@ -64,18 +64,29 @@ export class UniversalSeeder {
 
     try {
       const tables = [
-        'finding_comments',
-        'finding_secrets',
-        'finding_history',
         'action_plans',
+        'finding_history',
+        'finding_responses',
+        'finding_signoffs',
         'audit_findings',
+        'workpaper_time_logs',
+        'workpaper_steps',
+        'workpaper_evidence',
+        'workpaper_findings',
+        'review_notes',
         'workpapers',
+        'sprint_tasks',
+        'sprints',
         'audit_engagements',
+        'program_steps',
+        'program_sections',
+        'program_templates',
         'risk_assessments',
-        'universe_risk_scores',
-        'talent_assignments',
-        'talent_profiles',
-        'rkm_master_library',
+        'audit_risks',
+        'audit_universe',
+        'report_sections',
+        'audit_reports',
+        'user_profiles',
       ];
 
       for (const table of tables) {
@@ -233,20 +244,18 @@ export class UniversalSeeder {
   }
 
   async seedTalent() {
-    this.updateProgress('talent', 'running', 'Creating talent profiles...');
+    this.updateProgress('talent', 'running', 'Creating user profiles...');
 
     try {
-      const auditors = [
+      const users = [
         {
           id: 'u1111111-1111-1111-1111-111111111111',
           full_name: 'Ahmet Aslan',
           email: 'ahmet.aslan@turkiyebankasi.com.tr',
           title: 'Senior Auditor',
           department: 'Internal Audit',
-          skills: ['Credit Risk', 'Financial Analysis', 'Banking Operations'],
-          certifications: ['CIA', 'CFE'],
-          years_experience: 8,
-          current_utilization: 75,
+          role: 'auditor',
+          phone: '+90 212 555 0001',
         },
         {
           id: 'u2222222-2222-2222-2222-222222222222',
@@ -254,10 +263,8 @@ export class UniversalSeeder {
           email: 'zeynep.kaya@turkiyebankasi.com.tr',
           title: 'IT Auditor',
           department: 'Internal Audit',
-          skills: ['Cybersecurity', 'IT Audit', 'COBIT'],
-          certifications: ['CISA', 'CISSP'],
-          years_experience: 6,
-          current_utilization: 80,
+          role: 'auditor',
+          phone: '+90 212 555 0002',
         },
         {
           id: 'u3333333-3333-3333-3333-333333333333',
@@ -265,10 +272,8 @@ export class UniversalSeeder {
           email: 'mehmet.yilmaz@turkiyebankasi.com.tr',
           title: 'Compliance Auditor',
           department: 'Internal Audit',
-          skills: ['AML/CFT', 'Regulatory Compliance', 'BDDK Regulations'],
-          certifications: ['ACAMS', 'CFE'],
-          years_experience: 10,
-          current_utilization: 70,
+          role: 'auditor',
+          phone: '+90 212 555 0003',
         },
         {
           id: 'u4444444-4444-4444-4444-444444444444',
@@ -276,10 +281,8 @@ export class UniversalSeeder {
           email: 'ayse.demir@turkiyebankasi.com.tr',
           title: 'Audit Manager',
           department: 'Internal Audit',
-          skills: ['Risk Management', 'Audit Planning', 'Team Leadership'],
-          certifications: ['CIA', 'CRMA'],
-          years_experience: 12,
-          current_utilization: 65,
+          role: 'cae',
+          phone: '+90 212 555 0004',
         },
         {
           id: 'u5555555-5555-5555-5555-555555555555',
@@ -287,16 +290,14 @@ export class UniversalSeeder {
           email: 'ai@sentinel.audit',
           title: 'AI Audit Assistant',
           department: 'Internal Audit',
-          skills: ['Data Analytics', 'Pattern Recognition', 'Risk Assessment', 'Natural Language Processing'],
-          certifications: ['AI-Powered'],
-          years_experience: 1,
-          current_utilization: 30,
+          role: 'auditor',
+          phone: '+90 212 555 0005',
         },
       ];
 
-      await supabase.from('talent_profiles').insert(auditors);
+      await supabase.from('user_profiles').insert(users);
 
-      this.updateProgress('talent', 'completed', 'Talent profiles created', auditors.length);
+      this.updateProgress('talent', 'completed', 'User profiles created', users.length);
     } catch (error) {
       this.updateProgress('talent', 'error', `Failed: ${error}`);
       throw error;
@@ -489,7 +490,7 @@ export class UniversalSeeder {
     const tables = [
       'audit_universe',
       'rkm_master_library',
-      'talent_profiles',
+      'user_profiles',
       'audit_engagements',
       'audit_findings',
       'workpapers',

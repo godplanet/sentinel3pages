@@ -91,11 +91,11 @@ export default function SystemHealthPage() {
       status: (tableCounts.rkm_master_library || 0) > 0 ? 'healthy' : 'warning',
     },
     {
-      name: 'talent_profiles',
-      label: 'Deneticiler',
+      name: 'user_profiles',
+      label: 'Kullanicilar',
       icon: Users,
-      count: tableCounts.talent_profiles || 0,
-      status: (tableCounts.talent_profiles || 0) > 0 ? 'healthy' : 'warning',
+      count: tableCounts.user_profiles || 0,
+      status: (tableCounts.user_profiles || 0) > 0 ? 'healthy' : 'warning',
     },
     {
       name: 'audit_engagements',
