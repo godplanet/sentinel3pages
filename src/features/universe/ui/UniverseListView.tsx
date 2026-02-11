@@ -7,12 +7,12 @@ import { EntityFormModal } from './EntityFormModal';
 const TYPE_LABELS: Record<EntityType, string> = {
   HOLDING: 'Holding',
   BANK: 'Banka',
-  GROUP: 'Grup',
+  GROUP: 'Bölge/Grup',
   UNIT: 'Birim',
-  PROCESS: 'Surec',
-  BRANCH: 'Sube',
+  PROCESS: 'Süreç',
+  BRANCH: 'Şube',
   DEPARTMENT: 'Departman',
-  HEADQUARTERS: 'Genel Md.',
+  HEADQUARTERS: 'Genel Müd.',
 };
 
 const TYPE_COLORS: Record<EntityType, string> = {
@@ -115,39 +115,39 @@ export function UniverseListView() {
               <th className="px-6 py-3 text-left">
                 <SortButton field="name">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    Varlık Adı
+                    VARLIK ADI
                   </span>
                 </SortButton>
               </th>
               <th className="px-6 py-3 text-left">
                 <SortButton field="path">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    Hiyerarşi Yolu
+                    HİYERARŞİ YOLU
                   </span>
                 </SortButton>
               </th>
               <th className="px-6 py-3 text-left">
                 <SortButton field="type">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    Tip
+                    VARLIK TİPİ
                   </span>
                 </SortButton>
               </th>
               <th className="px-6 py-3 text-left">
                 <SortButton field="risk_score">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                    Risk Skoru
+                    RİSK PUANI
                   </span>
                 </SortButton>
               </th>
               <th className="px-6 py-3 text-center">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  Velocity
+                  RİSK HIZI
                 </span>
               </th>
               <th className="px-6 py-3 text-right">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  İşlemler
+                  İŞLEMLER
                 </span>
               </th>
             </tr>
@@ -210,13 +210,13 @@ export function UniverseListView() {
                       <button
                         onClick={() => setEditingEntity(entity)}
                         className="p-1.5 hover:bg-blue-50 rounded text-blue-600 transition-colors"
-                        title="Duzenle"
+                        title="Düzenle"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`"${entity.name}" silinecek. Emin misiniz?`)) {
+                          if (confirm(`"${entity.name}" varlığı ve altındaki tüm hiyerarşi silinecek.\n\nBu işlem geri alınamaz. Emin misiniz?`)) {
                             deleteEntity.mutate(entity.id);
                           }
                         }}
@@ -236,7 +236,8 @@ export function UniverseListView() {
 
       {sortedEntities.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="text-slate-400 text-sm">Henuz varlik bulunmuyor</div>
+          <div className="text-slate-400 text-sm">Henüz varlık bulunmuyor</div>
+          <div className="text-slate-400 text-xs mt-1">Sağ üstteki "Varlık Ekle" butonunu kullanarak yeni varlık ekleyebilirsiniz</div>
         </div>
       )}
 

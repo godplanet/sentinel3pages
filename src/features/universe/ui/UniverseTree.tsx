@@ -40,9 +40,9 @@ export const UniverseTree = () => {
     return (
       <div className="w-full h-[600px] bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-slate-400 text-lg font-bold mb-2">Varlik Bulunamadi</div>
+          <div className="text-slate-400 text-lg font-bold mb-2">Varlık Bulunamadı</div>
           <div className="text-slate-500 text-sm">
-            Denetim evreni verileri yukleniyor...
+            Denetim evreni verileri yükleniyor veya henüz varlık eklenmemiş...
           </div>
         </div>
       </div>

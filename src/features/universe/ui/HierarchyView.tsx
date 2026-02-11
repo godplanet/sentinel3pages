@@ -172,7 +172,7 @@ export function HierarchyView() {
       <div className="flex flex-col items-center justify-center h-64 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300">
         <Building2 className="w-16 h-16 mb-4 text-slate-300" />
         <p className="text-slate-600 font-medium">Denetim evreni boş</p>
-        <p className="text-sm text-slate-500 mt-2">Başlamak için varlık ekleyin</p>
+        <p className="text-sm text-slate-500 mt-2">Başlamak için "Varlık Ekle" butonunu kullanın</p>
       </div>
     );
   }
@@ -184,10 +184,10 @@ export function HierarchyView() {
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
             <div className="text-sm text-blue-900">
-              <p className="font-semibold mb-1">ltree Hiyerarşik Yapı</p>
+              <p className="font-semibold mb-1">Hiyerarşik Yapı (ltree)</p>
               <p className="text-blue-800">
-                Varlıklar parent-child ilişkisi ile hiyerarşik olarak düzenlenmiştir.
-                Path alanı ltree formatında saklanır: <code className="bg-blue-100 px-1 rounded font-mono text-xs">genel_mudurluk.hazine_yonetimi</code>
+                Varlıklar üst-alt (parent-child) ilişkisi ile hiyerarşik olarak düzenlenmiştir.
+                Her varlığın path alanı ltree formatında saklanır: <code className="bg-blue-100 px-1 rounded font-mono text-xs">genel_mudurluk.hazine_yonetimi</code>
               </p>
             </div>
           </div>

@@ -5,12 +5,12 @@ import { useCreateEntity, useUpdateEntity, useAuditEntities } from '@/entities/u
 import type { AuditEntity, EntityType } from '@/entities/universe/model/types';
 
 const ENTITY_TYPES: { value: EntityType; label: string }[] = [
-  { value: 'HEADQUARTERS', label: 'Genel Mudurluk' },
-  { value: 'GROUP', label: 'Bolge / Grup' },
+  { value: 'HEADQUARTERS', label: 'Genel Müdürlük' },
+  { value: 'GROUP', label: 'Bölge / Grup' },
   { value: 'DEPARTMENT', label: 'Departman' },
-  { value: 'BRANCH', label: 'Sube' },
+  { value: 'BRANCH', label: 'Şube' },
   { value: 'UNIT', label: 'Birim' },
-  { value: 'PROCESS', label: 'Surec' },
+  { value: 'PROCESS', label: 'Süreç' },
 ];
 
 interface EntityFormModalProps {
@@ -36,9 +36,15 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
 
   const generatePath = () => {
     const slug = name.toLowerCase()
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
       .replace(/[^a-z0-9\s]/g, '')
       .replace(/\s+/g, '_')
-      .substring(0, 20);
+      .substring(0, 30);
     if (parentId) {
       const parent = allEntities.find(e => e.id === parentId);
       return parent ? `${parent.path}.${slug}` : slug;
@@ -87,9 +93,9 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {isEdit ? 'Varlik Duzenle' : 'Yeni Varlik Ekle'}
+                {isEdit ? 'Varlık Düzenle' : 'Yeni Varlık Ekle'}
               </h2>
-              <p className="text-xs text-slate-500">Denetim evrenine varlik ekleyin</p>
+              <p className="text-xs text-slate-500">Denetim evrenine varlık ekleyin</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
@@ -99,13 +105,13 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Varlik Adi</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Varlık Adı</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="orn: Levent Subesi"
+              placeholder="örn: Beşiktaş Şubesi"
             />
           </div>
 
@@ -123,13 +129,13 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Ust Varlik (Hiyerarsi)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Üst Varlık (Hiyerarşi)</label>
             <select
               value={parentId}
               onChange={e => setParentId(e.target.value)}
               className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Kok Varlik (Ust Yok)</option>
+              <option value="">Kök Varlık (Üst Yok)</option>
               {parentOptions.map(e => (
                 <option key={e.id} value={e.id}>
                   {e.name} ({e.type})
@@ -159,7 +165,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
               >
                 <option value="Active">Aktif</option>
                 <option value="Inactive">Pasif</option>
-                <option value="Archived">Arsivlendi</option>
+                <option value="Archived">Arşivlendi</option>
               </select>
             </div>
           </div>
@@ -167,7 +173,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
 
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-semibold text-sm hover:bg-slate-200 transition-colors">
-            Iptal
+            İptal
           </button>
           <button
             onClick={handleSubmit}
@@ -175,7 +181,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
             className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {isPending && <Loader2 size={14} className="animate-spin" />}
-            {isEdit ? 'Guncelle' : 'Ekle'}
+            {isEdit ? 'Güncelle' : 'Ekle'}
           </button>
         </div>
       </motion.div>

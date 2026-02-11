@@ -215,14 +215,14 @@ export default function AuditUniversePage() {
             <div className="flex gap-3">
               <div className="text-blue-600 mt-0.5">ℹ️</div>
               <div className="text-sm text-blue-900">
-                <p className="font-semibold mb-1">Varlık Hiyerarşisi Bilgisi</p>
+                <p className="font-semibold mb-1">Varlık Yönetimi Bilgilendirme</p>
                 <ul className="space-y-1 text-blue-800">
-                  <li>• <strong>Liste:</strong> Tablo formatında tüm varlıkları görüntüleyin</li>
-                  <li>• <strong>Ağaç Görünümü:</strong> ReactFlow ile interaktif ağaç görünümü</li>
-                  <li>• <strong>Hiyerarşi:</strong> ltree tabanlı konstitüsyonel hiyerarşi</li>
-                  <li>• <strong>Path:</strong> Otomatik oluşturulur (varlık adından türetilir)</li>
-                  <li>• <strong>Risk Skoru:</strong> 0-100 arası olmalıdır</li>
-                  <li>• <strong>Velocity:</strong> Risk değişim hızını gösterir (varsayılan 1.0)</li>
+                  <li>• <strong>Liste:</strong> Tablo formatında tüm varlıkları görüntüleyin ve sıralayın</li>
+                  <li>• <strong>Ağaç Görünümü:</strong> ReactFlow ile interaktif görsel ağaç yapısı</li>
+                  <li>• <strong>Hiyerarşi:</strong> Üst-alt ilişkili ltree tabanlı organizasyon yapısı</li>
+                  <li>• <strong>Hiyerarşi Yolu:</strong> Otomatik oluşturulur (varlık adından türetilir)</li>
+                  <li>• <strong>Risk Puanı:</strong> 0-100 arası manuel giriş (0=Çok Düşük, 100=Kritik)</li>
+                  <li>• <strong>Risk Hızı:</strong> Risk değişim hızı çarpanı (varsayılan: 1.0x)</li>
                 </ul>
               </div>
             </div>
