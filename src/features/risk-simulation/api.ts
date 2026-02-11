@@ -84,10 +84,11 @@ export function useSimulationResults(simulationId: string | null) {
 
       if (fetchError) throw fetchError;
 
-      setResults((data as SimulationResult[]) || []);
+      setResults(Array.isArray(data) ? (data as SimulationResult[]) : []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch results';
       setError(errorMsg);
+      setResults([]);
     } finally {
       setIsLoading(false);
     }
@@ -134,22 +135,22 @@ export function useSimulationImpact(simulationId: string | null) {
 
       if (fetchError) throw fetchError;
 
-      if (!results || results.length === 0) {
+      if (!results || !Array.isArray(results) || results.length === 0) {
         setImpact(null);
         return;
       }
 
       // Calculate summary statistics
       const totalEntities = results.length;
-      const entitiesChanged = results.filter((r: any) => r.zone_changed).length;
-      const avgScoreChange = results.reduce((sum: number, r: any) => sum + r.delta, 0) / totalEntities;
+      const entitiesChanged = results.filter((r: any) => r?.zone_changed).length;
+      const avgScoreChange = results.reduce((sum: number, r: any) => sum + (r?.delta || 0), 0) / totalEntities;
       const avgPercentageChange = avgScoreChange; // Simplified
 
       // Count by zone
-      const criticalCount = results.filter((r: any) => r.risk_zone_new === 'CRITICAL').length;
-      const highCount = results.filter((r: any) => r.risk_zone_new === 'HIGH').length;
-      const mediumCount = results.filter((r: any) => r.risk_zone_new === 'MEDIUM').length;
-      const lowCount = results.filter((r: any) => r.risk_zone_new === 'LOW').length;
+      const criticalCount = results.filter((r: any) => r?.risk_zone_new === 'CRITICAL').length;
+      const highCount = results.filter((r: any) => r?.risk_zone_new === 'HIGH').length;
+      const mediumCount = results.filter((r: any) => r?.risk_zone_new === 'MEDIUM').length;
+      const lowCount = results.filter((r: any) => r?.risk_zone_new === 'LOW').length;
 
       setImpact({
         simulation_run_id: simulationId,
@@ -203,10 +204,11 @@ export function useSimulationHistory() {
 
       if (fetchError) throw fetchError;
 
-      setRuns((data as SimulationRun[]) || []);
+      setRuns(Array.isArray(data) ? (data as SimulationRun[]) : []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch history';
       setError(errorMsg);
+      setRuns([]);
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +245,10 @@ export function useSimulationHistory() {
 export function useFilteredResults(results: SimulationResult[]) {
   const [filter, setFilter] = useState<'all' | 'zone_changes' | 'increased' | 'decreased'>('all');
 
-  const filteredResults = results.filter((result) => {
+  const safeResults = Array.isArray(results) ? results : [];
+
+  const filteredResults = safeResults.filter((result) => {
+    if (!result) return false;
     switch (filter) {
       case 'zone_changes':
         return result.zone_changed;
@@ -260,7 +265,7 @@ export function useFilteredResults(results: SimulationResult[]) {
     filteredResults,
     filter,
     setFilter,
-    totalCount: results.length,
+    totalCount: safeResults.length,
     filteredCount: filteredResults.length,
   };
 }

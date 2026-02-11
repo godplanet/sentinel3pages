@@ -14,8 +14,10 @@ export const StrategyDashboard = () => {
   const [modalType, setModalType] = useState<'goal' | 'objective' | null>(null);
 
   const { goals, objectives } = useStrategyStore();
-  const avgProgress = goals.length > 0
-    ? Math.round(goals.reduce((acc, curr) => acc + curr.progress, 0) / goals.length)
+  const safeGoals = Array.isArray(goals) ? goals : [];
+  const safeObjectives = Array.isArray(objectives) ? objectives : [];
+  const avgProgress = safeGoals.length > 0
+    ? Math.round(safeGoals.reduce((acc, curr) => acc + (curr?.progress || 0), 0) / safeGoals.length)
     : 0;
 
   return (
@@ -29,7 +31,7 @@ export const StrategyDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Toplam Hedef</p>
-            <h3 className="text-2xl font-black text-slate-800">{goals.length}</h3>
+            <h3 className="text-2xl font-black text-slate-800">{safeGoals.length}</h3>
           </div>
         </div>
 
@@ -39,7 +41,7 @@ export const StrategyDashboard = () => {
           </div>
           <div>
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Denetim Kapsamı</p>
-            <h3 className="text-2xl font-black text-slate-800">{objectives.length}</h3>
+            <h3 className="text-2xl font-black text-slate-800">{safeObjectives.length}</h3>
           </div>
         </div>
 

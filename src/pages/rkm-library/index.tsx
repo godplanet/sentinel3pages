@@ -3,7 +3,7 @@ import { PageHeader } from '@/shared/ui';
 import { fetchRkmCategories, fetchRkmRisksByProcess, fetchRkmTotalRiskCount } from '@/entities/rkm/api';
 import { RKMLibrary } from '@/widgets/RKMLibrary';
 import { RKMMasterGrid } from '@/widgets/RKMMasterGrid';
-import { RiskNetwork } from '@/widgets/RiskNetwork';
+import { RiskNetworkLoader } from '@/widgets/RiskNetwork/RiskNetworkLoader';
 import { AdHocRiskWizard } from '@/features/risk-engine/AdHocRiskWizard';
 import { ExcelImportModal } from '@/features/excel-import/ExcelImportModal';
 import {
@@ -146,7 +146,7 @@ export default function RkmLibraryPage() {
       {viewMode === 'overview' && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow">
+            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase text-slate-600 font-bold tracking-wider">Toplam Risk</div>
                 <Shield size={20} className="text-slate-400" />
@@ -154,7 +154,7 @@ export default function RkmLibraryPage() {
               <div className="text-4xl font-bold text-slate-900">{totalRisks}</div>
               <p className="text-xs text-slate-500 mt-1">Tum surecler</p>
             </div>
-            <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow">
+            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase text-slate-600 font-bold tracking-wider">Surec Kategorisi</div>
                 <Layers size={20} className="text-slate-400" />
@@ -162,13 +162,13 @@ export default function RkmLibraryPage() {
               <div className="text-4xl font-bold text-slate-900">{categories.length}</div>
               <p className="text-xs text-slate-500 mt-1">Ana kategori</p>
             </div>
-            <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow">
+            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase text-red-600 font-bold tracking-wider">Kritik Riskler</div>
                 <AlertTriangle size={20} className="text-red-500" />
               </div>
               <div className="text-4xl font-bold text-red-700">
-                {categories.reduce((sum, cat) => sum + (cat.critical_risks || 0), 0)}
+                {Array.isArray(categories) ? categories.reduce((sum, cat) => sum + (cat?.critical_risks || 0), 0) : 0}
               </div>
               <p className="text-xs text-red-500 mt-1">Acil mudahale gerekli</p>
             </div>
@@ -180,7 +180,7 @@ export default function RkmLibraryPage() {
               <div className="text-center py-12 text-slate-500">Yukleniyor...</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {categories.map((category) => {
+                {Array.isArray(categories) && categories.filter(Boolean).map((category) => {
                   const iconConfig = categoryIcons[category.process_code] || { icon: Database, color: 'from-slate-600 to-slate-700' };
                   const Icon = iconConfig.icon;
                   return (
@@ -228,7 +228,7 @@ export default function RkmLibraryPage() {
 
       {viewMode === 'network' && (
         <div className="h-[calc(100vh-200px)]">
-          <RiskNetwork />
+          <RiskNetworkLoader />
         </div>
       )}
 

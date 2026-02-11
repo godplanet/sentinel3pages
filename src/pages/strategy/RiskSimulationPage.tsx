@@ -270,14 +270,14 @@ export default function RiskSimulationPage() {
             )}
 
             {/* Historical Runs */}
-            {runs.length > 0 && (
+            {Array.isArray(runs) && runs.length > 0 && (
               <div className="pt-4 border-t border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
                   <History className="w-4 h-4 text-slate-500" />
                   <h3 className="text-sm font-semibold text-slate-700">Recent Simulations</h3>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {runs.slice(0, 10).map((run) => (
+                  {runs.slice(0, 10).map((run) => run && (
                     <div
                       key={run.id}
                       className={`p-3 rounded-lg border cursor-pointer hover:border-blue-400 transition-colors ${
@@ -400,7 +400,7 @@ export default function RiskSimulationPage() {
                       <div className="p-8 text-center">
                         <div className="animate-spin w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
                       </div>
-                    ) : filteredResults.length === 0 ? (
+                    ) : !Array.isArray(filteredResults) || filteredResults.length === 0 ? (
                       <div className="p-8 text-center text-slate-500">No results match filter</div>
                     ) : (
                       <table className="w-full">
@@ -413,7 +413,7 @@ export default function RiskSimulationPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredResults.map((result) => (
+                          {filteredResults.filter(Boolean).map((result) => (
                             <ResultRow key={result.id} result={result} />
                           ))}
                         </tbody>
