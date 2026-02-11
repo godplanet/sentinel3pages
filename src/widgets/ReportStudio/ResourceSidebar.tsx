@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FileText, FileWarning, BarChart3, Plus, Search } from 'lucide-react';
+import { FileText, FileWarning, BarChart3, Plus, Search, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { getAllFindings } from '@/entities/finding/api/crud';
 import type { Finding } from '@/entities/finding/model/types';
@@ -21,6 +22,7 @@ export function ResourceSidebar({
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (engagementId) {
@@ -82,6 +84,7 @@ export function ResourceSidebar({
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onInsertFinding={onInsertFinding}
+            onNavigateToHub={() => navigate('/execution/findings')}
           />
         )}
         {activeTab === 'charts' && <ChartsTab onInsertChart={onInsertChart} />}
@@ -130,6 +133,7 @@ interface FindingsTabProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onInsertFinding?: (finding: Finding) => void;
+  onNavigateToHub?: () => void;
 }
 
 function FindingsTab({
@@ -138,6 +142,7 @@ function FindingsTab({
   searchQuery,
   onSearchChange,
   onInsertFinding,
+  onNavigateToHub,
 }: FindingsTabProps) {
   const severityColors = {
     Critical: 'bg-red-100 text-red-700 border-red-300',
@@ -148,7 +153,7 @@ function FindingsTab({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 p-4 border-b border-slate-200">
+      <div className="flex-shrink-0 p-4 border-b border-slate-200 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
           <input
@@ -159,6 +164,15 @@ function FindingsTab({
             className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        {onNavigateToHub && (
+          <button
+            onClick={onNavigateToHub}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:shadow-md transition-all text-sm font-medium"
+          >
+            <ExternalLink size={14} />
+            Bulgu Merkezine Git
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

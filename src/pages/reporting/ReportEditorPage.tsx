@@ -11,12 +11,14 @@ import {
   MoreVertical,
   Sidebar as SidebarIcon,
   X,
+  Sparkles,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { MOCK_REPORT_ARCHIVE, MOCK_REPORT_TEMPLATES } from '@/shared/data/mock-reports';
 import { EditorCanvas, ResourceSidebar, WarmthSlider } from '@/widgets/ReportStudio';
 import { applyTemplate } from '@/features/reporting/templates';
 import type { Finding } from '@/entities/finding/model/types';
+import { AIWriterModal } from '@/features/report-editor/ui/AIWriterModal';
 
 const STATUS_CONFIG = {
   draft: { label: 'Taslak', color: 'bg-slate-100 text-slate-700', icon: Clock },
@@ -41,6 +43,7 @@ export default function ReportEditorPage() {
   const [zenMode, setZenMode] = useState(false);
   const [warmth, setWarmth] = useState(0);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [showAIWriter, setShowAIWriter] = useState(false);
   const [content, setContent] = useState(() => {
     if (template && templateId) {
       return applyTemplate(templateId);
@@ -76,6 +79,12 @@ export default function ReportEditorPage() {
     console.log('Saving report...', { title, status, content });
   };
 
+  const handleAIInsert = (aiContent: string) => {
+    if (editorRef.current) {
+      editorRef.current.chain().focus().insertContent(aiContent).run();
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
       {/* Top Bar */}
@@ -104,6 +113,14 @@ export default function ReportEditorPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowAIWriter(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm"
+              >
+                <Sparkles size={16} />
+                AI ile Oluştur
+              </button>
+
               <button
                 onClick={() => setZenMode(true)}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -259,6 +276,15 @@ export default function ReportEditorPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Writer Modal */}
+      {showAIWriter && (
+        <AIWriterModal
+          onClose={() => setShowAIWriter(false)}
+          onInsert={handleAIInsert}
+          findingCount={7}
+        />
       )}
     </div>
   );

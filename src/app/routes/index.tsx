@@ -43,7 +43,6 @@ import RiskConstitutionPage from '@/pages/settings/RiskConstitutionPage';
 import SystemHealthPage from '@/pages/settings/SystemHealthPage';
 import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
-import ReportBuilderPage from '@/pages/reporting/ReportBuilderPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
 import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
 import ReportViewerPage from '@/pages/reporting/ReportViewerPage';
@@ -176,7 +175,6 @@ export const AppRoutes = () => {
       <Route path="/reporting/editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/view/:id" element={<ProtectedRoute><ReportViewerPage /></ProtectedRoute>} />
       <Route path="/reporting/edit/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
-      <Route path="/reporting/builder" element={<ProtectedRoute><ReportBuilderPage /></ProtectedRoute>} />
       <Route path="/reporting/executive" element={<ProtectedRoute><ExecutiveDashboardPage /></ProtectedRoute>} />
       <Route path="/reporting/trends" element={<ProtectedRoute><TrendAnalysisPage /></ProtectedRoute>} />
       <Route path="/reporting/entity-scorecard" element={<ProtectedRoute><EntityScorecardPage /></ProtectedRoute>} />

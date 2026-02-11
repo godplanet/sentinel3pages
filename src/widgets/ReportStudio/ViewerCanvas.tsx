@@ -51,7 +51,20 @@ export function ViewerCanvas({ content, warmth = 0, onFindingClick }: ViewerCanv
 
   useEffect(() => {
     if (content && editor) {
-      editor.commands.setContent(content);
+      try {
+        let parsedContent = content;
+
+        if (typeof content === 'string') {
+          if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+            parsedContent = JSON.parse(content);
+          }
+        }
+
+        editor.commands.setContent(parsedContent);
+      } catch (error) {
+        console.error('Failed to parse content:', error);
+        editor.commands.setContent(content);
+      }
     }
   }, [content, editor]);
 
