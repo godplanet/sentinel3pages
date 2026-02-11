@@ -77,18 +77,18 @@ export default function SystemHealthPage() {
 
   const tableStats: TableStat[] = [
     {
-      name: 'audit_universe',
+      name: 'audit_entities',
       label: 'Denetim Evreni',
       icon: Target,
-      count: tableCounts.audit_universe || 0,
-      status: (tableCounts.audit_universe || 0) > 0 ? 'healthy' : 'error',
+      count: tableCounts.audit_entities || 0,
+      status: (tableCounts.audit_entities || 0) > 0 ? 'healthy' : 'error',
     },
     {
-      name: 'rkm_master_library',
+      name: 'risk_library',
       label: 'Risk Kutuphanesi',
       icon: AlertTriangle,
-      count: tableCounts.rkm_master_library || 0,
-      status: (tableCounts.rkm_master_library || 0) > 0 ? 'healthy' : 'warning',
+      count: tableCounts.risk_library || 0,
+      status: (tableCounts.risk_library || 0) > 0 ? 'healthy' : 'warning',
     },
     {
       name: 'user_profiles',
@@ -140,7 +140,7 @@ export default function SystemHealthPage() {
         title="Sistem Sagligi & Veri Yonetimi"
         description="Veritabani durumu ve demo veri yukleme"
         icon={Database}
-        actions={
+        action={
           <button
             onClick={loadTableCounts}
             disabled={loading || seeding}
@@ -184,16 +184,14 @@ export default function SystemHealthPage() {
             </div>
           </div>
 
-          {(errorCount > 0 || warningCount > 2) && (
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={seeding}
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 font-semibold"
-            >
-              <Trash2 className="w-5 h-5" />
-              FACTORY RESET
-            </button>
-          )}
+          <button
+            onClick={() => setShowConfirm(true)}
+            disabled={seeding}
+            className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 font-semibold"
+          >
+            <Trash2 className="w-5 h-5" />
+            FACTORY RESET
+          </button>
         </div>
       </div>
 

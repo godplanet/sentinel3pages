@@ -37,73 +37,22 @@ export default function PageInventoryPage() {
 
     // Define all major pages and their DB dependencies
     const pageDefinitions = [
-      // DASHBOARD
-      { name: 'Dashboard', route: '/', module: 'Dashboard', table: 'audit_engagements' },
-      { name: 'Strategic Analysis', route: '/dashboard/strategic', module: 'Dashboard', table: 'audit_risks' },
+      { name: 'Dashboard', route: '/dashboard', module: 'Dashboard', table: 'audit_engagements' },
       { name: 'Ecosystem View', route: '/dashboard/ecosystem', module: 'Dashboard', table: 'user_profiles' },
-
-      // STRATEGY & RISK
-      { name: 'Risk Heatmap', route: '/strategy/heatmap', module: 'Strategy', table: 'audit_risks' },
-      { name: 'Audit Universe', route: '/strategy/universe', module: 'Strategy', table: 'audit_universe' },
-      { name: 'Neural Map', route: '/strategy/neural-map', module: 'Strategy', table: 'audit_risks' },
-      { name: 'Risk Simulation', route: '/strategy/risk-simulation', module: 'Strategy', table: 'audit_risks' },
-      { name: 'Strategic Planning', route: '/planning/strategic', module: 'Strategy', table: 'audit_engagements' },
-
-      // EXECUTION (CORE FLOW)
-      { name: 'New Engagement', route: '/execution/new', module: 'Execution', table: 'program_templates' },
-      { name: 'Agile Engagements', route: '/execution/agile', module: 'Execution', table: 'audit_engagements' },
-      { name: 'Sprint Board', route: '/execution/sprint-board', module: 'Execution', table: 'sprints' },
+      { name: 'Audit Universe', route: '/strategy/universe', module: 'Strategy', table: 'audit_entities' },
+      { name: 'Risk Library', route: '/strategy/risk-assessment', module: 'Strategy', table: 'risk_library' },
+      { name: 'Strategic Planning', route: '/strategy/annual-plan', module: 'Strategy', table: 'audit_plans' },
+      { name: 'Engagements', route: '/execution/my-engagements', module: 'Execution', table: 'audit_engagements' },
       { name: 'Workpapers', route: '/execution/workpapers', module: 'Execution', table: 'workpapers' },
       { name: 'Finding Hub', route: '/execution/findings', module: 'Execution', table: 'audit_findings' },
-      { name: 'Finding Studio', route: '/execution/finding-studio', module: 'Execution', table: 'audit_findings' },
-
-      // LIBRARY
+      { name: 'Action Plans', route: '/execution/findings', module: 'Execution', table: 'action_plans' },
+      { name: 'Audit Steps', route: '/execution/my-engagements', module: 'Execution', table: 'audit_steps' },
       { name: 'Program Library', route: '/library/programs', module: 'Library', table: 'program_templates' },
-      { name: 'Risk Library', route: '/library/risks', module: 'Library', table: 'audit_risks' },
-      { name: 'Procedures', route: '/library/procedures', module: 'Library', table: 'audit_procedures' },
-
-      // REPORTING
-      { name: 'Report Library', route: '/reporting/library', module: 'Reporting', table: 'audit_reports' },
-      { name: 'Report Builder', route: '/reporting/builder', module: 'Reporting', table: 'audit_reports' },
-      { name: 'Report Editor', route: '/reporting/editor/:id', module: 'Reporting', table: 'audit_reports' },
-      { name: 'Executive Dashboard', route: '/reporting/executive', module: 'Reporting', table: 'audit_reports' },
-
-      // CCM & MONITORING
-      { name: 'CCM Predator', route: '/ccm/predator', module: 'CCM', table: 'ccm_anomalies' },
-      { name: 'Anomaly Dashboard', route: '/ccm/anomaly', module: 'CCM', table: 'ccm_anomalies' },
-      { name: 'Watchtower', route: '/monitoring/watchtower', module: 'Monitoring', table: 'sentinel_probes' },
-
-      // INVESTIGATION
-      { name: 'Investigation Hub', route: '/investigation/hub', module: 'Investigation', table: 'investigation_cases' },
-      { name: 'Triage Cockpit', route: '/investigation/triage', module: 'Investigation', table: 'whistleblower_tips' },
-      { name: 'Whistleblower Portal', route: '/governance/whistleblower', module: 'Investigation', table: 'whistleblower_tips' },
-
-      // GOVERNANCE
-      { name: 'Policy Library', route: '/governance/policy', module: 'Governance', table: 'policy_documents' },
-      { name: 'Board Reporting', route: '/governance/board', module: 'Governance', table: 'audit_reports' },
-
-      // COMPLIANCE
-      { name: 'Compliance Mapper', route: '/compliance', module: 'Compliance', table: 'compliance_frameworks' },
-      { name: 'Gap Analysis', route: '/compliance/gap', module: 'Compliance', table: 'compliance_requirements' },
-
-      // TALENT & RESOURCES
-      { name: 'Talent OS', route: '/talent-os', module: 'Talent', table: 'auditor_profiles' },
-      { name: 'Resource Management', route: '/resources', module: 'Resources', table: 'resource_allocations' },
-
-      // SPECIALIZED MODULES
-      { name: 'SOX Manager', route: '/sox', module: 'SOX', table: 'sox_controls' },
-      { name: 'ESG Dashboard', route: '/esg', module: 'ESG', table: 'esg_metrics' },
-      { name: 'TPRM Dashboard', route: '/tprm', module: 'TPRM', table: 'vendor_assessments' },
-      { name: 'Advisory Hub', route: '/advisory', module: 'Advisory', table: 'advisory_projects' },
-      { name: 'QAIP Dashboard', route: '/qaip', module: 'QAIP', table: 'qaip_checklists' },
-
-      // AI AGENTS
-      { name: 'Mission Control', route: '/ai-agents/mission-control', module: 'AI', table: 'ai_chat_sessions' },
-      { name: 'Field Agent', route: '/execution/field-agent', module: 'AI', table: 'ai_chat_sessions' },
-
-      // AUDITEE PORTAL
-      { name: 'Auditee Dashboard', route: '/auditee/dashboard', module: 'Auditee', table: 'audit_findings' },
-      { name: 'Vendor Portal', route: '/vendor-portal', module: 'Vendor', table: 'vendor_assessments' },
+      { name: 'Reports', route: '/reporting/library', module: 'Reporting', table: 'reports' },
+      { name: 'Review Notes', route: '/execution/workpapers', module: 'Execution', table: 'review_notes' },
+      { name: 'User Profiles', route: '/settings/users', module: 'Settings', table: 'user_profiles' },
+      { name: 'Tenants', route: '/settings', module: 'Settings', table: 'tenants' },
+      { name: 'Compliance Regulations', route: '/compliance/regulations', module: 'Compliance', table: 'compliance_regulations' },
     ];
 
     const results: PageStatus[] = [];
@@ -198,8 +147,8 @@ export default function PageInventoryPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Page Inventory & Coverage Report"
-        subtitle="Ghost Hunter - Analyze which pages have live data vs mock/empty"
-        icon={<FileCheck2 className="w-8 h-8 text-blue-600" />}
+        description="Ghost Hunter - Analyze which pages have live data vs mock/empty"
+        icon={FileCheck2}
       />
 
       {/* SUMMARY CARDS */}
