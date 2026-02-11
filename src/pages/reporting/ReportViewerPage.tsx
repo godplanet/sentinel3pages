@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Printer, Share2, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Edit, Printer, Share2, Eye, Download, Lock } from 'lucide-react';
 import clsx from 'clsx';
 import { reportApi } from '@/entities/report/api';
 import type { Report } from '@/entities/report/model/types';
 import { ViewerCanvas } from '@/widgets/ReportStudio/ViewerCanvas';
 import { WarmthSlider } from '@/widgets/ReportStudio';
 import { FindingDetailDrawer } from '@/widgets/ReportStudio/FindingDetailDrawer';
-import { SignaturePanel } from '@/features/reporting';
+import { SignaturePanel, isReportFrozen } from '@/features/reporting';
 
 export default function ReportViewerPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +77,11 @@ export default function ReportViewerPage() {
     );
   }
 
-  const content = report.tiptap_content || report.content || '';
+  const isFrozen = isReportFrozen(report);
+
+  const content = isFrozen
+    ? report.snapshot_data?.report?.tiptap_content || report.tiptap_content || report.content || ''
+    : report.tiptap_content || report.content || '';
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
@@ -93,19 +97,32 @@ export default function ReportViewerPage() {
             </button>
 
             <div className="flex items-center gap-2">
-              <Eye className="text-blue-500" size={20} />
-              <span className="text-sm font-medium text-slate-700">Rapor Görüntüleme</span>
+              {isFrozen ? (
+                <Lock className="text-emerald-500" size={20} />
+              ) : (
+                <Eye className="text-blue-500" size={20} />
+              )}
+              <span className="text-sm font-medium text-slate-700">
+                {isFrozen ? 'Yayınlanmış Rapor (Donmuş)' : 'Rapor Görüntüleme'}
+              </span>
             </div>
+            {isFrozen && (
+              <div className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+                🔒 DEĞİŞTİRİLEMEZ
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <Edit size={16} />
-              Düzenle
-            </button>
+            {!isFrozen && (
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <Edit size={16} />
+                Düzenle
+              </button>
+            )}
 
             <button
               onClick={handlePrint}
@@ -202,14 +219,33 @@ export default function ReportViewerPage() {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-600">Durum:</span>
-                <span className="font-medium text-slate-900">
-                  {report.status === 'PUBLISHED' ? 'Yayınlandı' : report.status === 'REVIEW' ? 'İncelemede' : 'Taslak'}
+                <span className={clsx(
+                  "font-medium",
+                  report.status === 'published' ? 'text-emerald-600' :
+                  report.status === 'review' ? 'text-amber-600' :
+                  'text-slate-900'
+                )}>
+                  {report.status === 'published' ? '🔒 Yayınlandı' :
+                   report.status === 'review' ? '📝 İncelemede' :
+                   '✏️ Taslak'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Versiyon:</span>
-                <span className="font-medium text-slate-900">v{report.version_number || 1}</span>
-              </div>
+              {isFrozen && report.locked_at && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Dondurulma:</span>
+                  <span className="font-medium text-slate-900">
+                    {new Date(report.locked_at).toLocaleDateString('tr-TR')}
+                  </span>
+                </div>
+              )}
+              {isFrozen && report.snapshot_data?.metadata && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Snapshot:</span>
+                  <span className="font-medium text-slate-900">
+                    v{report.snapshot_data.metadata.snapshot_version}
+                  </span>
+                </div>
+              )}
               {report.engagement_id && (
                 <div className="flex justify-between">
                   <span className="text-slate-600">Denetim ID:</span>
