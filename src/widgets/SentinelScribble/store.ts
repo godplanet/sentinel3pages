@@ -13,6 +13,7 @@ interface ScribbleState {
   prefillFinding: ExtractedFinding | null;
   position: { x: number; y: number };
   size: { width: number; height: number };
+  buttonPosition: { x: number; y: number };
 
   toggle: () => void;
   open: () => void;
@@ -27,6 +28,7 @@ interface ScribbleState {
   closeFindingModal: () => void;
   setPosition: (pos: { x: number; y: number }) => void;
   setSize: (size: { width: number; height: number }) => void;
+  setButtonPosition: (pos: { x: number; y: number }) => void;
   reset: () => void;
 }
 
@@ -45,6 +47,7 @@ export const useScribbleStore = create<ScribbleState>((set) => ({
   prefillFinding: null,
   position: { x: Math.max(24, (typeof window !== 'undefined' ? window.innerWidth : 1200) - DEFAULT_WIDTH - 24), y: Math.max(24, (typeof window !== 'undefined' ? window.innerHeight : 800) - DEFAULT_HEIGHT - 24) },
   size: { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT },
+  buttonPosition: { x: -1, y: -1 },
 
   toggle: () => set((s) => ({ isOpen: !s.isOpen })),
   open: () => set({ isOpen: true }),
@@ -59,6 +62,7 @@ export const useScribbleStore = create<ScribbleState>((set) => ({
   closeFindingModal: () => set({ showFindingModal: false, prefillFinding: null }),
   setPosition: (position) => set({ position }),
   setSize: (size) => set({ size }),
+  setButtonPosition: (buttonPosition) => set({ buttonPosition }),
   reset: () => set({
     content: '',
     extractionResult: null,

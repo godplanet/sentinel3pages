@@ -250,12 +250,6 @@ export const navigationConfig: NavigationItem[] = [
         icon: ClipboardList,
       },
       {
-        id: 'program-library',
-        label: 'Program Kütüphanesi',
-        path: '/library/programs',
-        icon: BookOpen,
-      },
-      {
         id: 'procedures',
         label: 'Prosedür Kütüphanesi',
         path: '/library/procedures',

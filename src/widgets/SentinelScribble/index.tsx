@@ -22,13 +22,15 @@ export function SentinelScribble() {
   const [savedNotif, setSavedNotif] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; origW: number; origH: number } | null>(null);
+  const buttonDragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const [buttonWasDragged, setButtonWasDragged] = useState(false);
 
   const {
     isOpen, isMaximized, content, linkedContext, isProcessing, extractionResult,
-    position, size,
+    position, size, buttonPosition,
     toggle, close, setContent, setLinkedContext, setProcessing,
     setExtractionResult, openFindingModal, reset, toggleMaximize,
-    setPosition, setSize,
+    setPosition, setSize, setButtonPosition,
   } = useScribbleStore();
 
   useEffect(() => {
@@ -146,6 +148,52 @@ export function SentinelScribble() {
     document.addEventListener('mouseup', onUp);
   }, [isMaximized, size, setSize]);
 
+  const onButtonDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setButtonWasDragged(false);
+
+    const currentX = buttonPosition.x >= 0 ? buttonPosition.x : window.innerWidth - 120;
+    const currentY = buttonPosition.y >= 0 ? buttonPosition.y : window.innerHeight - 80;
+
+    buttonDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: currentX,
+      origY: currentY,
+    };
+
+    let hasMoved = false;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!buttonDragRef.current) return;
+      const dx = ev.clientX - buttonDragRef.current.startX;
+      const dy = ev.clientY - buttonDragRef.current.startY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasMoved = true;
+      }
+
+      setButtonPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 56, buttonDragRef.current.origX + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 56, buttonDragRef.current.origY + dy)),
+      });
+    };
+
+    const onUp = () => {
+      if (hasMoved) {
+        setButtonWasDragged(true);
+        setTimeout(() => setButtonWasDragged(false), 100);
+      }
+      buttonDragRef.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [buttonPosition, setButtonPosition]);
+
   return (
     <>
       <AnimatePresence>
@@ -156,9 +204,19 @@ export function SentinelScribble() {
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={toggle}
-            className="fixed bottom-6 left-6 z-[90] w-14 h-14 bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:shadow-slate-900/40 transition-shadow group"
-            title="Sentinel Scribble - Denetci Defteri"
+            onClick={(e) => {
+              if (!buttonWasDragged) {
+                toggle();
+              }
+            }}
+            onMouseDown={onButtonDragStart}
+            className="fixed z-[90] w-14 h-14 bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:shadow-slate-900/40 transition-shadow group cursor-move"
+            style={
+              buttonPosition.x >= 0 && buttonPosition.y >= 0
+                ? { left: buttonPosition.x, top: buttonPosition.y }
+                : { bottom: 24, right: 96 }
+            }
+            title="Sentinel Scribble - Denetçi Defteri (Sürüklenebilir)"
           >
             <PenLine size={22} className="group-hover:rotate-[-8deg] transition-transform" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
