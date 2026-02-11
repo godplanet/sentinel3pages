@@ -190,6 +190,14 @@ async function seedAll() {
     { tenant_id: TENANT_ID, title: "Siber Guvenlik Denetim Programi", description: "BT ve siber guvenlik denetim programi", category: "operational", estimated_hours: 120, step_count: 18, version: "2026.1" },
   ]);
 
+  await ins("review_notes", [
+    { tenant_id: TENANT_ID, workpaper_id: IDS.WP1, field_key: "conclusion", note_text: "Kasa limiti asimi ciddi. Sigorta kapsamini da kontrol etmek gerek.", author_id: IDS.USER_CAE, status: "OPEN" },
+    { tenant_id: TENANT_ID, workpaper_id: IDS.WP1, field_key: "sample_size", note_text: "15 orneklem yeterli mi? 30 gune cikaralim.", author_id: IDS.USER_AUDITOR, status: "OPEN" },
+    { tenant_id: TENANT_ID, workpaper_id: IDS.WP2, field_key: "objective", note_text: "KYC kontrol kapsamina MASAK bildirimlerini de ekleyelim.", author_id: IDS.USER_CAE, status: "OPEN" },
+    { tenant_id: TENANT_ID, workpaper_id: IDS.WP3, field_key: "conclusion", note_text: "Murabaha islemler uyumlu ancak dokumantasyon zayif. Bunu da vurgulayalim.", author_id: IDS.USER_AUDITOR, status: "RESOLVED", resolved_at: "2026-02-15T14:30:00Z", resolved_by: IDS.USER_CAE },
+    { tenant_id: TENANT_ID, workpaper_id: IDS.WP3, field_key: "test_result", note_text: "On kontrol sonuclari ile uyumlu.", author_id: IDS.USER_CAE, status: "RESOLVED", resolved_at: "2026-02-15T15:00:00Z", resolved_by: IDS.USER_CAE },
+  ]);
+
   return log;
 }
 
