@@ -8,18 +8,16 @@ import { useNavigate } from 'react-router-dom';
 
 interface AuditEngagement {
   id: string;
-  engagement_code: string;
-  engagement_name: string;
-  engagement_type: 'PLANNED' | 'AD_HOC' | 'CONTINUOUS' | 'FOLLOW_UP';
+  title: string;
+  audit_type: 'COMPREHENSIVE' | 'TARGETED' | 'FOLLOW_UP';
   start_date: string;
   end_date: string;
-  status: 'PLANNED' | 'IN_PROGRESS' | 'FIELD_WORK' | 'REPORTING' | 'COMPLETED' | 'CANCELLED';
-  priority?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  lead_auditor_id?: string;
-  team_members?: string[];
-  progress_percentage: number;
-  planned_hours: number;
-  objectives?: string;
+  status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  assigned_auditor_id?: string;
+  estimated_hours: number;
+  actual_hours?: number;
+  entity_id?: string;
+  risk_snapshot_score?: number;
 }
 
 interface Conflict {
@@ -34,6 +32,33 @@ export function AnnualPlanner() {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Helper functions - must be defined before usage
+  const getTypeColor = (type?: string) => {
+    switch (type) {
+      case 'COMPREHENSIVE': return '#3b82f6';
+      case 'TARGETED': return '#f97316';
+      case 'FOLLOW_UP': return '#8b5cf6';
+      default: return '#64748b';
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      PLANNED: 'bg-blue-100 text-blue-700',
+      IN_PROGRESS: 'bg-green-100 text-green-700',
+      FIELD_WORK: 'bg-purple-100 text-purple-700',
+      REPORTING: 'bg-orange-100 text-orange-700',
+      COMPLETED: 'bg-slate-100 text-slate-700',
+      CANCELLED: 'bg-red-100 text-red-700',
+    };
+
+    return (
+      <span className={`text-xs px-2 py-1 rounded font-semibold ${colors[status] || 'bg-slate-100 text-slate-700'}`}>
+        {status.replace('_', ' ')}
+      </span>
+    );
+  };
 
   const { data: engagements = [], isLoading } = useQuery({
     queryKey: ['audit-engagements'],
@@ -82,14 +107,14 @@ export function AnnualPlanner() {
 
   const tasks: Task[] = engagements.map((eng) => ({
     id: eng.id,
-    name: eng.engagement_name,
+    name: eng.title,
     start: new Date(eng.start_date),
     end: new Date(eng.end_date),
-    progress: eng.progress_percentage,
+    progress: Math.round((eng.actual_hours || 0) / eng.estimated_hours * 100) || 0,
     type: 'task',
     styles: {
-      backgroundColor: getPriorityColor(eng.priority),
-      backgroundSelectedColor: getPriorityColor(eng.priority),
+      backgroundColor: getTypeColor(eng.audit_type),
+      backgroundSelectedColor: getTypeColor(eng.audit_type),
       progressColor: '#1e40af',
       progressSelectedColor: '#1e40af',
     },
@@ -102,23 +127,22 @@ export function AnnualPlanner() {
     const startDate = task.start.toISOString().split('T')[0];
     const endDate = task.end.toISOString().split('T')[0];
 
-    const auditorIds = [
-      engagement.lead_auditor_id,
-      ...(engagement.team_members || []),
-    ].filter(Boolean) as string[];
+    const auditorIds = engagement.assigned_auditor_id ? [engagement.assigned_auditor_id] : [];
 
-    const foundConflicts = await checkConflicts(engagement.id, startDate, endDate, auditorIds);
+    if (auditorIds.length > 0) {
+      const foundConflicts = await checkConflicts(engagement.id, startDate, endDate, auditorIds);
 
-    if (foundConflicts.length > 0) {
-      setConflicts(foundConflicts);
-      const confirmUpdate = confirm(
-        `WARNING: Scheduling conflict detected!\n\n` +
-        `${foundConflicts.length} conflict(s) found with other engagements.\n` +
-        `Do you want to proceed anyway?`
-      );
+      if (foundConflicts.length > 0) {
+        setConflicts(foundConflicts);
+        const confirmUpdate = confirm(
+          `WARNING: Scheduling conflict detected!\n\n` +
+          `${foundConflicts.length} conflict(s) found with other engagements.\n` +
+          `Do you want to proceed anyway?`
+        );
 
-      if (!confirmUpdate) {
-        return;
+        if (!confirmUpdate) {
+          return;
+        }
       }
     }
 
@@ -132,9 +156,14 @@ export function AnnualPlanner() {
   };
 
   const handleProgressChange = async (task: Task) => {
+    const engagement = engagements.find(e => e.id === task.id);
+    if (!engagement) return;
+
+    const actualHours = Math.round((task.progress / 100) * engagement.estimated_hours);
+
     const { error } = await supabase
       .from('audit_engagements')
-      .update({ progress_percentage: task.progress })
+      .update({ actual_hours: actualHours })
       .eq('id', task.id);
 
     if (error) {
@@ -146,33 +175,6 @@ export function AnnualPlanner() {
 
   const handleTaskClick = (task: Task) => {
     navigate(`/execution/my-engagements/${task.id}`);
-  };
-
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case 'CRITICAL': return '#dc2626';
-      case 'HIGH': return '#f97316';
-      case 'MEDIUM': return '#eab308';
-      case 'LOW': return '#22c55e';
-      default: return '#64748b';
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      PLANNED: 'bg-blue-100 text-blue-700',
-      IN_PROGRESS: 'bg-green-100 text-green-700',
-      FIELD_WORK: 'bg-purple-100 text-purple-700',
-      REPORTING: 'bg-orange-100 text-orange-700',
-      COMPLETED: 'bg-slate-100 text-slate-700',
-      CANCELLED: 'bg-red-100 text-red-700',
-    };
-
-    return (
-      <span className={`text-xs px-2 py-1 rounded font-semibold ${colors[status] || 'bg-slate-100 text-slate-700'}`}>
-        {status.replace('_', ' ')}
-      </span>
-    );
   };
 
   if (isLoading) {
@@ -283,75 +285,71 @@ export function AnnualPlanner() {
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Code</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Engagement</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Type</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Start</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">End</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Hours</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Est. Hours</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Actual Hours</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Progress</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Priority</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Risk Score</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {engagements.map((eng) => (
-                <tr
-                  key={eng.id}
-                  className="hover:bg-slate-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/execution/my-engagements/${eng.id}`)}
-                >
-                  <td className="px-4 py-3">
-                    <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
-                      {eng.engagement_code}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{eng.engagement_name}</div>
-                    {eng.objectives && (
-                      <div className="text-xs text-slate-500 line-clamp-1">{eng.objectives}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {eng.engagement_type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">
-                    {new Date(eng.start_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">
-                    {new Date(eng.end_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-center text-sm text-slate-700">
-                    {eng.planned_hours}h
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-20 bg-slate-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${eng.progress_percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-600">{eng.progress_percentage}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {getStatusBadge(eng.status)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {eng.priority && (
+              {engagements.map((eng) => {
+                const progress = Math.round((eng.actual_hours || 0) / eng.estimated_hours * 100) || 0;
+                return (
+                  <tr
+                    key={eng.id}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/execution/my-engagements/${eng.id}`)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-900">{eng.title}</div>
+                    </td>
+                    <td className="px-4 py-3">
                       <span
                         className="text-xs px-2 py-1 rounded font-semibold text-white"
-                        style={{ backgroundColor: getPriorityColor(eng.priority) }}
+                        style={{ backgroundColor: getTypeColor(eng.audit_type) }}
                       >
-                        {eng.priority}
+                        {eng.audit_type}
                       </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {new Date(eng.start_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {new Date(eng.end_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">
+                      {eng.estimated_hours}h
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">
+                      {eng.actual_hours || 0}h
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-20 bg-slate-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-600">{progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {getStatusBadge(eng.status)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="text-sm font-semibold text-slate-700">
+                        {eng.risk_snapshot_score?.toFixed(1) || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -379,22 +377,58 @@ function AddEngagementModal({
   onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    engagement_code: '',
-    engagement_name: '',
-    engagement_type: 'PLANNED' as const,
+    title: '',
+    audit_type: 'COMPREHENSIVE' as const,
     start_date: '',
     end_date: '',
-    planned_hours: 0,
-    priority: 'MEDIUM' as const,
-    objectives: '',
+    estimated_hours: 0,
   });
+
+  const [entities, setEntities] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState('');
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: entitiesData } = await supabase
+        .from('audit_entities')
+        .select('id, entity_name')
+        .limit(50);
+
+      const { data: plansData } = await supabase
+        .from('audit_plans')
+        .select('id, plan_name, period_start, period_end')
+        .order('period_start', { ascending: false })
+        .limit(10);
+
+      setEntities(entitiesData || []);
+      setPlans(plansData || []);
+      if (plansData && plansData.length > 0) {
+        setSelectedPlanId(plansData[0].id);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!selectedEntityId || !selectedPlanId) {
+      alert('Please select entity and plan');
+      return;
+    }
+
     const { error } = await supabase
       .from('audit_engagements')
-      .insert([{ ...formData, status: 'PLANNED', progress_percentage: 0 }]);
+      .insert([{
+        ...formData,
+        entity_id: selectedEntityId,
+        plan_id: selectedPlanId,
+        status: 'PLANNED',
+        actual_hours: 0,
+        risk_snapshot_score: 0,
+      }]);
 
     if (error) {
       alert('Error creating engagement: ' + error.message);
@@ -412,59 +446,65 @@ function AddEngagementModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Engagement Code *
+              Audit Plan *
+            </label>
+            <select
+              value={selectedPlanId}
+              onChange={(e) => setSelectedPlanId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="">Select Plan</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.plan_name} ({new Date(plan.period_start).getFullYear()})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Entity *
+            </label>
+            <select
+              value={selectedEntityId}
+              onChange={(e) => setSelectedEntityId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="">Select Entity</option>
+              {entities.map((entity) => (
+                <option key={entity.id} value={entity.id}>
+                  {entity.entity_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Engagement Title *
             </label>
             <input
               type="text"
-              value={formData.engagement_code}
-              onChange={(e) => setFormData({ ...formData, engagement_code: e.target.value })}
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Engagement Name *
+              Audit Type
             </label>
-            <input
-              type="text"
-              value={formData.engagement_name}
-              onChange={(e) => setFormData({ ...formData, engagement_name: e.target.value })}
+            <select
+              value={formData.audit_type}
+              onChange={(e) => setFormData({ ...formData, audit_type: e.target.value as any })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Type
-              </label>
-              <select
-                value={formData.engagement_type}
-                onChange={(e) => setFormData({ ...formData, engagement_type: e.target.value as any })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="PLANNED">Planned</option>
-                <option value="AD_HOC">Ad Hoc</option>
-                <option value="CONTINUOUS">Continuous</option>
-                <option value="FOLLOW_UP">Follow Up</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Priority
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
-              </select>
-            </div>
+            >
+              <option value="COMPREHENSIVE">Comprehensive</option>
+              <option value="TARGETED">Targeted</option>
+              <option value="FOLLOW_UP">Follow Up</option>
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -494,24 +534,13 @@ function AddEngagementModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Planned Hours
+              Estimated Hours
             </label>
             <input
               type="number"
-              value={formData.planned_hours}
-              onChange={(e) => setFormData({ ...formData, planned_hours: Number(e.target.value) })}
+              value={formData.estimated_hours}
+              onChange={(e) => setFormData({ ...formData, estimated_hours: Number(e.target.value) })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Objectives
-            </label>
-            <textarea
-              value={formData.objectives}
-              onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">

@@ -60,18 +60,19 @@ BEGIN
   IF ARRAY_LENGTH(v_entity_ids, 1) >= 5 THEN
     INSERT INTO audit_engagements (
       tenant_id, plan_id, entity_id, title, audit_type, status,
-      start_date, end_date, lead_auditor_id, grade, created_at
+      start_date, end_date, assigned_auditor_id, estimated_hours, actual_hours,
+      risk_snapshot_score, created_at
     ) VALUES
       (v_tenant_id, v_plan_id, v_entity_ids[1], 'Siber Güvenlik Denetimi', 'COMPREHENSIVE', 'COMPLETED',
-       '2026-01-15', '2026-02-28', v_user_id_2, 65, '2026-01-15'::timestamptz),
+       '2026-01-15', '2026-02-28', v_user_id_2, 200, 200, 75.5, '2026-01-15'::timestamptz),
       (v_tenant_id, v_plan_id, v_entity_ids[2], 'Kredi Tahsis Süreçleri', 'COMPREHENSIVE', 'IN_PROGRESS',
-       '2026-02-01', '2026-03-31', v_user_id_2, NULL, '2026-02-01'::timestamptz),
-      (v_tenant_id, v_plan_id, v_entity_ids[3], 'AML/CFT Uyum Denetimi', 'COMPLIANCE', 'COMPLETED',
-       '2025-11-01', '2025-12-31', v_user_id_2, 78, '2025-11-01'::timestamptz),
-      (v_tenant_id, v_plan_id, v_entity_ids[4], 'BT Genel Kontroller', 'IT_AUDIT', 'PLANNING',
-       '2026-03-01', '2026-04-30', v_user_id_2, NULL, '2026-03-01'::timestamptz),
-      (v_tenant_id, v_plan_id, v_entity_ids[5], 'Şube Operasyonları Denetimi', 'OPERATIONAL', 'FIELDWORK',
-       '2026-02-15', '2026-03-15', v_user_id_2, NULL, '2026-02-15'::timestamptz)
+       '2026-02-01', '2026-03-31', v_user_id_2, 180, 108, 68.2, '2026-02-01'::timestamptz),
+      (v_tenant_id, v_plan_id, v_entity_ids[3], 'AML/CFT Uyum Denetimi', 'COMPREHENSIVE', 'COMPLETED',
+       '2025-11-01', '2025-12-31', v_user_id_2, 160, 160, 82.4, '2025-11-01'::timestamptz),
+      (v_tenant_id, v_plan_id, v_entity_ids[4], 'BT Genel Kontroller', 'TARGETED', 'PLANNED',
+       '2026-03-01', '2026-04-30', v_user_id_2, 120, 0, 71.3, '2026-03-01'::timestamptz),
+      (v_tenant_id, v_plan_id, v_entity_ids[5], 'Şube Operasyonları Denetimi', 'TARGETED', 'IN_PROGRESS',
+       '2026-02-15', '2026-03-15', v_user_id_2, 140, 70, 64.8, '2026-02-15'::timestamptz)
     ON CONFLICT DO NOTHING;
   END IF;
 
