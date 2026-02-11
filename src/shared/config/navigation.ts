@@ -549,6 +549,14 @@ export const navigationConfig: NavigationItem[] = [
         badge: 'DEV',
         badgeColor: 'red',
       },
+      {
+        id: 'page-inventory',
+        label: 'Sayfa Envanteri',
+        path: '/dev/inventory',
+        icon: Database,
+        badge: 'DEV',
+        badgeColor: 'purple',
+      },
     ],
   },
 ];
