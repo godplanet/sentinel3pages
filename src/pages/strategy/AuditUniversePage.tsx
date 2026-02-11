@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
-import { Map, Plus, Database, Loader2 } from 'lucide-react';
+import { Map, Plus, Database, Loader2, List, Network, Layers } from 'lucide-react';
 import { useAuditEntities, useCreateEntity } from '@/entities/universe';
 import { UniverseListView } from '@/features/universe/ui/UniverseListView';
+import { UniverseTree } from '@/features/universe/ui/UniverseTree';
+import { HierarchyView } from '@/features/universe/ui/HierarchyView';
 import { EntityFormModal } from '@/features/universe/ui/EntityFormModal';
 import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
+import clsx from 'clsx';
+
+type ViewMode = 'list' | 'tree' | 'hierarchy';
 
 export default function AuditUniversePage() {
   const { data: entities = [], isLoading, refetch } = useAuditEntities();
   const createEntity = useCreateEntity();
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   useEffect(() => {
     if (!isLoading && entities.length === 0) {
@@ -52,6 +58,16 @@ export default function AuditUniversePage() {
           status: 'Active',
           metadata: {},
         },
+        {
+          name: 'Kredi Yönetimi',
+          type: 'DEPARTMENT' as const,
+          path: 'genel_mudurluk.kredi_yonetimi',
+          risk_score: 68,
+          velocity_multiplier: 1.1,
+          parent_id: null,
+          status: 'Active',
+          metadata: {},
+        },
       ];
 
       for (const entity of basicEntities) {
@@ -77,6 +93,12 @@ export default function AuditUniversePage() {
       setIsSeeding(false);
     }
   };
+
+  const viewTabs = [
+    { id: 'list' as const, label: 'Liste', icon: List },
+    { id: 'tree' as const, label: 'Ağaç Görünümü', icon: Network },
+    { id: 'hierarchy' as const, label: 'Hiyerarşi', icon: Layers },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -123,6 +145,27 @@ export default function AuditUniversePage() {
                   </div>
                 )}
 
+                <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1">
+                  {viewTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setViewMode(tab.id)}
+                        className={clsx(
+                          'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all',
+                          viewMode === tab.id
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        )}
+                      >
+                        <Icon size={14} />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm"
@@ -152,7 +195,19 @@ export default function AuditUniversePage() {
                 </p>
               </div>
             ) : (
-              <UniverseListView />
+              <>
+                {viewMode === 'list' && <UniverseListView />}
+                {viewMode === 'tree' && (
+                  <div className="p-6">
+                    <UniverseTree />
+                  </div>
+                )}
+                {viewMode === 'hierarchy' && (
+                  <div className="p-6">
+                    <HierarchyView />
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -162,9 +217,12 @@ export default function AuditUniversePage() {
               <div className="text-sm text-blue-900">
                 <p className="font-semibold mb-1">Varlık Hiyerarşisi Bilgisi</p>
                 <ul className="space-y-1 text-blue-800">
-                  <li>• <strong>Path</strong> otomatik oluşturulur (varlık adından türetilir)</li>
-                  <li>• <strong>Risk Skoru</strong> 0-100 arası olmalıdır</li>
-                  <li>• <strong>Velocity</strong> risk değişim hızını gösterir (varsayılan 1.0)</li>
+                  <li>• <strong>Liste:</strong> Tablo formatında tüm varlıkları görüntüleyin</li>
+                  <li>• <strong>Ağaç Görünümü:</strong> ReactFlow ile interaktif ağaç görünümü</li>
+                  <li>• <strong>Hiyerarşi:</strong> ltree tabanlı konstitüsyonel hiyerarşi</li>
+                  <li>• <strong>Path:</strong> Otomatik oluşturulur (varlık adından türetilir)</li>
+                  <li>• <strong>Risk Skoru:</strong> 0-100 arası olmalıdır</li>
+                  <li>• <strong>Velocity:</strong> Risk değişim hızını gösterir (varsayılan 1.0)</li>
                 </ul>
               </div>
             </div>
