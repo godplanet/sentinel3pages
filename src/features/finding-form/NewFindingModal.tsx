@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch } from 'lucide-react';
+import { X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
+import { toast } from 'react-hot-toast';
 import type { FindingSeverity, GIASCategory } from '@/entities/finding/model/types';
+import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 
 interface NewFindingModalProps {
   isOpen: boolean;
@@ -13,6 +15,9 @@ type FormSection = 'tespit' | 'risk' | 'koken' | 'oneri';
 
 export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProps) => {
   const [activeSection, setActiveSection] = useState<FormSection>('tespit');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form State
   const [formData, setFormData] = useState({
     title: '',
     code: '',
@@ -20,15 +25,16 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
     gias_category: '' as GIASCategory | '',
     auditee_department: '',
 
-    detection: '',
-    impact: '',
-    root_cause: '',
-    recommendation: '',
+    detection: '', // Tespit
+    impact: '',    // Etki
+    root_cause: '', // Kök Neden Özeti
+    recommendation: '', // Öneri
 
     impact_score: 3,
     likelihood_score: 3,
     financial_impact: 0,
 
+    // 5-Whys
     why_1: '',
     why_2: '',
     why_3: '',
@@ -43,9 +49,77 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
     { id: 'oneri' as const, label: 'Öneri', icon: Lightbulb, color: 'green' },
   ];
 
-  const handleSave = () => {
-    onSave(formData);
-    onClose();
+  const handleSave = async () => {
+    // 1. Validasyon
+    if (!formData.title.trim()) {
+      toast.error('Lütfen bulgu başlığı giriniz.');
+      return;
+    }
+    if (!formData.code.trim()) {
+      toast.error('Lütfen referans no giriniz.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 2. API Payload Hazırlığı
+      // Form verilerini API'nin beklediği formata dönüştürüyoruz
+      const payload = {
+        title: formData.title,
+        severity: formData.severity,
+        status: 'DRAFT', // Varsayılan taslak
+        category: 'Audit',
+        engagement_id: 'GENERAL_AUDIT', // Veya context'ten gelen ID
+        
+        // Ana Metin Alanları
+        description: formData.detection, // 'Tespit' alanını description olarak kullanıyoruz
+        criteria: formData.code, // Referans kodunu kriter/kod alanına
+        
+        // Detaylı Veriler (JSONB alanları için)
+        details: {
+          gias_category: formData.gias_category,
+          auditee_department: formData.auditee_department,
+          impact_text: formData.impact,
+          recommendation_text: formData.recommendation,
+          financial_impact: formData.financial_impact,
+          risk_scores: {
+            impact: formData.impact_score,
+            likelihood: formData.likelihood_score,
+            total: formData.impact_score * formData.likelihood_score
+          },
+          root_cause_analysis: {
+            summary: formData.root_cause,
+            method: '5-Whys',
+            whys: [
+              formData.why_1,
+              formData.why_2,
+              formData.why_3,
+              formData.why_4,
+              formData.why_5
+            ].filter(w => w) // Boş olanları filtrele
+          }
+        }
+      };
+
+      // 3. API Çağrısı
+      await comprehensiveFindingApi.create(payload);
+
+      // 4. Başarı İşlemleri
+      toast.success('Bulgu başarıyla kaydedildi!');
+      
+      // Parent bileşeni bilgilendir (Listeyi yenilemesi için)
+      onSave(payload);
+      
+      // Modalı kapat ve formu temizle
+      onClose();
+      
+    } catch (error) {
+      console.error('Kayıt hatası:', error);
+      toast.error('Bulgu kaydedilirken bir hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -371,20 +445,34 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
           <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
             <button
               onClick={onClose}
-              className="px-6 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+              disabled={isSubmitting}
+              className="px-6 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium disabled:opacity-50"
             >
               İptal
             </button>
             <div className="flex gap-3">
-              <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+              <button 
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                disabled={isSubmitting}
+              >
                 Taslak Olarak Kaydet
               </button>
               <button
                 onClick={handleSave}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Save className="w-4 h-4" />
-                Bulguyu Kaydet
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Bulguyu Kaydet
+                  </>
+                )}
               </button>
             </div>
           </div>
