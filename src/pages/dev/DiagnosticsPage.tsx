@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Activity, Play, CheckCircle2, XCircle, AlertTriangle, Database, Users, Building2, FileText, AlertCircle, Trash2, Wrench, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { AutoTester, type DiagnosticReport } from '@/features/diagnostics/AutoTester';
-import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
+import { forceReseedViaEdge } from '@/shared/lib/universal-seeder';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -96,14 +96,13 @@ export default function DiagnosticsPage() {
         originalWarn(...args);
       };
 
-      await forceReseed();
+      await forceReseedViaEdge();
 
-      // Restore console
       console.log = originalLog;
       console.error = originalError;
       console.warn = originalWarn;
 
-      addLog('✅ Force reseed complete!');
+      addLog('Force reseed complete!');
       addLog('🔄 Reloading page in 2 seconds...');
       setTimeout(() => {
         window.location.reload();
@@ -212,7 +211,7 @@ export default function DiagnosticsPage() {
               Auto-cleanup test data
             </label>
             <button
-              onClick={forceReseed}
+              onClick={handleForceReseed}
               disabled={isReseeding || isRunning}
               className={clsx(
                 'flex items-center gap-2 px-4 py-3 rounded-lg font-semibold text-white transition-all',

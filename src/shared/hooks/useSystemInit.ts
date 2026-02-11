@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/shared/api/supabase';
-import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
+import { forceReseedViaEdge } from '@/shared/lib/universal-seeder';
 
 interface SystemInitState {
   isInitializing: boolean;
@@ -53,7 +53,7 @@ export function useSystemInit() {
           if (!mounted) return;
           setState(prev => ({ ...prev, progress: 'Sentinel Katılım Bankası Yükleniyor...' }));
 
-          await forceReseed();
+          await forceReseedViaEdge();
 
           if (!mounted) return;
           console.log('[SystemInit] Force reseed complete!');

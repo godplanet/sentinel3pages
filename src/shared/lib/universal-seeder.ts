@@ -1,11 +1,29 @@
-import { supabase } from '@/shared/api/supabase';
-import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export interface SeedProgress {
   step: string;
   status: 'pending' | 'running' | 'completed' | 'error';
   message: string;
   count?: number;
+}
+
+async function callSeedManager(path: string, method: 'GET' | 'POST' = 'GET') {
+  const url = `${SUPABASE_URL}/functions/v1/seed-manager${path}`;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`seed-manager ${path} failed (${res.status}): ${text}`);
+  }
+
+  return res.json();
 }
 
 export class UniversalSeeder {
@@ -30,42 +48,50 @@ export class UniversalSeeder {
 
   async runFullSeed() {
     this.progress = [];
-    this.updateProgress('seed', 'running', 'Running Turkey Bank seeder...');
+    this.updateProgress('wipe', 'running', 'Clearing existing data...');
 
     try {
-      await forceReseed();
-      this.updateProgress('seed', 'completed', 'All data seeded successfully');
+      this.updateProgress('wipe', 'running', 'Wiping and reseeding via edge function...');
+      const result = await callSeedManager('/reseed', 'POST');
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Edge function returned error');
+      }
+
+      this.updateProgress('wipe', 'completed', 'Data cleared');
+
+      const counts = result.counts || {};
+      const tableNames = Object.keys(counts);
+      for (const table of tableNames) {
+        this.updateProgress(
+          `seed_${table}`,
+          'completed',
+          `${table}: ${counts[table]} records`,
+          counts[table]
+        );
+      }
+
       return { success: true, progress: this.progress };
     } catch (error) {
-      this.updateProgress('seed', 'error', `Failed: ${error}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.updateProgress('wipe', 'error', `Failed: ${msg}`);
       return { success: false, error, progress: this.progress };
     }
   }
 
-  async getTableCounts() {
-    const tables = [
-      'audit_entities',
-      'risk_library',
-      'user_profiles',
-      'audit_engagements',
-      'audit_findings',
-      'workpapers',
-      'action_plans',
-    ];
-
-    const counts: Record<string, number> = {};
-
-    for (const table of tables) {
-      try {
-        const { count } = await supabase
-          .from(table)
-          .select('*', { count: 'exact', head: true });
-        counts[table] = count || 0;
-      } catch {
-        counts[table] = -1;
-      }
+  async getTableCounts(): Promise<Record<string, number>> {
+    try {
+      const result = await callSeedManager('/counts', 'GET');
+      return result.counts || {};
+    } catch {
+      return {};
     }
+  }
+}
 
-    return counts;
+export async function forceReseedViaEdge(): Promise<void> {
+  const result = await callSeedManager('/reseed', 'POST');
+  if (!result.ok) {
+    throw new Error(result.error || 'Reseed failed');
   }
 }

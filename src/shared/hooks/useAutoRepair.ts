@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/shared/api/supabase';
-import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
+import { forceReseedViaEdge } from '@/shared/lib/universal-seeder';
 
 interface AutoRepairState {
   isChecking: boolean;
@@ -86,7 +86,7 @@ export function useAutoRepair() {
       setState((prev) => ({ ...prev, isRepairing: true }));
       console.log('🔧 Performing auto-repair...');
 
-      await forceReseed();
+      await forceReseedViaEdge();
 
       console.log('✅ Auto-repair complete!');
       setState({
