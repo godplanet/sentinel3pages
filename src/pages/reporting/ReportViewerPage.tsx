@@ -85,6 +85,26 @@ export default function ReportViewerPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
+      {/* Print-Only Cover Page */}
+      <div className="hidden print:flex print-cover-page">
+        <div className="print-cover-logo">
+          <div className="text-6xl font-bold text-center">SENTINEL</div>
+          <div className="text-lg text-center mt-2">GRC Platform v3.0</div>
+        </div>
+        <h1 className="print-cover-title">{report.title}</h1>
+        <div className="print-cover-confidential">
+          GİZLİ / CONFIDENTIAL
+        </div>
+        <div className="print-cover-meta">
+          <div>Rapor No: {report.report_number || 'N/A'}</div>
+          <div>Tarih: {new Date(report.created_at).toLocaleDateString('tr-TR')}</div>
+          {report.auditor_name && <div>Hazırlayan: {report.auditor_name}</div>}
+          {report.engagement_id && (
+            <div className="mt-2 text-sm">Denetim ID: {report.engagement_id.slice(0, 16)}...</div>
+          )}
+        </div>
+      </div>
+
       {/* Top Bar - Hidden in Print */}
       <div className="print:hidden flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -152,8 +172,8 @@ export default function ReportViewerPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Centered Reader Canvas */}
-        <div className="flex-1 overflow-y-auto py-12 px-6">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-y-auto py-12 px-6 report-container">
+          <div className="max-w-4xl mx-auto report-content">
             {/* Report Header */}
             <div className="mb-8 print:mb-6">
               <h1 className="text-4xl font-bold text-slate-900 mb-4 print:text-3xl">
@@ -181,14 +201,19 @@ export default function ReportViewerPage() {
               onFindingClick={handleFindingClick}
             />
 
-            {/* Signature Chain Panel */}
-            <SignaturePanel
-              reportId={id!}
-              reportStatus={report.status}
-              onStatusChange={loadReport}
-              currentUserRole="CREATOR"
-              currentUserName="Ahmet Yılmaz"
-            />
+            {/* Signature Chain Panel - Legal Appendix in Print */}
+            <div className="signature-section page-break-before print:mt-8">
+              <h2 className="signature-title hidden print:block">
+                İMZA VE ŞERH KAYITLARI / SIGNATURE & DISSENT LOG
+              </h2>
+              <SignaturePanel
+                reportId={id!}
+                reportStatus={report.status}
+                onStatusChange={loadReport}
+                currentUserRole="CREATOR"
+                currentUserName="Ahmet Yılmaz"
+              />
+            </div>
           </div>
         </div>
 
@@ -266,6 +291,19 @@ export default function ReportViewerPage() {
           onClose={() => setSelectedFindingId(null)}
         />
       )}
+
+      {/* Print-Only Footer */}
+      <div className="hidden print:flex print-footer">
+        <div className="text-left">
+          Sentinel GRC - {new Date().toLocaleDateString('tr-TR')}
+        </div>
+        <div className="text-center font-bold">
+          GİZLİ / CONFIDENTIAL
+        </div>
+        <div className="text-right">
+          Sayfa
+        </div>
+      </div>
     </div>
   );
 }

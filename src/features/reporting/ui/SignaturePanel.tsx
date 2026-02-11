@@ -190,57 +190,66 @@ export function SignaturePanel({
 
   if (reportStatus === 'published') {
     return (
-      <div className="border-t border-slate-200 bg-slate-50 p-6">
+      <div className="border-t border-slate-200 bg-slate-50 p-6 print:bg-white print:border-t-2 print:border-black print:pt-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-6 print:mb-8 print:justify-center">
+            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center print:hidden">
               <Lock size={18} className="text-emerald-600" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">
+            <div className="print:text-center">
+              <h3 className="text-lg font-bold text-slate-900 print:text-2xl print:uppercase print:tracking-wider print:mb-2">
                 Dijital İmza Zinciri
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 print:text-sm print:text-black">
                 Bu rapor yayınlanmıştır ve değiştirilemez
               </p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 print:space-y-4">
             {signatures.map((signature, index) => (
               <motion.div
                 key={signature.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white border border-slate-200 rounded-lg p-4"
+                className="bg-white border border-slate-200 rounded-lg p-4 signature-block print:rounded-none print:border-2 print:border-black print:p-6"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                <div className="flex items-start justify-between print:block">
+                  <div className="flex items-start gap-3 print:block">
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center print:hidden">
                       {getStatusIcon(signature.status)}
                     </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">
-                        {signature.signer_name}
-                      </div>
-                      <div className="text-sm text-slate-600">
+                    <div className="print:mb-4">
+                      <div className="font-semibold text-slate-900 signature-role print:text-base print:font-bold print:mb-2 print:uppercase">
                         {signature.signer_title}
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-sm text-slate-600 signature-name print:text-base print:text-black print:font-semibold print:mb-2">
+                        {signature.signer_name}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1 signature-date print:text-sm print:text-black print:italic">
                         {new Date(signature.signed_at).toLocaleString('tr-TR')}
                       </div>
                     </div>
                   </div>
-                  <div>{getStatusBadge(signature.status)}</div>
+                  <div className="print:mt-4">
+                    {getStatusBadge(signature.status)}
+                    <div className="hidden print:block print:mt-4">
+                      <div className="signature-stamp print:inline-flex">
+                        {signature.status === 'signed' && '✓ İMZALI'}
+                        {signature.status === 'signed_with_dissent' && '⚠ ŞERHLİ'}
+                        {signature.status === 'rejected' && '✗ RED'}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {signature.dissent_comment && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <div className="text-xs font-bold text-amber-700 mb-1">
-                      {signature.status === 'rejected' ? 'Red Nedeni:' : 'Şerh (Karşı Görüş):'}
+                  <div className="mt-3 pt-3 border-t border-slate-100 dissent-box print:mt-4 print:pt-4 print:border-t-2 print:border-dashed print:border-black">
+                    <div className="text-xs font-bold text-amber-700 mb-1 dissent-title print:text-sm print:text-black print:mb-2">
+                      {signature.status === 'rejected' ? 'RED NEDENİ:' : 'ŞERH (KARŞI GÖRÜŞ):'}
                     </div>
-                    <div className="text-sm text-slate-700 bg-amber-50 border border-amber-200 rounded p-2">
+                    <div className="text-sm text-slate-700 bg-amber-50 border border-amber-200 rounded p-2 print:bg-gray-100 print:border-2 print:border-black print:rounded-none print:p-3 print:text-black print:text-base">
                       "{signature.dissent_comment}"
                     </div>
                   </div>
@@ -254,17 +263,17 @@ export function SignaturePanel({
   }
 
   return (
-    <div className="border-t border-slate-200 bg-slate-50 p-6">
+    <div className="border-t border-slate-200 bg-slate-50 p-6 print:bg-white print:border-t-2 print:border-black print:pt-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+        <div className="flex items-center gap-3 mb-6 print:mb-8 print:justify-center">
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center print:hidden">
             <Shield size={18} className="text-blue-600" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-900">
+          <div className="print:text-center">
+            <h3 className="text-lg font-bold text-slate-900 print:text-2xl print:uppercase print:tracking-wider print:mb-2">
               İmza Süreci
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 print:text-sm print:text-black">
               Rapor onay zinciri - {signatures.length} / {workflow.length} tamamlandı
             </p>
           </div>
@@ -282,8 +291,8 @@ export function SignaturePanel({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`bg-white border rounded-lg p-4 ${
-                  isNext ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200'
+                className={`bg-white border rounded-lg p-4 signature-block print:rounded-none print:border-2 print:border-black print:p-6 ${
+                  isNext ? 'border-blue-500 ring-2 ring-blue-100 print:ring-0' : 'border-slate-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -343,7 +352,7 @@ export function SignaturePanel({
         </div>
 
         {canSign && nextStep && !readOnly && (
-          <div className="bg-white border border-blue-200 rounded-lg p-4">
+          <div className="bg-white border border-blue-200 rounded-lg p-4 print:hidden">
             <div className="text-sm font-semibold text-slate-900 mb-3">
               Sıra sizde: {nextStep.title}
             </div>
