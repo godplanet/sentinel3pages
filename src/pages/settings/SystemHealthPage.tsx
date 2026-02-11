@@ -125,6 +125,48 @@ export default function SystemHealthPage() {
       count: tableCounts.action_plans || 0,
       status: (tableCounts.action_plans || 0) > 0 ? 'healthy' : 'warning',
     },
+    {
+      name: 'board_members',
+      label: 'Yonetim Kurulu',
+      icon: Users,
+      count: tableCounts.board_members || 0,
+      status: (tableCounts.board_members || 0) > 0 ? 'healthy' : 'warning',
+    },
+    {
+      name: 'stakeholders',
+      label: 'Paydaslar',
+      icon: Users,
+      count: tableCounts.stakeholders || 0,
+      status: (tableCounts.stakeholders || 0) > 0 ? 'healthy' : 'warning',
+    },
+    {
+      name: 'risk_assessments',
+      label: 'Risk Degerlendirme',
+      icon: AlertTriangle,
+      count: tableCounts.risk_assessments || 0,
+      status: (tableCounts.risk_assessments || 0) > 0 ? 'healthy' : 'warning',
+    },
+    {
+      name: 'governance_docs',
+      label: 'Yonetisim Dokumanlari',
+      icon: FileText,
+      count: tableCounts.governance_docs || 0,
+      status: (tableCounts.governance_docs || 0) > 0 ? 'healthy' : 'warning',
+    },
+    {
+      name: 'rkm_processes',
+      label: 'RKM Surecleri',
+      icon: Target,
+      count: tableCounts.rkm_processes || 0,
+      status: (tableCounts.rkm_processes || 0) > 0 ? 'healthy' : 'warning',
+    },
+    {
+      name: 'rkm_risks',
+      label: 'RKM Riskleri',
+      icon: AlertTriangle,
+      count: tableCounts.rkm_risks || 0,
+      status: (tableCounts.rkm_risks || 0) > 0 ? 'healthy' : 'warning',
+    },
   ];
 
   const healthyCount = tableStats.filter(t => t.status === 'healthy').length;

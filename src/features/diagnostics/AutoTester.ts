@@ -23,6 +23,12 @@ export interface DiagnosticReport {
     engagementCount: number;
     findingCount: number;
     workpaperCount: number;
+    boardMemberCount: number;
+    stakeholderCount: number;
+    riskAssessmentCount: number;
+    governanceDocsCount: number;
+    rkmProcessCount: number;
+    rkmRiskCount: number;
   };
   selfHealed?: boolean;
 }
@@ -382,13 +388,32 @@ export class AutoTester {
   }
 
   private async getSystemHealth() {
-    const [tenants, users, entities, engagements, findings, workpapers] = await Promise.all([
+    const [
+      tenants,
+      users,
+      entities,
+      engagements,
+      findings,
+      workpapers,
+      boardMembers,
+      stakeholders,
+      riskAssessments,
+      governanceDocs,
+      rkmProcess,
+      rkmRisk,
+    ] = await Promise.all([
       supabase.from('tenants').select('id', { count: 'exact', head: true }),
       supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
       supabase.from('audit_entities').select('id', { count: 'exact', head: true }),
       supabase.from('audit_engagements').select('id', { count: 'exact', head: true }),
       supabase.from('audit_findings').select('id', { count: 'exact', head: true }),
       supabase.from('workpapers').select('id', { count: 'exact', head: true }),
+      supabase.from('board_members').select('id', { count: 'exact', head: true }),
+      supabase.from('stakeholders').select('id', { count: 'exact', head: true }),
+      supabase.from('risk_assessments').select('id', { count: 'exact', head: true }),
+      supabase.from('governance_docs').select('id', { count: 'exact', head: true }),
+      supabase.from('rkm_processes').select('id', { count: 'exact', head: true }),
+      supabase.from('rkm_risks').select('id', { count: 'exact', head: true }),
     ]);
 
     return {
@@ -398,6 +423,12 @@ export class AutoTester {
       engagementCount: engagements.count || 0,
       findingCount: findings.count || 0,
       workpaperCount: workpapers.count || 0,
+      boardMemberCount: boardMembers.count || 0,
+      stakeholderCount: stakeholders.count || 0,
+      riskAssessmentCount: riskAssessments.count || 0,
+      governanceDocsCount: governanceDocs.count || 0,
+      rkmProcessCount: rkmProcess.count || 0,
+      rkmRiskCount: rkmRisk.count || 0,
     };
   }
 

@@ -42,6 +42,9 @@ export default function PageInventoryPage() {
       { name: 'Audit Universe', route: '/strategy/universe', module: 'Strategy', table: 'audit_entities' },
       { name: 'Risk Library', route: '/strategy/risk-assessment', module: 'Strategy', table: 'risk_library' },
       { name: 'Strategic Planning', route: '/strategy/annual-plan', module: 'Strategy', table: 'audit_plans' },
+      { name: 'Strategic Risk Heatmap', route: '/strategy/risk-heatmap', module: 'Strategy', table: 'risk_assessments' },
+      { name: 'Risk Simulator', route: '/strategy/risk-simulation', module: 'Strategy', table: 'risk_simulation_runs' },
+      { name: 'RKM Library', route: '/library/rkm', module: 'Library', table: 'rkm_processes' },
       { name: 'Engagements', route: '/execution/my-engagements', module: 'Execution', table: 'audit_engagements' },
       { name: 'Workpapers', route: '/execution/workpapers', module: 'Execution', table: 'workpapers' },
       { name: 'Finding Hub', route: '/execution/findings', module: 'Execution', table: 'audit_findings' },
@@ -53,6 +56,9 @@ export default function PageInventoryPage() {
       { name: 'User Profiles', route: '/settings/users', module: 'Settings', table: 'user_profiles' },
       { name: 'Tenants', route: '/settings', module: 'Settings', table: 'tenants' },
       { name: 'Compliance Regulations', route: '/compliance/regulations', module: 'Compliance', table: 'compliance_regulations' },
+      { name: 'Board Reporting', route: '/governance/board-reporting', module: 'Governance', table: 'board_members' },
+      { name: 'Stakeholder Management', route: '/governance/stakeholders', module: 'Governance', table: 'stakeholders' },
+      { name: 'Governance Vault', route: '/governance/vault', module: 'Governance', table: 'governance_docs' },
     ];
 
     const results: PageStatus[] = [];

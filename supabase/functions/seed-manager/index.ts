@@ -63,6 +63,15 @@ async function getCounts() {
     "review_notes",
     "tenants",
     "compliance_regulations",
+    "board_members",
+    "stakeholders",
+    "risk_assessments",
+    "governance_docs",
+    "risk_simulation_runs",
+    "risk_simulation_results",
+    "rkm_processes",
+    "rkm_risks",
+    "rkm_templates",
   ];
 
   const counts: Record<string, number> = {};

@@ -152,44 +152,84 @@ export default function DiagnosticsPage() {
       )}
 
       {report && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <StatCard
-            label="Tenants"
-            value={report.systemHealth.tenantCount}
-            icon={Database}
-            color="blue"
-          />
-          <StatCard
-            label="Users"
-            value={report.systemHealth.userCount}
-            icon={Users}
-            color={report.systemHealth.userCount === 0 ? 'red' : 'green'}
-          />
-          <StatCard
-            label="Entities"
-            value={report.systemHealth.entityCount}
-            icon={Building2}
-            color="purple"
-          />
-          <StatCard
-            label="Engagements"
-            value={report.systemHealth.engagementCount}
-            icon={FileText}
-            color="amber"
-          />
-          <StatCard
-            label="Findings"
-            value={report.systemHealth.findingCount}
-            icon={AlertCircle}
-            color="red"
-          />
-          <StatCard
-            label="Workpapers"
-            value={report.systemHealth.workpaperCount}
-            icon={FileText}
-            color="slate"
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <StatCard
+              label="Tenants"
+              value={report.systemHealth.tenantCount}
+              icon={Database}
+              color="blue"
+            />
+            <StatCard
+              label="Users"
+              value={report.systemHealth.userCount}
+              icon={Users}
+              color={report.systemHealth.userCount === 0 ? 'red' : 'green'}
+            />
+            <StatCard
+              label="Entities"
+              value={report.systemHealth.entityCount}
+              icon={Building2}
+              color="purple"
+            />
+            <StatCard
+              label="Engagements"
+              value={report.systemHealth.engagementCount}
+              icon={FileText}
+              color="amber"
+            />
+            <StatCard
+              label="Findings"
+              value={report.systemHealth.findingCount}
+              icon={AlertCircle}
+              color="red"
+            />
+            <StatCard
+              label="Workpapers"
+              value={report.systemHealth.workpaperCount}
+              icon={FileText}
+              color="slate"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <StatCard
+              label="Board Members"
+              value={report.systemHealth.boardMemberCount}
+              icon={Users}
+              color="purple"
+            />
+            <StatCard
+              label="Stakeholders"
+              value={report.systemHealth.stakeholderCount}
+              icon={Users}
+              color="blue"
+            />
+            <StatCard
+              label="Risk Assessments"
+              value={report.systemHealth.riskAssessmentCount}
+              icon={AlertTriangle}
+              color="amber"
+            />
+            <StatCard
+              label="Governance Docs"
+              value={report.systemHealth.governanceDocsCount}
+              icon={FileText}
+              color="green"
+            />
+            <StatCard
+              label="RKM Processes"
+              value={report.systemHealth.rkmProcessCount}
+              icon={Database}
+              color="slate"
+            />
+            <StatCard
+              label="RKM Risks"
+              value={report.systemHealth.rkmRiskCount}
+              icon={AlertTriangle}
+              color="red"
+            />
+          </div>
+        </>
       )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
