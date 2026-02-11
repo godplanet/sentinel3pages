@@ -63,6 +63,13 @@ function RadarVisualization({ forecasts }: { forecasts: RiskForecast[] }) {
     return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
   });
 
+  const previousPoints = forecasts.map((f, i) => {
+    const angle = angleSlice * i - Math.PI / 2;
+    const prevScore = f.currentScore - (f.changePercent * f.currentScore / 100);
+    const r = Math.max(0, (prevScore / 100) * maxRadius);
+    return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
+  });
+
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[280px] mx-auto">
       {gridLines.map((points, i) => (
@@ -76,17 +83,30 @@ function RadarVisualization({ forecasts }: { forecasts: RiskForecast[] }) {
         return <line key={i} x1={cx} y1={cy} x2={x2} y2={y2} stroke="rgb(226,232,240)" strokeWidth="1" opacity={0.4} />;
       })}
 
+      <polygon points={previousPoints.join(' ')} fill="rgba(148,163,184,0.05)" stroke="rgba(148,163,184,0.4)" strokeWidth="1" strokeDasharray="2 2" />
       <polygon points={projectedPoints.join(' ')} fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.5)" strokeWidth="1.5" strokeDasharray="4 3" />
-      <polygon points={currentPoints.join(' ')} fill="rgba(59,130,246,0.12)" stroke="rgba(59,130,246,0.7)" strokeWidth="2" />
+      <polygon points={currentPoints.join(' ')} fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.8)" strokeWidth="2.5" />
 
       {forecasts.map((f, i) => {
         const angle = angleSlice * i - Math.PI / 2;
+        const prevScore = f.currentScore - (f.changePercent * f.currentScore / 100);
+        const pvr = Math.max(0, (prevScore / 100) * maxRadius);
         const cr = (f.currentScore / 100) * maxRadius;
         const pr = (f.projectedScore / 100) * maxRadius;
         return (
           <g key={i}>
-            <circle cx={cx + cr * Math.cos(angle)} cy={cy + cr * Math.sin(angle)} r="3.5" fill="rgb(59,130,246)" />
-            <circle cx={cx + pr * Math.cos(angle)} cy={cy + pr * Math.sin(angle)} r="3" fill="rgb(239,68,68)" strokeDasharray="2 2" stroke="rgb(239,68,68)" strokeWidth="1" />
+            <line
+              x1={cx + pvr * Math.cos(angle)}
+              y1={cy + pvr * Math.sin(angle)}
+              x2={cx + pr * Math.cos(angle)}
+              y2={cy + pr * Math.sin(angle)}
+              stroke={f.trend === 'rising' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}
+              strokeWidth="2"
+              strokeDasharray="1 2"
+            />
+            <circle cx={cx + pvr * Math.cos(angle)} cy={cy + pvr * Math.sin(angle)} r="2" fill="rgb(148,163,184)" opacity="0.5" />
+            <circle cx={cx + cr * Math.cos(angle)} cy={cy + cr * Math.sin(angle)} r="4" fill="rgb(59,130,246)" />
+            <circle cx={cx + pr * Math.cos(angle)} cy={cy + pr * Math.sin(angle)} r="3.5" fill="rgb(239,68,68)" stroke="rgb(239,68,68)" strokeWidth="1.5" />
           </g>
         );
       })}
@@ -198,7 +218,7 @@ Kisa, kararlı ve aksiyon odakli yaz. Turkce yanit ver.`;
 
   if (loading) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden p-8">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-8">
         <div className="flex items-center justify-center">
           <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
           <span className="ml-2 text-sm text-slate-600">Risk verileri yükleniyor...</span>
@@ -209,7 +229,7 @@ Kisa, kararlı ve aksiyon odakli yaz. Turkce yanit ver.`;
 
   if (forecasts.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden p-8">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-8">
         <div className="text-center text-slate-600">
           <Radar className="w-12 h-12 text-slate-400 mx-auto mb-2" />
           <p className="text-sm">Risk verisi bulunamadı</p>
@@ -219,7 +239,7 @@ Kisa, kararlı ve aksiyon odakli yaz. Turkce yanit ver.`;
   }
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-blue-500/20 rounded-xl flex items-center justify-center">
@@ -244,13 +264,17 @@ Kisa, kararlı ve aksiyon odakli yaz. Turkce yanit ver.`;
         <div className="flex items-start gap-5">
           <div className="flex-shrink-0">
             <RadarVisualization forecasts={forecasts} />
-            <div className="flex items-center justify-center gap-4 mt-2">
+            <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-1.5 rounded-full bg-blue-500" />
-                <span className="text-[10px] text-slate-500 font-medium">Mevcut</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-400 opacity-50" />
+                <span className="text-[10px] text-slate-500 font-medium">Geçmiş Q</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-1.5 rounded-full bg-red-400 border border-dashed border-red-400" />
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-[10px] text-slate-500 font-medium">Mevcut Q</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-400" />
                 <span className="text-[10px] text-slate-500 font-medium">Q3 Projeksiyon</span>
               </div>
             </div>

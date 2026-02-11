@@ -68,7 +68,7 @@ export function StrategicHeatmap() {
   // Empty state
   if (assessments.length === 0 && comets.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl border-2 border-dashed border-slate-200 p-12">
+      <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 shadow-sm">
         <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
             <AlertTriangle className="text-slate-400" size={32} />
@@ -150,7 +150,7 @@ export function StrategicHeatmap() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-white/90 backdrop-blur-sm rounded-xl border border-slate-200/60 shadow-sm p-6">
+        <div className="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           {viewMode === 'classic' ? (
             <ClassicGrid
               assessments={assessments}
