@@ -8,6 +8,7 @@ import { ViewerCanvas } from '@/widgets/ReportStudio/ViewerCanvas';
 import { WarmthSlider } from '@/widgets/ReportStudio';
 import { FindingDetailDrawer } from '@/widgets/ReportStudio/FindingDetailDrawer';
 import { SignaturePanel, isReportFrozen } from '@/features/reporting';
+import { MOCK_REPORT_ARCHIVE } from '@/shared/data/mock-reports';
 
 export default function ReportViewerPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,8 +28,53 @@ export default function ReportViewerPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const data = await reportApi.getReport(id);
-      setReport(data);
+      const mockReport = MOCK_REPORT_ARCHIVE.find(r => r.id === id);
+
+      if (mockReport) {
+        setReport({
+          ...mockReport,
+          tenant_id: 'demo-tenant',
+          content: `
+            <h2>Yönetici Özeti</h2>
+            <p>${mockReport.cover_abstract}</p>
+
+            <h2>Denetim Kapsamı</h2>
+            <p>Bu rapor ${mockReport.type} çerçevesinde hazırlanmıştır.</p>
+
+            <h2>Bulgular</h2>
+            <p>Toplam ${mockReport.finding_count} bulgu tespit edilmiştir.</p>
+
+            <h2>Sonuç</h2>
+            <p>${mockReport.description}</p>
+          `,
+          tiptap_content: JSON.stringify({
+            type: 'doc',
+            content: [
+              {
+                type: 'heading',
+                attrs: { level: 2 },
+                content: [{ type: 'text', text: 'Yönetici Özeti' }]
+              },
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: mockReport.cover_abstract }]
+              },
+              {
+                type: 'heading',
+                attrs: { level: 2 },
+                content: [{ type: 'text', text: 'Bulgular' }]
+              },
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: `Toplam ${mockReport.finding_count} bulgu tespit edilmiştir.` }]
+              }
+            ]
+          })
+        } as Report);
+      } else {
+        const data = await reportApi.getReport(id);
+        setReport(data);
+      }
     } catch (error) {
       console.error('Error loading report:', error);
     } finally {
