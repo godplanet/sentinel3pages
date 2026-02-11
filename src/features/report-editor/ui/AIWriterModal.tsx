@@ -16,7 +16,7 @@ const SECTIONS = [
     label: 'Yönetici Özeti',
     description: 'Kısa ve öz yönetici özeti oluştur',
     icon: FileText,
-    color: 'from-purple-500 to-indigo-500',
+    color: 'from-blue-500 to-cyan-500',
   },
   {
     id: 'findings' as SectionType,
@@ -67,7 +67,7 @@ export function AIWriterModal({ onClose, onInsert, findingCount = 0 }: AIWriterM
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
               <Sparkles className="text-white" size={20} />
             </div>
             <div>
@@ -112,8 +112,8 @@ export function AIWriterModal({ onClose, onInsert, findingCount = 0 }: AIWriterM
                       className={clsx(
                         'text-left border-2 rounded-xl p-5 transition-all group relative overflow-hidden',
                         selectedSection === section.id
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-slate-200 hover:border-purple-300 hover:bg-slate-50'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
                       )}
                     >
                       <div
@@ -156,7 +156,7 @@ export function AIWriterModal({ onClose, onInsert, findingCount = 0 }: AIWriterM
                 className={clsx(
                   'w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all',
                   selectedSection && !generating
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-lg hover:scale-[1.02]'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-lg hover:scale-[1.02]'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 )}
               >
@@ -190,7 +190,7 @@ export function AIWriterModal({ onClose, onInsert, findingCount = 0 }: AIWriterM
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleInsert}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                 >
                   <CheckCircle2 size={20} />
                   Rapora Ekle

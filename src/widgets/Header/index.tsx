@@ -23,7 +23,7 @@ export const Header = () => {
   const [isBDDKModalOpen, setIsBDDKModalOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl h-13">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl h-13 print:hidden">
       <div className="flex h-full items-center px-3 gap-2">
 
         <button

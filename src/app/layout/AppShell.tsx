@@ -33,7 +33,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
       <main className={cn(
         "flex-1 flex flex-col relative min-w-0 transition-all duration-300",
-        isSidebarOpen ? "ml-64" : "ml-20"
+        isSidebarOpen ? "ml-64 print:ml-0" : "ml-20 print:ml-0"
       )}>
         <Header />
 
@@ -47,7 +47,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl shadow-lg shadow-blue-300/40 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all"
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl shadow-lg shadow-blue-300/40 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all print:hidden"
           title="Sentinel AI Asistan"
         >
           <Brain size={24} />

@@ -155,7 +155,7 @@ export const Sidebar = () => {
   return (
     <aside
       className={clsx(
-        'fixed left-0 top-0 h-screen flex flex-col border-r transition-all duration-300 z-50 text-slate-100 border-slate-700/30 shadow-xl',
+        'fixed left-0 top-0 h-screen flex flex-col border-r transition-all duration-300 z-50 text-slate-100 border-slate-700/30 shadow-xl print:hidden',
         isSidebarOpen ? 'w-64' : 'w-20'
       )}
       style={{ backgroundColor: sidebarColor }}

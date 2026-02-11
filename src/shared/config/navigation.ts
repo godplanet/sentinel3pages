@@ -395,14 +395,6 @@ export const navigationConfig: NavigationItem[] = [
     icon: FileText,
     children: [
       {
-        id: 'report-builder',
-        label: 'Rapor Oluşturucu',
-        path: '/reporting/builder',
-        icon: Sparkles,
-        badge: 'YENİ',
-        badgeColor: 'green',
-      },
-      {
         id: 'report-library',
         label: 'Rapor Kütüphanesi',
         path: '/reporting/library',
