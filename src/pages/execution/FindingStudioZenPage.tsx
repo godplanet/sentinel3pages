@@ -29,7 +29,7 @@ export default function FindingStudioZenPage() {
   const navigate = useNavigate();
   const isNew = id === 'new';
 
-  const [loading, setLoading] = useState(!isNew);
+  const [loading, setLoading] = useState(false);
   const [findingId, setFindingId] = useState(isNew ? null : id);
   const [title, setTitle] = useState('Yeni Bulgu');
   const [severity, setSeverity] = useState<string>('MEDIUM');
@@ -41,6 +41,8 @@ export default function FindingStudioZenPage() {
   useEffect(() => {
     if (!isNew && id) {
       loadFinding(id);
+    } else if (isNew) {
+      setLoading(false);
     }
   }, [id, isNew]);
 
