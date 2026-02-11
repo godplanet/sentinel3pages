@@ -7,7 +7,7 @@ import type {
   CreateAssessmentInput,
 } from './heatmap-types';
 
-const TENANT = '00000000-0000-0000-0000-000000000001';
+const TENANT = '11111111-1111-1111-1111-111111111111';
 
 const KEYS = {
   definitions: ['risk-definitions'] as const,
@@ -20,13 +20,16 @@ export function useRiskDefinitions() {
     queryKey: KEYS.definitions,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('risk_definitions')
-        .select('*')
+        .from('risk_library')
+        .select('id, risk_code, title, static_fields')
         .eq('tenant_id', TENANT)
-        .eq('is_active', true)
-        .order('category, title');
+        .order('title');
       if (error) throw error;
-      return data as RiskDefinition[];
+      return (data || []).map(r => ({
+        id: r.id,
+        title: r.title,
+        category: r.static_fields?.category || 'other',
+      }));
     },
   });
 }
@@ -72,28 +75,28 @@ export function useHeatmapData() {
         .eq('tenant_id', TENANT);
       if (aErr) throw aErr;
 
-      const { data: risks, error: rErr } = await supabase
-        .from('risk_definitions')
-        .select('id, title, category')
-        .eq('tenant_id', TENANT);
-      if (rErr) throw rErr;
-
       const { data: entities, error: eErr } = await supabase
         .from('audit_entities')
         .select('id, name, type')
         .eq('tenant_id', TENANT);
       if (eErr) throw eErr;
 
-      const riskMap = new Map(risks.map((r: { id: string; title: string; category: string }) => [r.id, r]));
-      const entityMap = new Map(entities.map((e: { id: string; name: string; type: string }) => [e.id, e]));
+      const entityMap = new Map((entities || []).map((e: any) => [e.id, e]));
 
-      const enriched: AssessmentWithDetails[] = (assessments as RiskAssessment[]).map(a => {
-        const risk = riskMap.get(a.risk_id);
+      const enriched: AssessmentWithDetails[] = (assessments || []).map((a: any) => {
         const entity = entityMap.get(a.entity_id);
         return {
-          ...a,
-          risk_title: risk?.title ?? 'Bilinmeyen Risk',
-          risk_category: risk?.category ?? '',
+          id: a.id,
+          tenant_id: a.tenant_id,
+          entity_id: a.entity_id,
+          risk_id: a.risk_definition_id,
+          impact: a.inherent_impact,
+          likelihood: a.inherent_likelihood,
+          control_effectiveness: (a.control_effectiveness || 0) / 100,
+          justification: a.notes || '',
+          assessed_at: a.assessment_date,
+          risk_title: a.risk_title || 'Bilinmeyen Risk',
+          risk_category: a.risk_category || 'Diğer',
           entity_name: entity?.name ?? 'Bilinmeyen Varlik',
           entity_type: entity?.type ?? '',
         };
@@ -110,11 +113,23 @@ export function useCreateAssessment() {
     mutationFn: async (input: CreateAssessmentInput) => {
       const { data, error } = await supabase
         .from('risk_assessments')
-        .insert({ ...input, tenant_id: TENANT })
+        .insert({
+          tenant_id: TENANT,
+          entity_id: input.entity_id,
+          risk_definition_id: input.risk_id,
+          inherent_impact: input.impact,
+          inherent_likelihood: input.likelihood,
+          residual_impact: input.impact,
+          residual_likelihood: input.likelihood,
+          control_effectiveness: Math.round((input.control_effectiveness || 0) * 100),
+          notes: input.justification,
+          assessment_date: new Date().toISOString(),
+          status: 'active',
+        })
         .select()
         .single();
       if (error) throw error;
-      return data as RiskAssessment;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.assessments });
