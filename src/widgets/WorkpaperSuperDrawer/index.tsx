@@ -71,7 +71,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
   const [sampleSize, setSampleSize] = useState<number | null>(null);
-  const [currentUserId] = useState('00000000-0000-0000-0000-000000000001');
+  const [currentUserId] = useState('11111111-1111-1111-1111-111111111111');
 
   const loadSteps = useCallback(async () => {
     if (!workpaperId) return;

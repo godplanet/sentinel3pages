@@ -14,7 +14,7 @@ import { PERSONAS } from '@/shared/stores/persona-store';
 
 export class PersonaSeeder {
   private static SEED_FLAG_KEY = 'sentinel_persona_seeded';
-  private static tenantId = '00000000-0000-0000-0000-000000000001';
+  private static tenantId = '11111111-1111-1111-1111-111111111111';
 
   static async seedAll(): Promise<void> {
     console.log('🎭 Starting Persona-Specific Data Seeder...');
@@ -74,8 +74,8 @@ export class PersonaSeeder {
       .upsert([
         {
           tenant_id: this.tenantId,
-          entity_id: '00000000-0000-0000-0000-000000000001',
-          risk_id: '00000000-0000-0000-0000-000000000001',
+          entity_id: '11111111-1111-1111-1111-111111111111',
+          risk_id: '11111111-1111-1111-1111-111111111111',
           snapshot_date: new Date().toISOString(),
           current_score: 85,
           previous_score: 75,

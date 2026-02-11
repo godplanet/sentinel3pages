@@ -1,6 +1,6 @@
 import type { AuditPlan, AuditEngagement } from '../model/types';
 
-const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 const MOCK_USER_ID = '00000000-0000-0000-0000-000000000002';
 
 export interface Auditor {

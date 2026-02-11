@@ -1,6 +1,6 @@
 import type { BankGoal, AuditObjective, StrategyAlignment } from '../model/types';
 
-const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
 export const MOCK_BANK_GOALS: BankGoal[] = [
   {

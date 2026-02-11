@@ -32,7 +32,7 @@ interface SignOffPanelProps {
 
 export function SignOffPanel({
   workpaperId,
-  currentUserId = '00000000-0000-0000-0000-000000000001',
+  currentUserId = '11111111-1111-1111-1111-111111111111',
   onSignOffComplete,
 }: SignOffPanelProps) {
   const [approvalStatus, setApprovalStatus] = useState<WorkpaperApprovalStatus>('in_progress');

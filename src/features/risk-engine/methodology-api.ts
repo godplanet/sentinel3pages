@@ -1,7 +1,8 @@
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { MethodologyConfig, RiskWeights, SeverityThreshold, VetoRule } from './methodology-types';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export async function fetchActiveMethodology(): Promise<MethodologyConfig | null> {
   const { data, error } = await supabase

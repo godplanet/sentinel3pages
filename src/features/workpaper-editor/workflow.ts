@@ -28,7 +28,7 @@ export interface WorkpaperForValidation {
   }>;
 }
 
-const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001';
+const CURRENT_USER_ID = '11111111-1111-1111-1111-111111111111';
 
 /**
  * RULE 1: Preparer must sign before Reviewer

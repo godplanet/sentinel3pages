@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { WelcomeSummary, AIBrief, MyTask, SystemActivity } from '@/entities/dashboard/model/types';
 
-const TENANT = '00000000-0000-0000-0000-000000000001';
+const TENANT = ACTIVE_TENANT_ID;
 
 export function useDashboardLiveData() {
   return useQuery({
@@ -15,23 +16,22 @@ export function useDashboardLiveData() {
           .eq('tenant_id', TENANT)
           .eq('role', 'admin')
           .limit(1)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('audit_findings')
-          .select('id, title, severity, status, due_date, created_at')
-          .eq('tenant_id', TENANT)
+          .select('id, title, severity, status, created_at')
           .order('created_at', { ascending: false })
           .limit(20),
         supabase
           .from('action_plans')
-          .select('id, action_title, status, due_date, priority')
+          .select('id, title, status, target_date, priority')
           .eq('tenant_id', TENANT)
           .in('status', ['PLANNED', 'IN_PROGRESS'])
-          .order('due_date', { ascending: true })
+          .order('target_date', { ascending: true })
           .limit(10),
         supabase
           .from('audit_engagements')
-          .select('id, name, status, created_at')
+          .select('id, title, status, created_at')
           .eq('tenant_id', TENANT)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -63,10 +63,10 @@ export function useDashboardLiveData() {
       };
 
       const tasks: MyTask[] = [
-        ...actions.slice(0, 6).map((action, idx) => ({
+        ...actions.slice(0, 6).map((action) => ({
           id: `action-${action.id}`,
-          title: action.action_title,
-          deadline: formatDate(action.due_date),
+          title: action.title,
+          deadline: formatDate(action.target_date),
           type: 'approval' as const,
           status: action.status === 'IN_PROGRESS' ? 'in-progress' as const : 'pending' as const,
           priority: (action.priority?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
@@ -74,7 +74,7 @@ export function useDashboardLiveData() {
         ...findings.slice(0, 4).filter(f => f.status === 'ISSUED_FOR_RESPONSE').map(finding => ({
           id: `finding-${finding.id}`,
           title: finding.title,
-          deadline: formatDate(finding.due_date),
+          deadline: 'Belirlenmedi',
           type: 'review' as const,
           status: 'pending' as const,
           priority: finding.severity === 'CRITICAL' ? 'high' as const : 'medium' as const,
@@ -94,7 +94,7 @@ export function useDashboardLiveData() {
           id: `eng-${e.id}`,
           userName: 'Sistem',
           action: 'denetim planına ekledi',
-          target: e.name,
+          target: e.title,
           timestamp: formatTimestamp(e.created_at),
           type: 'plan' as const,
         })),

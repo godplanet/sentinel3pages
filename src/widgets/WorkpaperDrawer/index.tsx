@@ -245,7 +245,7 @@ export const WorkpaperDrawer = ({ isOpen, onClose, workpaperId, stepId }: Workpa
 
       const newFinding = {
         tenant_id: '11111111-1111-1111-1111-111111111111',
-        engagement_id: workpaper?.engagement_id || '00000000-0000-0000-0000-000000000001',
+        engagement_id: workpaper?.engagement_id || '11111111-1111-1111-1111-111111111111',
         workpaper_id: workpaperId,
         code: `FND-${Date.now().toString().slice(-6)}`,
         title: generatedFinding.title,

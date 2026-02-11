@@ -30,7 +30,7 @@ export function PolicyLibrary() {
   const loadPolicies = async () => {
     try {
       setLoading(true);
-      const userId = '00000000-0000-0000-0000-000000000001';
+      const userId = '11111111-1111-1111-1111-111111111111';
       const data = await fetchPoliciesWithAttestations(userId);
       setPolicies(data);
     } catch (error) {
@@ -50,7 +50,7 @@ export function PolicyLibrary() {
 
     try {
       setAttesting(true);
-      const userId = '00000000-0000-0000-0000-000000000001';
+      const userId = '11111111-1111-1111-1111-111111111111';
       await createAttestation(selectedPolicy.id, userId);
       await loadPolicies();
       setShowPDFModal(false);

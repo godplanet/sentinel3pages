@@ -153,7 +153,7 @@ export async function applyTemplateToWorkpaper(
 
   await supabase.from('workpaper_activity_logs').insert({
     workpaper_id: workpaperId,
-    user_id: '00000000-0000-0000-0000-000000000001',
+    user_id: '11111111-1111-1111-1111-111111111111',
     user_name: 'System',
     action_type: 'STEP_COMPLETED',
     details: `Loaded ${result.steps_created} procedures from template`,
@@ -263,7 +263,7 @@ export async function clearWorkpaperSteps(workpaperId: string): Promise<boolean>
 
   await supabase.from('workpaper_activity_logs').insert({
     workpaper_id: workpaperId,
-    user_id: '00000000-0000-0000-0000-000000000001',
+    user_id: '11111111-1111-1111-1111-111111111111',
     user_name: 'System',
     action_type: 'STEP_COMPLETED',
     details: 'Cleared all test steps',

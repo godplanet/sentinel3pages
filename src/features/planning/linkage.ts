@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { AuditEntity } from '@/entities/universe/model/types';
 import type { AuditEngagement } from '@/entities/planning/model/types';
 import {
@@ -13,7 +14,7 @@ import {
   type ScopingInput,
 } from './scoping';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export interface BulkCreationInput {
   entity_ids: string[];

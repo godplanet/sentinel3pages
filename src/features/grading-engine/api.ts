@@ -1,7 +1,8 @@
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { FindingSeverityCounts, EngagementGradingRow, GroupConsolidationRow } from './types';
 
-const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export async function fetchFindingCounts(engagementId: string): Promise<FindingSeverityCounts> {
   const { data, error } = await supabase

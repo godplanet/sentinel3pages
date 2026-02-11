@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { AuditEntity, EntityType } from '../model/types';
 
-const TENANT = '00000000-0000-0000-0000-000000000001';
+const TENANT = ACTIVE_TENANT_ID;
 const KEYS = {
   all: ['audit-entities'] as const,
   detail: (id: string) => ['audit-entities', id] as const,

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   EntityWithVelocity,
   CometPoint,
@@ -8,7 +9,7 @@ import type {
   UpdateKRIInput,
 } from './velocity-types';
 
-const TENANT = '00000000-0000-0000-0000-000000000001';
+const TENANT = ACTIVE_TENANT_ID;
 
 const KEYS = {
   velocityEntities: ['velocity-entities'] as const,

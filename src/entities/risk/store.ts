@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { RiskLibraryItem, CreateRiskInput, UpdateRiskInput } from './types';
 
 interface RiskLibraryStore {
@@ -26,7 +27,7 @@ interface RiskLibraryStore {
   };
 }
 
-const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const MOCK_TENANT_ID = ACTIVE_TENANT_ID;
 const MOCK_USER_ID = '00000000-0000-0000-0000-000000000002';
 
 export const useRiskLibraryStore = create<RiskLibraryStore>((set, get) => ({
