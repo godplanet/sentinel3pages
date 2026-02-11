@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Building2, Network, Activity, AlertTriangle, Shield, Edit2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Building2, Network, Activity, AlertTriangle, Shield, Edit2, Server, Truck, Factory } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuditEntities } from '@/entities/universe';
 import type { AuditEntity, EntityType } from '@/entities/universe/model/types';
@@ -14,6 +14,9 @@ const ENTITY_ICONS: Record<EntityType, any> = {
   BRANCH: Building2,
   DEPARTMENT: Network,
   HEADQUARTERS: Building2,
+  IT_ASSET: Server,
+  VENDOR: Truck,
+  SUBSIDIARY: Factory,
 };
 
 const ENTITY_COLORS: Record<EntityType, { bg: string; border: string; text: string }> = {
@@ -25,6 +28,9 @@ const ENTITY_COLORS: Record<EntityType, { bg: string; border: string; text: stri
   BRANCH: { bg: 'bg-cyan-100', border: 'border-cyan-300', text: 'text-cyan-700' },
   DEPARTMENT: { bg: 'bg-rose-100', border: 'border-rose-300', text: 'text-rose-700' },
   HEADQUARTERS: { bg: 'bg-slate-200', border: 'border-slate-400', text: 'text-slate-800' },
+  IT_ASSET: { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-700' },
+  VENDOR: { bg: 'bg-orange-100', border: 'border-orange-300', text: 'text-orange-700' },
+  SUBSIDIARY: { bg: 'bg-indigo-100', border: 'border-indigo-300', text: 'text-indigo-700' },
 };
 
 interface HierarchyNodeProps {

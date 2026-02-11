@@ -19,17 +19,6 @@ const TYPE_LABELS: Record<EntityType, string> = {
   SUBSIDIARY: 'İştirak',
 };
 
-const TYPE_COLORS: Record<EntityType, string> = {
-  HOLDING: 'bg-slate-100 text-slate-700 border-slate-200',
-  BANK: 'bg-blue-100 text-blue-700 border-blue-200',
-  GROUP: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  UNIT: 'bg-amber-100 text-amber-700 border-amber-200',
-  PROCESS: 'bg-slate-100 text-slate-700 border-slate-200',
-  BRANCH: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-  DEPARTMENT: 'bg-rose-100 text-rose-700 border-rose-200',
-  HEADQUARTERS: 'bg-slate-200 text-slate-800 border-slate-300',
-};
-
 type SortField = 'name' | 'type' | 'risk_score' | 'path';
 type SortDirection = 'asc' | 'desc';
 
