@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileSearch, Plus, Filter, Shield, AlertTriangle, Eye, TrendingUp, LayoutGrid, List } from 'lucide-react';
+import { FileSearch, Plus, Filter, Shield, AlertTriangle, Eye, TrendingUp, LayoutGrid, List, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { FindingDataGrid } from '@/widgets/tables/FindingDataGrid';
@@ -164,11 +164,18 @@ export default function FindingHubPage() {
               </button>
             </div>
             <button
+              onClick={() => navigate('/execution/findings/zen/new')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm"
+            >
+              <Sparkles size={16} />
+              ZenEditor
+            </button>
+            <button
               onClick={() => setShowNewFindingModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-sm transition-all font-medium text-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-white rounded-lg hover:bg-slate-800 shadow-sm transition-all font-medium text-sm"
             >
               <Plus size={16} />
-              Yeni Bulgu Ekle
+              Hızlı Ekle
             </button>
           </div>
         }

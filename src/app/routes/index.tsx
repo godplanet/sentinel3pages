@@ -28,6 +28,7 @@ import { FindingDetailPage as AuditorFindingDetailPage } from '@/pages/auditor/F
 import FindingStudioPage from '@/pages/execution/FindingStudioPage';
 import FindingStudioPhase3Page from '@/pages/execution/FindingStudioPhase3Page';
 import FindingDetailPage from '@/pages/execution/FindingDetailPage';
+import FindingStudioZenPage from '@/pages/execution/FindingStudioZenPage';
 import { AuditeePortalPage } from '@/pages/auditee-portal/AuditeePortalPage';
 
 import LoginPage from '@/pages/auth/LoginPage';
@@ -147,6 +148,8 @@ export const AppRoutes = () => {
       <Route path="/execution/investigations" element={<Navigate to="/403" replace />} />
       <Route path="/execution/findings" element={<ProtectedRoute><FindingHubPage /></ProtectedRoute>} />
       <Route path="/execution/finding-hub" element={<Navigate to="/execution/findings" replace />} />
+      <Route path="/execution/findings/zen/new" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
+      <Route path="/execution/findings/zen/:id" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
       <Route path="/execution/findings/new" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
       <Route path="/execution/findings/:id" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
       <Route path="/execution/findings/:id/phase1" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
