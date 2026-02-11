@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
-import { Map, Plus, Database, Loader2, List, Network, Layers } from 'lucide-react';
+import { Map, Plus, Database, Loader2, List, Network, Layers, RefreshCw } from 'lucide-react';
 import { useAuditEntities, useCreateEntity } from '@/entities/universe';
 import { UniverseListView } from '@/features/universe/ui/UniverseListView';
 import { UniverseTree } from '@/features/universe/ui/UniverseTree';
 import { HierarchyView } from '@/features/universe/ui/HierarchyView';
 import { EntityFormModal } from '@/features/universe/ui/EntityFormModal';
+import { IntegrationHubModal } from '@/features/universe/ui/IntegrationHubModal';
 import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import clsx from 'clsx';
 
@@ -15,6 +16,7 @@ export default function AuditUniversePage() {
   const { data: entities = [], isLoading, refetch } = useAuditEntities();
   const createEntity = useCreateEntity();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
@@ -128,6 +130,14 @@ export default function AuditUniversePage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowSyncModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Senkronize Et
+                </button>
+
                 {entities.length === 0 && !isSeeding && (
                   <button
                     onClick={handleManualSeed}
@@ -234,6 +244,15 @@ export default function AuditUniversePage() {
         <EntityFormModal
           entity={null}
           onClose={() => setShowAddModal(false)}
+        />
+      )}
+
+      {showSyncModal && (
+        <IntegrationHubModal
+          onClose={() => {
+            setShowSyncModal(false);
+            refetch();
+          }}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Building2, Building, Network, Box, Workflow, TrendingUp, MapPin, Briefcase, Landmark } from 'lucide-react';
+import { Building2, Building, Network, Box, Workflow, TrendingUp, MapPin, Briefcase, Landmark, Server, Truck, Factory } from 'lucide-react';
 import type { EntityType } from '@/entities/universe';
 import { useRiskConstitution } from '@/features/risk-constitution';
 import { getRiskColor, getRiskLabel } from '@/shared/lib/constitution-utils';
@@ -31,6 +31,12 @@ const getTypeIcon = (type: EntityType) => {
       return Briefcase;
     case 'HEADQUARTERS':
       return Landmark;
+    case 'IT_ASSET':
+      return Server;
+    case 'VENDOR':
+      return Truck;
+    case 'SUBSIDIARY':
+      return Factory;
     default:
       return Box;
   }
@@ -54,6 +60,12 @@ const getTypeColor = (type: EntityType) => {
       return 'from-rose-500/20 to-rose-600/20 border-rose-300/30';
     case 'HEADQUARTERS':
       return 'from-slate-700/20 to-slate-800/20 border-slate-500/30';
+    case 'IT_ASSET':
+      return 'from-purple-500/20 to-purple-600/20 border-purple-300/30';
+    case 'VENDOR':
+      return 'from-orange-500/20 to-orange-600/20 border-orange-300/30';
+    case 'SUBSIDIARY':
+      return 'from-indigo-500/20 to-indigo-600/20 border-indigo-300/30';
     default:
       return 'from-gray-500/20 to-gray-600/20 border-gray-300/30';
   }

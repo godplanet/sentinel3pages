@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useAuditEntities, useDeleteEntity } from '@/entities/universe';
-import { ArrowUpDown, ChevronRight, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { ArrowUpDown, ChevronRight, Edit2, Trash2, AlertCircle, Sparkles } from 'lucide-react';
 import type { AuditEntity, EntityType } from '@/entities/universe/model/types';
 import { EntityFormModal } from './EntityFormModal';
+import { calculateDynamicRisk, getRiskColor as getRiskColorByLevel, getTypeColor } from '../lib/risk-scoring';
 
 const TYPE_LABELS: Record<EntityType, string> = {
   HOLDING: 'Holding',
@@ -13,6 +14,9 @@ const TYPE_LABELS: Record<EntityType, string> = {
   BRANCH: 'Şube',
   DEPARTMENT: 'Departman',
   HEADQUARTERS: 'Genel Müd.',
+  IT_ASSET: 'BT Varlığı',
+  VENDOR: 'Tedarikçi',
+  SUBSIDIARY: 'İştirak',
 };
 
 const TYPE_COLORS: Record<EntityType, string> = {
@@ -156,6 +160,9 @@ export function UniverseListView() {
             {sortedEntities.map((entity) => {
               const level = getLevel(entity.path);
               const indentation = level * 24;
+              const riskResult = calculateDynamicRisk(entity);
+              const typeColor = getTypeColor(entity.type);
+              const isSynced = entity.metadata?.is_synced === true;
 
               return (
                 <tr
@@ -170,6 +177,12 @@ export function UniverseListView() {
                       <span className="text-sm font-medium text-slate-900">
                         {entity.name}
                       </span>
+                      {isSynced && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-[10px] font-bold rounded uppercase">
+                          <Sparkles size={10} />
+                          NEW
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -179,20 +192,31 @@ export function UniverseListView() {
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                        TYPE_COLORS[entity.type]
-                      }`}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold ${typeColor.bg} ${typeColor.text}`}
                     >
+                      <span>{typeColor.icon}</span>
                       {TYPE_LABELS[entity.type]}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold tabular-nums ${getRiskColor(entity.risk_score)}`}>
-                        {entity.risk_score?.toFixed(1) || 'N/A'}
+                      <span className={`px-2 py-1 rounded-md text-sm font-bold tabular-nums ${getRiskColorByLevel(riskResult.level)}`}>
+                        {riskResult.calculated_score.toFixed(0)}
                       </span>
-                      {entity.risk_score && entity.risk_score >= 85 && (
-                        <AlertCircle size={14} className="text-red-500" />
+                      {riskResult.signals.length > 0 && (
+                        <div className="group/tooltip relative">
+                          <AlertCircle size={14} className="text-orange-500 cursor-help" />
+                          <div className="invisible group-hover/tooltip:visible absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-xl">
+                            <div className="font-bold mb-1.5">Risk Sinyalleri:</div>
+                            {riskResult.signals.map((signal, idx) => (
+                              <div key={idx} className="mb-1.5 pb-1.5 border-b border-slate-700 last:border-0">
+                                <div className="text-yellow-300 font-semibold">{signal.source}</div>
+                                <div className="text-slate-300">{signal.reason}</div>
+                                <div className="text-red-400 font-bold">+{signal.impact} puan</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </td>

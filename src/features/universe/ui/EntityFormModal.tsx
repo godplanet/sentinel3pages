@@ -11,6 +11,9 @@ const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: 'BRANCH', label: 'Şube' },
   { value: 'UNIT', label: 'Birim' },
   { value: 'PROCESS', label: 'Süreç' },
+  { value: 'IT_ASSET', label: 'BT Varlığı' },
+  { value: 'VENDOR', label: 'Tedarikçi' },
+  { value: 'SUBSIDIARY', label: 'İştirak' },
 ];
 
 interface EntityFormModalProps {
@@ -28,6 +31,9 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
   const [parentId, setParentId] = useState<string>(entity?.parent_id ?? '');
   const [riskScore, setRiskScore] = useState(entity?.risk_score ?? 50);
   const [status, setStatus] = useState(entity?.status ?? 'Active');
+
+  // Type-specific metadata
+  const [metadata, setMetadata] = useState<Record<string, any>>(entity?.metadata ?? {});
 
   const isEdit = !!entity;
   const isPending = createEntity.isPending || updateEntity.isPending;
@@ -63,6 +69,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
         parent_id: parentId || null,
         risk_score: riskScore,
         status,
+        metadata,
       });
     } else {
       await createEntity.mutateAsync({
@@ -73,7 +80,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
         risk_score: riskScore,
         velocity_multiplier: 1.0,
         status,
-        metadata: {},
+        metadata,
       });
     }
     onClose();
@@ -143,6 +150,159 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
               ))}
             </select>
           </div>
+
+          {/* TYPE-SPECIFIC FIELDS */}
+          {type === 'BRANCH' && (
+            <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-3">
+              <div className="text-xs font-bold text-blue-700 mb-2">Şube Bilgileri</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Personel Devir Oranı (%)</label>
+                  <input
+                    type="number"
+                    value={metadata.turnover_rate ?? ''}
+                    onChange={e => setMetadata({ ...metadata, turnover_rate: +e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                    placeholder="örn: 25"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Aylık İşlem Hacmi (TL)</label>
+                  <input
+                    type="number"
+                    value={metadata.transaction_volume ?? ''}
+                    onChange={e => setMetadata({ ...metadata, transaction_volume: +e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                    placeholder="15000000"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {type === 'IT_ASSET' && (
+            <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-3">
+              <div className="text-xs font-bold text-purple-700 mb-2">BT Varlığı Bilgileri</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Kritiklik Seviyesi</label>
+                  <select
+                    value={metadata.criticality_level ?? 'MEDIUM'}
+                    onChange={e => setMetadata({ ...metadata, criticality_level: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  >
+                    <option value="LOW">Düşük</option>
+                    <option value="MEDIUM">Orta</option>
+                    <option value="HIGH">Yüksek</option>
+                    <option value="CRITICAL">Kritik</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Son Yama Tarihi</label>
+                  <input
+                    type="date"
+                    value={metadata.last_patch_date ?? ''}
+                    onChange={e => setMetadata({ ...metadata, last_patch_date: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-700 mb-1">CPE/CMDB ID</label>
+                <input
+                  type="text"
+                  value={metadata.cpe_id ?? ''}
+                  onChange={e => setMetadata({ ...metadata, cpe_id: e.target.value })}
+                  className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  placeholder="örn: MB-PROD-001"
+                />
+              </div>
+            </div>
+          )}
+
+          {type === 'VENDOR' && (
+            <div className="border border-orange-200 bg-orange-50 rounded-lg p-3 space-y-3">
+              <div className="text-xs font-bold text-orange-700 mb-2">Tedarikçi Bilgileri</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Sözleşme Durumu</label>
+                  <select
+                    value={metadata.contract_status ?? 'ACTIVE'}
+                    onChange={e => setMetadata({ ...metadata, contract_status: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  >
+                    <option value="ACTIVE">Aktif</option>
+                    <option value="EXPIRED">Süresi Dolmuş</option>
+                    <option value="PENDING">Beklemede</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Risk Notu</label>
+                  <select
+                    value={metadata.risk_rating ?? 'MEDIUM'}
+                    onChange={e => setMetadata({ ...metadata, risk_rating: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  >
+                    <option value="LOW">Düşük</option>
+                    <option value="MEDIUM">Orta</option>
+                    <option value="HIGH">Yüksek</option>
+                    <option value="CRITICAL">Kritik</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Sözleşme Bitiş Tarihi</label>
+                  <input
+                    type="date"
+                    value={metadata.contract_expiry ?? ''}
+                    onChange={e => setMetadata({ ...metadata, contract_expiry: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Yıllık Harcama (TL)</label>
+                  <input
+                    type="number"
+                    value={metadata.annual_spend ?? ''}
+                    onChange={e => setMetadata({ ...metadata, annual_spend: +e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                    placeholder="850000"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {type === 'SUBSIDIARY' && (
+            <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-3 space-y-3">
+              <div className="text-xs font-bold text-indigo-700 mb-2">İştirak Bilgileri</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Sahiplik Oranı (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={metadata.ownership_percentage ?? ''}
+                    onChange={e => setMetadata({ ...metadata, ownership_percentage: +e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                    placeholder="51"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-700 mb-1">Ülke</label>
+                  <input
+                    type="text"
+                    value={metadata.country ?? ''}
+                    onChange={e => setMetadata({ ...metadata, country: e.target.value })}
+                    className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                    placeholder="Türkiye"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>

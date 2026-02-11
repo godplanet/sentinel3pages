@@ -102,6 +102,12 @@ export const UniverseTree = () => {
                 return '#f43f5e';
               case 'HEADQUARTERS':
                 return '#1e293b';
+              case 'IT_ASSET':
+                return '#a855f7';
+              case 'VENDOR':
+                return '#f97316';
+              case 'SUBSIDIARY':
+                return '#6366f1';
               default:
                 return '#9ca3af';
             }
