@@ -180,6 +180,14 @@ export const navigationConfig: NavigationItem[] = [
         path: '/settings/methodology',
         icon: FileText,
       },
+      {
+        id: 'quant-analysis',
+        label: 'Kantitatif Analiz',
+        path: '/strategy/quant',
+        icon: FlaskConical,
+        badge: 'BETA',
+        badgeColor: 'blue',
+      },
     ],
   },
 
@@ -240,6 +248,12 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Denetim Programları',
         path: '/library/audit-programs',
         icon: ClipboardList,
+      },
+      {
+        id: 'program-library',
+        label: 'Program Kütüphanesi',
+        path: '/library/programs',
+        icon: BookOpen,
       },
       {
         id: 'procedures',
@@ -307,6 +321,22 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Gözetim Kulesi',
         path: '/monitoring/watchtower',
         icon: TrendingUp,
+      },
+      {
+        id: 'credit-monitoring',
+        label: 'Kredi İzleme',
+        path: '/monitoring/credit',
+        icon: TrendingUp,
+        badge: 'LIVE',
+        badgeColor: 'emerald',
+      },
+      {
+        id: 'market-monitoring',
+        label: 'Piyasa İzleme',
+        path: '/monitoring/market',
+        icon: BarChart3,
+        badge: 'LIVE',
+        badgeColor: 'emerald',
       },
       {
         id: 'risk-laboratory',
