@@ -72,7 +72,7 @@ export class RiskSimulationEngine {
 
         const result = await this.simulateEntityRisk(entity, draftConstitution);
         results.push({
-          simulation_id: run.id,
+          simulation_run_id: run.id,
           ...result,
         });
       }
@@ -114,19 +114,19 @@ export class RiskSimulationEngine {
    */
   private async fetchAllEntities(): Promise<EntityData[]> {
     const { data, error } = await supabase
-      .from('audit_universe')
-      .select('id, entity_name, path, risk_score, score_static, score_strategic, score_dynamic, metadata');
+      .from('audit_entities')
+      .select('id, name, path, risk_score, metadata');
 
     if (error) throw error;
 
-    return (data || []).map((entity) => ({
+    return (data || []).map((entity: any) => ({
       id: entity.id,
-      entity_name: entity.entity_name,
+      entity_name: entity.name,
       path: entity.path,
       risk_score: entity.risk_score || 0,
-      score_static: entity.score_static || entity.metadata?.score_static || 0,
-      score_strategic: entity.score_strategic || entity.metadata?.score_strategic || 0,
-      score_dynamic: entity.score_dynamic || entity.metadata?.score_dynamic || 0,
+      score_static: entity.metadata?.score_static || entity.risk_score || 0,
+      score_strategic: entity.metadata?.score_strategic || 0,
+      score_dynamic: entity.metadata?.score_dynamic || 0,
       metadata: entity.metadata || {},
     }));
   }
@@ -167,8 +167,8 @@ export class RiskSimulationEngine {
       entity_id: entity.id,
       entity_name: entity.entity_name,
       entity_path: entity.path,
-      original_score: Number(originalScore.toFixed(2)),
-      simulated_score: Number(simulatedScore.toFixed(2)),
+      risk_score_old: Number(originalScore.toFixed(2)),
+      risk_score_new: Number(simulatedScore.toFixed(2)),
       delta: Number(delta.toFixed(2)),
       delta_percentage: Number(deltaPercentage.toFixed(2)),
       risk_zone_old: originalZone,

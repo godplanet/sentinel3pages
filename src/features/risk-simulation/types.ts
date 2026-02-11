@@ -20,29 +20,27 @@ export interface SimulationRun {
 
 export interface SimulationResult {
   id: string;
-  simulation_id: string;
+  simulation_run_id: string;
   entity_id: string;
   entity_name: string;
   entity_path?: string;
-  original_score: number;
-  simulated_score: number;
+  risk_score_old: number;
+  risk_score_new: number;
   delta: number;
-  delta_percentage: number;
+  delta_percentage?: number;
   risk_zone_old: RiskLevel;
   risk_zone_new: RiskLevel;
   zone_changed: boolean;
-  impact_summary: {
+  impact_summary?: {
     components_changed?: string[];
     threshold_crossed?: string;
     severity_change?: 'upgrade' | 'downgrade' | 'none';
   };
-  created_at: string;
+  created_at?: string;
 }
 
 export interface SimulationImpactSummary {
-  simulation_id: string;
-  simulation_name: string;
-  created_at: string;
+  simulation_run_id: string;
   total_entities: number;
   entities_changed: number;
   critical_count: number;
@@ -51,8 +49,6 @@ export interface SimulationImpactSummary {
   low_count: number;
   avg_score_change: number;
   avg_percentage_change: number;
-  entities_increased: number;
-  entities_decreased: number;
 }
 
 export interface EntityData {

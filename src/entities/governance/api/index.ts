@@ -1,5 +1,13 @@
 import { supabase } from '@/shared/api/supabase';
-import type { GovernanceDoc, AuditorDeclaration, CreateGovernanceDocInput, CreateDeclarationInput, GovernanceStats } from '../model/types';
+import type {
+  GovernanceDoc,
+  AuditorDeclaration,
+  CreateGovernanceDocInput,
+  CreateDeclarationInput,
+  GovernanceStats,
+  BoardMember,
+  Stakeholder
+} from '../model/types';
 
 export async function fetchGovernanceDocs(filters?: { doc_type?: string; approval_status?: string }): Promise<GovernanceDoc[]> {
   let query = supabase.from('governance_docs').select('*');
@@ -163,4 +171,30 @@ function generateSignatureHash(userId: string, year: number): string {
     hash = hash & hash;
   }
   return Math.abs(hash).toString(16).padStart(12, '0').slice(0, 12);
+}
+
+export async function fetchBoardMembers(): Promise<BoardMember[]> {
+  const { data, error } = await supabase
+    .from('board_members')
+    .select('*')
+    .order('appointment_date', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchStakeholders(filters?: { type?: string; influence_level?: string }): Promise<Stakeholder[]> {
+  let query = supabase.from('stakeholders').select('*');
+
+  if (filters?.type) {
+    query = query.eq('type', filters.type);
+  }
+  if (filters?.influence_level) {
+    query = query.eq('influence_level', filters.influence_level);
+  }
+
+  const { data, error } = await query.order('last_engagement_date', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }

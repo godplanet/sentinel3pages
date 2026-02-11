@@ -45,3 +45,45 @@ export interface GovernanceStats {
   declarations_this_year: number;
   compliance_rate: number;
 }
+
+export interface BoardMember {
+  id: string;
+  tenant_id: string;
+  full_name: string;
+  title: string;
+  role: string;
+  email: string | null;
+  phone: string | null;
+  appointment_date: string | null;
+  term_end_date: string | null;
+  is_independent: boolean;
+  committees: string[];
+  photo_url: string | null;
+  bio: string | null;
+  metadata: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Stakeholder {
+  id: string;
+  tenant_id: string;
+  name: string;
+  type: string;
+  organization: string | null;
+  contact_person: string | null;
+  email: string | null;
+  phone: string | null;
+  influence_level: string | null;
+  engagement_frequency: string | null;
+  last_engagement_date: string | null;
+  next_engagement_date: string | null;
+  relationship_owner_id: string | null;
+  interests: string | null;
+  concerns: string | null;
+  expectations: string | null;
+  communication_channels: string[];
+  metadata: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}

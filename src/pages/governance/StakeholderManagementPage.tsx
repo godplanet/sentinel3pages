@@ -1,67 +1,50 @@
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
 import { Users, Building, Mail, Phone, MessageCircle, Star } from 'lucide-react';
+import { fetchStakeholders } from '@/entities/governance/api';
+import type { Stakeholder } from '@/entities/governance/model/types';
 
-const STAKEHOLDERS = [
-  {
-    id: '1',
-    name: 'Mehmet Yıldız',
-    title: 'CEO',
-    department: 'Genel Müdürlük',
-    type: 'executive',
-    engagement: 'high',
-    lastContact: '2024-02-01',
-    email: 'mehmet.yildiz@bank.com',
-    phone: '+90 555 123 4567',
-  },
-  {
-    id: '2',
-    name: 'Ayşe Kara',
-    title: 'CFO',
-    department: 'Finans',
-    type: 'executive',
-    engagement: 'high',
-    lastContact: '2024-02-03',
-    email: 'ayse.kara@bank.com',
-    phone: '+90 555 234 5678',
-  },
-  {
-    id: '3',
-    name: 'Ahmet Demir',
-    title: 'CIO',
-    department: 'Bilgi Teknolojileri',
-    type: 'operational',
-    engagement: 'medium',
-    lastContact: '2024-01-28',
-    email: 'ahmet.demir@bank.com',
-    phone: '+90 555 345 6789',
-  },
-  {
-    id: '4',
-    name: 'BDDK',
-    title: 'Düzenleyici Otorite',
-    department: 'Harici',
-    type: 'regulator',
-    engagement: 'high',
-    lastContact: '2024-01-15',
-    email: 'iletisim@bddk.gov.tr',
-    phone: '+90 312 123 4567',
-  },
-];
-
-const ENGAGEMENT_TYPES = {
-  high: { label: 'Yüksek', color: 'green' },
-  medium: { label: 'Orta', color: 'amber' },
-  low: { label: 'Düşük', color: 'red' },
+const ENGAGEMENT_TYPES: Record<string, { label: string; color: string }> = {
+  HIGH: { label: 'Yüksek', color: 'green' },
+  MEDIUM: { label: 'Orta', color: 'amber' },
+  LOW: { label: 'Düşük', color: 'red' },
 };
 
-const STAKEHOLDER_TYPES = {
-  executive: { label: 'Üst Yönetim', color: 'purple', icon: Star },
-  operational: { label: 'Operasyonel', color: 'blue', icon: Building },
-  regulator: { label: 'Düzenleyici', color: 'red', icon: Building },
-  external: { label: 'Harici', color: 'slate', icon: Users },
+const STAKEHOLDER_TYPES: Record<string, { label: string; color: string; icon: typeof Star }> = {
+  EXECUTIVE: { label: 'Üst Yönetim', color: 'purple', icon: Star },
+  REGULATOR: { label: 'Düzenleyici', color: 'red', icon: Building },
+  SHAREHOLDER: { label: 'Hissedar', color: 'blue', icon: Building },
+  EXTERNAL: { label: 'Harici', color: 'slate', icon: Users },
+  CUSTOMER: { label: 'Müşteri', color: 'green', icon: Users },
+  SUPPLIER: { label: 'Tedarikçi', color: 'amber', icon: Building },
 };
 
 export default function StakeholderManagementPage() {
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStakeholders();
+  }, []);
+
+  const loadStakeholders = async () => {
+    try {
+      const data = await fetchStakeholders();
+      setStakeholders(data);
+    } catch (error) {
+      console.error('Failed to load stakeholders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTypeInfo = (type: string) => {
+    return STAKEHOLDER_TYPES[type] || STAKEHOLDER_TYPES.EXTERNAL;
+  };
+
+  const getEngagementInfo = (level: string | null) => {
+    return ENGAGEMENT_TYPES[level || 'MEDIUM'] || ENGAGEMENT_TYPES.MEDIUM;
+  };
   return (
     <div className="p-8 space-y-6">
       <PageHeader
@@ -87,10 +70,10 @@ export default function StakeholderManagementPage() {
 
       <div className="grid md:grid-cols-4 gap-6">
         {[
-          { label: 'Toplam Paydaş', value: '47', icon: Users, color: 'blue' },
-          { label: 'Üst Yönetim', value: '12', icon: Star, color: 'purple' },
-          { label: 'Düzenleyiciler', value: '3', icon: Building, color: 'red' },
-          { label: 'Yüksek Etkileşim', value: '28', icon: MessageCircle, color: 'green' },
+          { label: 'Toplam Paydaş', value: stakeholders.length.toString(), icon: Users, color: 'blue' },
+          { label: 'Üst Yönetim', value: stakeholders.filter(s => s.type === 'EXECUTIVE').length.toString(), icon: Star, color: 'purple' },
+          { label: 'Düzenleyiciler', value: stakeholders.filter(s => s.type === 'REGULATOR').length.toString(), icon: Building, color: 'red' },
+          { label: 'Yüksek Etkileşim', value: stakeholders.filter(s => s.influence_level === 'HIGH').length.toString(), icon: MessageCircle, color: 'green' },
         ].map((stat, i) => (
           <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
@@ -136,52 +119,72 @@ export default function StakeholderManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {STAKEHOLDERS.map((stakeholder) => {
-                const typeInfo = STAKEHOLDER_TYPES[stakeholder.type as keyof typeof STAKEHOLDER_TYPES];
-                const engagementInfo = ENGAGEMENT_TYPES[stakeholder.engagement as keyof typeof ENGAGEMENT_TYPES];
-                const TypeIcon = typeInfo.icon;
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-600">
+                    Yükleniyor...
+                  </td>
+                </tr>
+              ) : stakeholders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-600">
+                    Paydaş bulunamadı
+                  </td>
+                </tr>
+              ) : (
+                stakeholders.map((stakeholder) => {
+                  const typeInfo = getTypeInfo(stakeholder.type);
+                  const engagementInfo = getEngagementInfo(stakeholder.influence_level);
+                  const TypeIcon = typeInfo.icon;
 
-                return (
-                  <tr key={stakeholder.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                          {stakeholder.name[0]}
+                  return (
+                    <tr key={stakeholder.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                            {stakeholder.name[0]}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-800">{stakeholder.name}</div>
+                            <div className="text-sm text-slate-600">{stakeholder.contact_person || '-'}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold text-slate-800">{stakeholder.name}</div>
-                          <div className="text-sm text-slate-600">{stakeholder.title}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{stakeholder.organization || '-'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 bg-${typeInfo.color}-100 text-${typeInfo.color}-700 rounded-full text-xs font-semibold inline-flex items-center gap-1`}>
+                          <TypeIcon size={12} />
+                          {typeInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 bg-${engagementInfo.color}-100 text-${engagementInfo.color}-700 rounded-full text-xs font-semibold`}>
+                          {engagementInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {stakeholder.last_engagement_date
+                          ? new Date(stakeholder.last_engagement_date).toLocaleDateString('tr-TR')
+                          : '-'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {stakeholder.email && (
+                            <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group">
+                              <Mail size={16} className="text-slate-400 group-hover:text-blue-600" />
+                            </button>
+                          )}
+                          {stakeholder.phone && (
+                            <button className="p-2 hover:bg-green-50 rounded-lg transition-colors group">
+                              <Phone size={16} className="text-slate-400 group-hover:text-green-600" />
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{stakeholder.department}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 bg-${typeInfo.color}-100 text-${typeInfo.color}-700 rounded-full text-xs font-semibold inline-flex items-center gap-1`}>
-                        <TypeIcon size={12} />
-                        {typeInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 bg-${engagementInfo.color}-100 text-${engagementInfo.color}-700 rounded-full text-xs font-semibold`}>
-                        {engagementInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {new Date(stakeholder.lastContact).toLocaleDateString('tr-TR')}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group">
-                          <Mail size={16} className="text-slate-400 group-hover:text-blue-600" />
-                        </button>
-                        <button className="p-2 hover:bg-green-50 rounded-lg transition-colors group">
-                          <Phone size={16} className="text-slate-400 group-hover:text-green-600" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -192,7 +195,7 @@ export default function StakeholderManagementPage() {
           <h3 className="text-lg font-bold text-slate-800 mb-4">Etkileşim Haritası</h3>
           <div className="space-y-4">
             {Object.entries(STAKEHOLDER_TYPES).map(([key, type]) => {
-              const count = STAKEHOLDERS.filter(s => s.type === key).length;
+              const count = stakeholders.filter(s => s.type === key).length;
               const TypeIcon = type.icon;
               return (
                 <div key={key} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">

@@ -79,7 +79,7 @@ export function useSimulationResults(simulationId: string | null) {
       const { data, error: fetchError } = await supabase
         .from('risk_simulation_results')
         .select('*')
-        .eq('simulation_id', simulationId)
+        .eq('simulation_run_id', simulationId)
         .order('delta', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -103,6 +103,7 @@ export function useSimulationResults(simulationId: string | null) {
 
 /**
  * Hook for fetching simulation impact summary
+ * Calculates summary statistics from simulation results
  */
 export function useSimulationImpact(simulationId: string | null) {
   const [impact, setImpact] = useState<SimulationImpactSummary | null>(null);
@@ -125,15 +126,42 @@ export function useSimulationImpact(simulationId: string | null) {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('simulation_impact_summary')
+      // Fetch all results for this simulation
+      const { data: results, error: fetchError } = await supabase
+        .from('risk_simulation_results')
         .select('*')
-        .eq('simulation_id', simulationId)
-        .maybeSingle();
+        .eq('simulation_run_id', simulationId);
 
       if (fetchError) throw fetchError;
 
-      setImpact(data as SimulationImpactSummary | null);
+      if (!results || results.length === 0) {
+        setImpact(null);
+        return;
+      }
+
+      // Calculate summary statistics
+      const totalEntities = results.length;
+      const entitiesChanged = results.filter((r: any) => r.zone_changed).length;
+      const avgScoreChange = results.reduce((sum: number, r: any) => sum + r.delta, 0) / totalEntities;
+      const avgPercentageChange = avgScoreChange; // Simplified
+
+      // Count by zone
+      const criticalCount = results.filter((r: any) => r.risk_zone_new === 'CRITICAL').length;
+      const highCount = results.filter((r: any) => r.risk_zone_new === 'HIGH').length;
+      const mediumCount = results.filter((r: any) => r.risk_zone_new === 'MEDIUM').length;
+      const lowCount = results.filter((r: any) => r.risk_zone_new === 'LOW').length;
+
+      setImpact({
+        simulation_run_id: simulationId,
+        total_entities: totalEntities,
+        entities_changed: entitiesChanged,
+        avg_score_change: Number(avgScoreChange.toFixed(2)),
+        avg_percentage_change: Number(avgPercentageChange.toFixed(2)),
+        critical_count: criticalCount,
+        high_count: highCount,
+        medium_count: mediumCount,
+        low_count: lowCount,
+      });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch impact summary';
       setError(errorMsg);

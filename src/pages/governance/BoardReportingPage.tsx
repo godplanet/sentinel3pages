@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
-import { Building2, TrendingUp, AlertTriangle, CheckCircle2, Calendar, FileText } from 'lucide-react';
+import { Building2, TrendingUp, AlertTriangle, CheckCircle2, Calendar, FileText, Users } from 'lucide-react';
+import { fetchBoardMembers } from '@/entities/governance/api';
+import type { BoardMember } from '@/entities/governance/model/types';
 
 const BOARD_MEETINGS = [
   {
@@ -21,6 +24,23 @@ const BOARD_MEETINGS = [
 ];
 
 export default function BoardReportingPage() {
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadBoardMembers();
+  }, []);
+
+  const loadBoardMembers = async () => {
+    try {
+      const data = await fetchBoardMembers();
+      setBoardMembers(data);
+    } catch (error) {
+      console.error('Failed to load board members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="p-8 space-y-6">
       <PageHeader
@@ -148,6 +168,58 @@ export default function BoardReportingPage() {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <Users size={20} className="text-purple-600" />
+            Yönetim Kurulu Üyeleri
+          </h2>
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8 text-slate-600">Yükleniyor...</div>
+          ) : boardMembers.length === 0 ? (
+            <div className="text-center py-8 text-slate-600">Yönetim Kurulu üyesi bulunamadı</div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {boardMembers.map((member) => (
+                <div key={member.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white font-bold shrink-0">
+                      {member.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-slate-800 truncate">{member.full_name}</div>
+                      <div className="text-sm text-slate-600 truncate">{member.title}</div>
+                      <div className="text-xs text-slate-500 mt-1">{member.role}</div>
+                      {member.is_independent && (
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                          Bağımsız
+                        </span>
+                      )}
+                      {member.committees && member.committees.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {member.committees.slice(0, 2).map((committee, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs truncate">
+                              {committee}
+                            </span>
+                          ))}
+                          {member.committees.length > 2 && (
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs">
+                              +{member.committees.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
