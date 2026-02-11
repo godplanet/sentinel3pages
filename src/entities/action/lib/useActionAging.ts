@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { Action, ActionAging } from '../model/types';
 
 interface AgingMetrics {
@@ -13,71 +12,73 @@ interface AgingMetrics {
   glowClass: string;
 }
 
-export function useActionAging(action: Action): AgingMetrics {
-  return useMemo(() => {
-    const now = new Date();
-    const originalDue = new Date(action.original_due_date);
-    const currentDue = new Date(action.current_due_date);
-    const findingCreated = new Date(action.finding_snapshot.created_at);
+export function calculateActionAging(action: Action): AgingMetrics {
+  const now = new Date();
+  const originalDue = new Date(action.original_due_date);
+  const currentDue = new Date(action.current_due_date);
+  const findingCreated = new Date(action.finding_snapshot.created_at);
 
-    const ageFromDetection = Math.floor(
-      (now.getTime() - findingCreated.getTime()) / (1000 * 60 * 60 * 24)
-    );
+  const ageFromDetection = Math.floor(
+    (now.getTime() - findingCreated.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
-    const performanceDelay = Math.floor(
-      (now.getTime() - originalDue.getTime()) / (1000 * 60 * 60 * 24)
-    );
+  const performanceDelay = Math.floor(
+    (now.getTime() - originalDue.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
-    const operationalOverdue = Math.floor(
-      (now.getTime() - currentDue.getTime()) / (1000 * 60 * 60 * 24)
-    );
+  const operationalOverdue = Math.floor(
+    (now.getTime() - currentDue.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
-    const extensionDays = Math.floor(
-      (currentDue.getTime() - originalDue.getTime()) / (1000 * 60 * 60 * 24)
-    );
+  const extensionDays = Math.floor(
+    (currentDue.getTime() - originalDue.getTime()) / (1000 * 60 * 60 * 24)
+  );
 
-    const isOperationallyOverdue = operationalOverdue > 0 &&
-      !['closed', 'risk_accepted'].includes(action.status);
+  const isOperationallyOverdue = operationalOverdue > 0 &&
+    !['closed', 'risk_accepted'].includes(action.status);
 
-    const isPerformanceDelayed = performanceDelay > 0 &&
-      !['closed', 'risk_accepted'].includes(action.status);
+  const isPerformanceDelayed = performanceDelay > 0 &&
+    !['closed', 'risk_accepted'].includes(action.status);
 
-    let severity: 'normal' | 'warning' | 'critical' = 'normal';
-    let color = 'text-slate-600';
-    let glowClass = '';
+  let severity: 'normal' | 'warning' | 'critical' = 'normal';
+  let color = 'text-slate-600';
+  let glowClass = '';
 
-    if (isOperationallyOverdue) {
-      if (operationalOverdue > 30) {
-        severity = 'critical';
-        color = 'text-red-700';
-        glowClass = 'shadow-[0_0_20px_rgba(239,68,68,0.6)] border-red-500';
-      } else if (operationalOverdue > 7) {
-        severity = 'warning';
-        color = 'text-orange-600';
-        glowClass = 'shadow-[0_0_15px_rgba(249,115,22,0.5)] border-orange-400';
-      } else {
-        severity = 'warning';
-        color = 'text-yellow-600';
-        glowClass = 'shadow-[0_0_10px_rgba(234,179,8,0.4)] border-yellow-400';
-      }
-    } else if (operationalOverdue > -7 && operationalOverdue <= 0) {
+  if (isOperationallyOverdue) {
+    if (operationalOverdue > 30) {
+      severity = 'critical';
+      color = 'text-red-700';
+      glowClass = 'shadow-[0_0_20px_rgba(239,68,68,0.6)] border-red-500';
+    } else if (operationalOverdue > 7) {
       severity = 'warning';
-      color = 'text-amber-600';
-      glowClass = 'border-amber-300';
+      color = 'text-orange-600';
+      glowClass = 'shadow-[0_0_15px_rgba(249,115,22,0.5)] border-orange-400';
+    } else {
+      severity = 'warning';
+      color = 'text-yellow-600';
+      glowClass = 'shadow-[0_0_10px_rgba(234,179,8,0.4)] border-yellow-400';
     }
+  } else if (operationalOverdue > -7 && operationalOverdue <= 0) {
+    severity = 'warning';
+    color = 'text-amber-600';
+    glowClass = 'border-amber-300';
+  }
 
-    return {
-      ageFromDetection,
-      performanceDelay,
-      operationalOverdue,
-      extensionDays,
-      isOperationallyOverdue,
-      isPerformanceDelayed,
-      severity,
-      color,
-      glowClass,
-    };
-  }, [action]);
+  return {
+    ageFromDetection,
+    performanceDelay,
+    operationalOverdue,
+    extensionDays,
+    isOperationallyOverdue,
+    isPerformanceDelayed,
+    severity,
+    color,
+    glowClass,
+  };
+}
+
+export function useActionAging(action: Action): AgingMetrics {
+  return calculateActionAging(action);
 }
 
 export function formatAgingMetric(days: number): string {
