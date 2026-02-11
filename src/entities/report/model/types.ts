@@ -30,6 +30,7 @@ export interface Report {
   theme_config: ThemeConfig;
   layout_type: ReportLayoutType;
   tiptap_content?: any;
+  snapshot_data?: ReportSnapshot;
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -192,4 +193,65 @@ export interface CreateBlockData {
 export interface UpdateBlockData {
   position_index?: number;
   content?: Partial<BlockContent>;
+}
+
+export type SignatureStatus = 'signed' | 'rejected' | 'signed_with_dissent';
+
+export type SignerRole = 'CREATOR' | 'MANAGER' | 'CAE';
+
+export interface ReportSignature {
+  id: string;
+  tenant_id: string;
+  report_id: string;
+  user_id?: string;
+  signer_name: string;
+  signer_role: SignerRole;
+  signer_title: string;
+  status: SignatureStatus;
+  dissent_comment?: string;
+  order_index: number;
+  signed_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SignatureStep {
+  role: SignerRole;
+  title: string;
+  description: string;
+  order_index: number;
+  required: boolean;
+}
+
+export interface ReportSnapshot {
+  report: Report;
+  blocks: ReportBlock[];
+  findings: Record<string, any>[];
+  metadata: {
+    snapshot_version: string;
+    created_at: string;
+    created_by?: string;
+    total_blocks: number;
+    total_findings: number;
+  };
+}
+
+export interface CreateSignatureData {
+  report_id: string;
+  user_id?: string;
+  signer_name: string;
+  signer_role: SignerRole;
+  signer_title: string;
+  status: SignatureStatus;
+  order_index: number;
+  dissent_comment?: string;
+}
+
+export interface SignatureChainStatus {
+  completed: boolean;
+  current_step: number;
+  total_steps: number;
+  signatures: ReportSignature[];
+  pending_roles: SignerRole[];
+  can_publish: boolean;
 }

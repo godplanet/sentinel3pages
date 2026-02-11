@@ -7,6 +7,7 @@ import type { Report } from '@/entities/report/model/types';
 import { ViewerCanvas } from '@/widgets/ReportStudio/ViewerCanvas';
 import { WarmthSlider } from '@/widgets/ReportStudio';
 import { FindingDetailDrawer } from '@/widgets/ReportStudio/FindingDetailDrawer';
+import { SignaturePanel } from '@/features/reporting';
 
 export default function ReportViewerPage() {
   const { id } = useParams<{ id: string }>();
@@ -161,6 +162,15 @@ export default function ReportViewerPage() {
               content={content}
               warmth={warmth}
               onFindingClick={handleFindingClick}
+            />
+
+            {/* Signature Chain Panel */}
+            <SignaturePanel
+              reportId={id!}
+              reportStatus={report.status}
+              onStatusChange={loadReport}
+              currentUserRole="CREATOR"
+              currentUserName="Ahmet Yılmaz"
             />
           </div>
         </div>
