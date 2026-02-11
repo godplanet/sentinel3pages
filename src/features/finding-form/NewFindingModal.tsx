@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
-import type { FindingSeverity, GIASCategory } from '@/entities/finding/model/types';
-import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
+
+// DÜZELTME: @ alias'ı yerine garanti çalışan relative path kullanıldı
+import type { FindingSeverity, GIASCategory } from '../../entities/finding/model/types';
+import { comprehensiveFindingApi } from '../../entities/finding/api/module5-api';
 
 interface NewFindingModalProps {
   isOpen: boolean;
@@ -64,19 +66,16 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
     try {
       // 2. API Payload Hazırlığı
-      // Form verilerini API'nin beklediği formata dönüştürüyoruz
       const payload = {
         title: formData.title,
         severity: formData.severity,
-        status: 'DRAFT', // Varsayılan taslak
+        status: 'DRAFT',
         category: 'Audit',
-        engagement_id: 'GENERAL_AUDIT', // Veya context'ten gelen ID
+        engagement_id: 'GENERAL_AUDIT',
         
-        // Ana Metin Alanları
-        description: formData.detection, // 'Tespit' alanını description olarak kullanıyoruz
-        criteria: formData.code, // Referans kodunu kriter/kod alanına
+        description: formData.detection,
+        criteria: formData.code,
         
-        // Detaylı Veriler (JSONB alanları için)
         details: {
           gias_category: formData.gias_category,
           auditee_department: formData.auditee_department,
@@ -97,7 +96,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
               formData.why_3,
               formData.why_4,
               formData.why_5
-            ].filter(w => w) // Boş olanları filtrele
+            ].filter(w => w)
           }
         }
       };
@@ -107,11 +106,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
       // 4. Başarı İşlemleri
       toast.success('Bulgu başarıyla kaydedildi!');
-      
-      // Parent bileşeni bilgilendir (Listeyi yenilemesi için)
       onSave(payload);
-      
-      // Modalı kapat ve formu temizle
       onClose();
       
     } catch (error) {
