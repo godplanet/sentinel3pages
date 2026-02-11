@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import TurkeyBankSeeder from '@/shared/data/seed/turkey-bank';
+import { supabase } from '@/shared/api/supabase';
+import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
 
 interface SystemInitState {
   isInitializing: boolean;
@@ -22,28 +23,40 @@ export function useSystemInit() {
     const checkAndInit = async () => {
       try {
         console.log('[SystemInit] Checking database state...');
-        const isEmpty = await TurkeyBankSeeder.checkDatabaseEmpty();
-        console.log('[SystemInit] Database empty?', isEmpty);
+
+        // Check if users exist
+        const { count, error: checkError } = await supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true });
 
         if (!mounted) return;
+
+        const isEmpty = checkError || count === 0;
+        console.log('[SystemInit] Database empty?', isEmpty, 'User count:', count);
 
         if (isEmpty) {
           setState({
             isInitializing: true,
             isComplete: false,
             error: null,
-            progress: 'Sistem Hazırlanıyor...'
+            progress: 'Sistem Onarılıyor ve Veriler Yükleniyor...'
           });
 
-          console.log('[SystemInit] Starting seeding process...');
+          console.log('[SystemInit] Running Force Reseed (Nuclear Wipe + Turkey Bank)...');
 
           if (!mounted) return;
-          setState(prev => ({ ...prev, progress: 'Demo Veriler Yükleniyor...' }));
+          setState(prev => ({ ...prev, progress: 'Veritabanı Temizleniyor (Nuclear Wipe)...' }));
 
-          await TurkeyBankSeeder.seed();
+          // Small delay to ensure UI renders
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           if (!mounted) return;
-          console.log('[SystemInit] Seeding complete!');
+          setState(prev => ({ ...prev, progress: 'Sentinel Katılım Bankası Yükleniyor...' }));
+
+          await forceReseed();
+
+          if (!mounted) return;
+          console.log('[SystemInit] Force reseed complete!');
 
           setState({
             isInitializing: false,
@@ -67,7 +80,7 @@ export function useSystemInit() {
         setState({
           isInitializing: false,
           isComplete: true, // Set true to allow app to load
-          error: null, // Don't show error to user
+          error: error instanceof Error ? error.message : 'Unknown error',
           progress: ''
         });
       }

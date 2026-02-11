@@ -103,6 +103,7 @@ import FieldAgentPage from '@/pages/execution/FieldAgentPage';
 import SiteMapPage from '@/pages/dev/SiteMapPage';
 import PageAuditPage from '@/pages/dev/PageAuditPage';
 import DiagnosticsPage from '@/pages/dev/DiagnosticsPage';
+import PageInventoryPage from '@/pages/dev/PageInventoryPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -262,6 +263,7 @@ export const AppRoutes = () => {
       <Route path="/dev-map" element={<ProtectedRoute><SiteMapPage /></ProtectedRoute>} />
       <Route path="/dev/page-audit" element={<ProtectedRoute><PageAuditPage /></ProtectedRoute>} />
       <Route path="/dev/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
+      <Route path="/dev/inventory" element={<ProtectedRoute><PageInventoryPage /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

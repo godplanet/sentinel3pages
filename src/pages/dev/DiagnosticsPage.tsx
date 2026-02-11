@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Activity, Play, CheckCircle2, XCircle, AlertTriangle, Database, Users, Building2, FileText, AlertCircle, Trash2, Wrench, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { AutoTester, type DiagnosticReport } from '@/features/diagnostics/AutoTester';
-import { TurkeyBankSeeder } from '@/shared/data/seed/turkey-bank';
+import { forceReseed } from '@/shared/data/seed/turkey-bank-final';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -57,7 +57,7 @@ export default function DiagnosticsPage() {
     }
   };
 
-  const forceReseed = async () => {
+  const handleForceReseed = async () => {
     if (!confirm('⚠️ UYARI: Bu işlem VERİTABANINI SİLER ve demo verileri yeniden yükler. Devam etmek istiyor musunuz?')) {
       return;
     }
@@ -70,17 +70,22 @@ export default function DiagnosticsPage() {
       setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
     };
 
-    addLog('🧹 EMERGENCY FORCE RESEED initiated...');
-    addLog('⚠️ Wiping database...');
+    addLog('🚀 FORCE RESEED: Starting full database reset...');
 
     try {
-      await TurkeyBankSeeder.emergencyWipe();
-      addLog('✅ Database wiped successfully');
+      // Intercept console logs
+      const originalLog = console.log;
+      console.log = (message: string) => {
+        addLog(message);
+        originalLog(message);
+      };
 
-      addLog('🏦 Reseeding with Turkey Bank demo data...');
-      await TurkeyBankSeeder.seed();
-      addLog('✅ Database reseeded successfully');
+      await forceReseed();
 
+      // Restore console
+      console.log = originalLog;
+
+      addLog('✅ Force reseed complete!');
       addLog('🔄 Reloading page in 2 seconds...');
       setTimeout(() => {
         window.location.reload();
@@ -116,7 +121,7 @@ export default function DiagnosticsPage() {
                 Veritabanı boş. Test simülasyonları çalışmayacak. Demo verileri yüklemek için aşağıdaki butona tıklayın.
               </p>
               <button
-                onClick={forceReseed}
+                onClick={handleForceReseed}
                 disabled={isReseeding}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
               >
