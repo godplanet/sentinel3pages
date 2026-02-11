@@ -29,59 +29,80 @@ export const USERS = {
 export async function nuclearWipe(): Promise<void> {
   console.log('🔴 NUCLEAR WIPE: Starting database cleanup...');
 
+  // Helper function to safely delete with error handling
+  async function safeDelete(tableName: string, phase: string): Promise<void> {
+    try {
+      const { error, count } = await supabase
+        .from(tableName)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+        .select('id', { count: 'exact', head: true });
+
+      if (error) {
+        console.warn(`  ⚠️ ${tableName}: ${error.message} (might not exist)`);
+      } else {
+        console.log(`  ✓ ${tableName}: deleted ${count || 0} records`);
+      }
+    } catch (err) {
+      console.warn(`  ⚠️ ${tableName}: ${err instanceof Error ? err.message : 'Unknown error'} (skipped)`);
+    }
+  }
+
   try {
     // PHASE 1: ACTION & FINDING CHILDREN
-    await supabase.from('action_evidence').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('action_plans').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('finding_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('finding_responses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Action plans and finding history deleted');
+    console.log('Phase 1: Cleaning action and finding children...');
+    await safeDelete('action_evidence', '1');
+    await safeDelete('action_plans', '1');
+    await safeDelete('finding_history', '1');
+    await safeDelete('finding_responses', '1');
+    await safeDelete('finding_signoffs', '1');
 
     // PHASE 2: FINDINGS
-    await supabase.from('audit_findings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Audit findings deleted');
+    console.log('Phase 2: Cleaning findings...');
+    await safeDelete('audit_findings', '2');
 
     // PHASE 3: WORKPAPER CHILDREN
-    await supabase.from('workpaper_steps').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('workpaper_evidence').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('workpaper_findings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('review_notes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Workpaper details deleted');
+    console.log('Phase 3: Cleaning workpaper children...');
+    await safeDelete('workpaper_time_logs', '3');
+    await safeDelete('workpaper_steps', '3');
+    await safeDelete('workpaper_evidence', '3');
+    await safeDelete('workpaper_findings', '3');
+    await safeDelete('review_notes', '3');
 
     // PHASE 4: WORKPAPERS
-    await supabase.from('workpapers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Workpapers deleted');
+    console.log('Phase 4: Cleaning workpapers...');
+    await safeDelete('workpapers', '4');
 
     // PHASE 5: ENGAGEMENTS & SPRINTS
-    await supabase.from('sprint_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('sprints').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('audit_engagements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Engagements and sprints deleted');
+    console.log('Phase 5: Cleaning engagements...');
+    await safeDelete('sprint_tasks', '5');
+    await safeDelete('sprints', '5');
+    await safeDelete('audit_engagements', '5');
 
     // PHASE 6: PROGRAM LIBRARY
-    await supabase.from('program_steps').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('program_sections').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('program_templates').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Program templates deleted');
+    console.log('Phase 6: Cleaning program templates...');
+    await safeDelete('program_steps', '6');
+    await safeDelete('program_sections', '6');
+    await safeDelete('program_templates', '6');
 
     // PHASE 7: RISKS & CONTROLS
-    await supabase.from('risk_assessments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('risk_controls').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('audit_risks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Risks and controls deleted');
+    console.log('Phase 7: Cleaning risks...');
+    await safeDelete('risk_assessments', '7');
+    await safeDelete('risk_controls', '7');
+    await safeDelete('audit_risks', '7');
 
     // PHASE 8: UNIVERSE (ENTITIES)
-    await supabase.from('audit_universe').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Audit universe deleted');
+    console.log('Phase 8: Cleaning audit universe...');
+    await safeDelete('audit_universe', '8');
 
     // PHASE 9: REPORTS
-    await supabase.from('report_sections').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('audit_reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ Reports deleted');
+    console.log('Phase 9: Cleaning reports...');
+    await safeDelete('report_sections', '9');
+    await safeDelete('audit_reports', '9');
 
     // PHASE 10: USERS (DELETE LAST)
-    await supabase.from('user_profiles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    console.log('  ✓ User profiles deleted');
+    console.log('Phase 10: Cleaning users...');
+    await safeDelete('user_profiles', '10');
 
     console.log('✅ NUCLEAR WIPE COMPLETE: Database is now clean.');
   } catch (error) {
@@ -93,6 +114,23 @@ export async function nuclearWipe(): Promise<void> {
 // ==================== TURKEY BANK SEEDER ====================
 export async function seedTurkeyBank(): Promise<void> {
   console.log('🇹🇷 TURKEY BANK SEEDER: Starting data population...');
+
+  // Helper function to safely insert with error handling
+  async function safeInsert(tableName: string, data: any[], step: string): Promise<void> {
+    try {
+      const { error } = await supabase.from(tableName).insert(data);
+
+      if (error) {
+        console.error(`  ❌ ${step} failed:`, error.message);
+        throw error;
+      } else {
+        console.log(`  ✓ ${step} success: ${data.length} records inserted`);
+      }
+    } catch (err) {
+      console.error(`  ❌ ${step} error:`, err);
+      throw err;
+    }
+  }
 
   try {
     // STEP 1: CREATE USERS (With Profile Data)
@@ -145,8 +183,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     ];
 
-    await supabase.from('user_profiles').insert(users);
-    console.log('  ✓ 5 users created (Hakan, Ahmet, Mehmet, Zeynep, Ali)');
+    await safeInsert('user_profiles', users, 'Users');
 
     // STEP 2: CREATE AUDIT UNIVERSE (HQ + 2 Branches)
     console.log('2️⃣ Creating audit universe...');
@@ -201,8 +238,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     ];
 
-    await supabase.from('audit_universe').insert(universeEntities);
-    console.log('  ✓ 4 entities created (HQ + 2 Branches + Treasury)');
+    await safeInsert('audit_universe', universeEntities, 'Audit Universe');
 
     // STEP 3: CREATE RISK LIBRARY (Islamic Finance Specific)
     console.log('3️⃣ Creating risk library...');
@@ -260,8 +296,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     ];
 
-    await supabase.from('audit_risks').insert(risks);
-    console.log('  ✓ 3 risks created (Murabaha, Katılma, Kasa)');
+    await safeInsert('audit_risks', risks, 'Audit Risks');
 
     // STEP 4: CREATE AUDIT PROGRAM TEMPLATE
     console.log('4️⃣ Creating program template...');
@@ -280,8 +315,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     };
 
-    await supabase.from('program_templates').insert(programTemplate);
-    console.log('  ✓ Program template created (Şube Operasyonel Denetimi)');
+    await safeInsert('program_templates', [programTemplate], 'Program Template');
 
     // STEP 5: CREATE ACTIVE ENGAGEMENT
     console.log('5️⃣ Creating active engagement...');
@@ -305,8 +339,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     };
 
-    await supabase.from('audit_engagements').insert(engagement);
-    console.log('  ✓ Engagement created (Kadıköy Şube - Fieldwork Stage)');
+    await safeInsert('audit_engagements', [engagement], 'Audit Engagement');
 
     // STEP 6: CREATE WORKPAPERS (THE CONNECTION!)
     console.log('6️⃣ Creating workpapers...');
@@ -343,8 +376,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     ];
 
-    await supabase.from('workpapers').insert(workpapers);
-    console.log('  ✓ 2 workpapers created (Kasa=FAIL, KYC=IN_PROGRESS)');
+    await safeInsert('workpapers', workpapers, 'Workpapers');
 
     // STEP 7: CREATE FINDING (Linked to WP-01)
     console.log('7️⃣ Creating finding...');
@@ -369,8 +401,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     };
 
-    await supabase.from('audit_findings').insert(finding);
-    console.log('  ✓ Finding created (Kasa Limiti Aşımı - HIGH)');
+    await safeInsert('audit_findings', [finding], 'Audit Finding');
 
     // STEP 8: CREATE ACTION PLAN
     console.log('8️⃣ Creating action plan...');
@@ -389,8 +420,7 @@ export async function seedTurkeyBank(): Promise<void> {
       },
     };
 
-    await supabase.from('action_plans').insert(actionPlan);
-    console.log('  ✓ Action plan created (Assigned to Mehmet - Branch Manager)');
+    await safeInsert('action_plans', [actionPlan], 'Action Plan');
 
     console.log('✅ TURKEY BANK SEEDER COMPLETE!');
     console.log('📊 Summary:');

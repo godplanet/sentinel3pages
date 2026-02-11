@@ -75,15 +75,33 @@ export default function DiagnosticsPage() {
     try {
       // Intercept console logs
       const originalLog = console.log;
-      console.log = (message: string) => {
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      console.log = (...args: any[]) => {
+        const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
         addLog(message);
-        originalLog(message);
+        originalLog(...args);
+      };
+
+      console.error = (...args: any[]) => {
+        const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+        addLog(`❌ ${message}`);
+        originalError(...args);
+      };
+
+      console.warn = (...args: any[]) => {
+        const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+        addLog(`⚠️ ${message}`);
+        originalWarn(...args);
       };
 
       await forceReseed();
 
       // Restore console
       console.log = originalLog;
+      console.error = originalError;
+      console.warn = originalWarn;
 
       addLog('✅ Force reseed complete!');
       addLog('🔄 Reloading page in 2 seconds...');
@@ -91,7 +109,8 @@ export default function DiagnosticsPage() {
         window.location.reload();
       }, 2000);
     } catch (error) {
-      addLog(`❌ Force reseed failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      addLog(`❌ Force reseed failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Full error:', error);
     } finally {
       setIsReseeding(false);
     }
