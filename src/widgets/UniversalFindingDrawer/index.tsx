@@ -146,3 +146,7 @@ function TabButton({ active, onClick, icon, label, isGlass }: { active: boolean;
 import { AIPanel } from './components/AIPanel';
 // ...
 {activeTab === 'ai' && <AIPanel findingId={findingId} onApplyDraft={(draft) => console.log(draft)} />}
+
+import { ReviewPanel } from './components/ReviewPanel';
+// ...
+{activeTab === 'review' && <ReviewPanel findingId={findingId} isReviewer={true} />}
