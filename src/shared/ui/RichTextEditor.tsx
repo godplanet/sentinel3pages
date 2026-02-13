@@ -1,20 +1,22 @@
 import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
-import Highlight from '@tiptap/extension-highlight';
-import TextAlign from '@tiptap/extension-text-align';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import Image from '@tiptap/extension-image';
+// DÜZELTME: Vite (ESM) uyumluluğu için tüm TipTap eklentileri Named Export { } olarak çağırıldı
+import { StarterKit } from '@tiptap/starter-kit';
+import { Placeholder } from '@tiptap/extension-placeholder';
+import { Underline } from '@tiptap/extension-underline';
+import { Highlight } from '@tiptap/extension-highlight';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { Image as TiptapImage } from '@tiptap/extension-image';
+
 import { 
   Bold, Italic, Underline as UnderlineIcon, Highlighter, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered, Heading1, Heading2, 
   Table as TableIcon, Image as ImageIcon,
-  Plus, Trash2 // <-- HATA BURADAYDI: Yeni ikonlar yerine garantili "Plus" ve "Trash2" ikonlarını kullanıyoruz
+  Plus, Trash2 
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -33,7 +35,7 @@ export const RichTextEditor = ({ value, onChange, placeholder = 'Metin girin...'
       Underline,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Image,
+      TiptapImage,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -89,11 +91,8 @@ export const RichTextEditor = ({ value, onChange, placeholder = 'Metin girin...'
             <button type="button" onClick={addImage} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition-colors" title="Resim Ekle"><ImageIcon size={15} /></button>
             <div className="w-px h-4 bg-slate-200 mx-1" />
             <button type="button" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition-colors" title="Tablo Ekle"><TableIcon size={15} /></button>
-            
-            {/* DÜZELTME: Hata Veren İkonlar "Plus" ile değiştirildi */}
             <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1" title="Satır Ekle" disabled={!editor.can().addRowAfter()}><Plus size={15} /> <span className="text-[10px] font-bold">Satır</span></button>
             <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-1" title="Sütun Ekle" disabled={!editor.can().addColumnAfter()}><Plus size={15} /> <span className="text-[10px] font-bold">Sütun</span></button>
-            
             <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} className="p-1.5 rounded text-red-600 hover:bg-red-50 transition-colors" title="Tabloyu Sil" disabled={!editor.can().deleteTable()}><Trash2 size={15} /></button>
         </div>
 
