@@ -19,6 +19,9 @@ import { RootCauseDrawer } from './RootCauseDrawer';
 // FAZ 3: MERKEZİ PARAMETRE HAFIZASI
 import { useParameterStore } from '@/shared/stores/parameter-store';
 
+// YENİ: APPLE GLASS TEMA İÇİ YENİ EKLENDİ
+import { useUIStore } from '@/shared/stores/ui-store';
+
 interface NewFindingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -155,6 +158,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   // FAZ 3: DİNAMİK VERİLERİ STORE'DAN ÇEKİYORUZ
   const { giasCategories, rcaCategories, riskTypes } = useParameterStore();
 
+  // YENİ: APPLE GLASS İÇİN TEMA RENGİ
+  const { sidebarColor } = useUIStore();
+
   const [formData, setFormData] = useState({
     title: '', code: '', auditee_department: '', gias_category: '' as GIASCategory | '',
     
@@ -270,28 +276,37 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
         
         <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden">
           
-          {/* HEADER */}
-          <div className="bg-white border-b border-slate-200 z-10 shrink-0">
+          {/* HEADER - APPLE GLASS DOKUNUŞU VE SİDEBAR RENGİ */}
+          <div 
+              className="z-10 shrink-0 border-b border-white/10 rounded-t-2xl shadow-sm"
+              style={{ 
+                  backgroundColor: sidebarColor ? `${sidebarColor}F2` : 'rgba(15, 23, 42, 0.95)', // %95 Opaklık
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)'
+              }}
+          >
               <div className="flex items-center justify-between p-6 pb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">Yeni Bulgu Oluştur</h2>
-                  <p className="text-sm text-slate-500 mt-1">Sentinel V3.0 WIF ve Veto Motoru Devrede</p>
+                  <h2 className="text-2xl font-bold text-white drop-shadow-sm">Yeni Bulgu Oluştur</h2>
+                  <p className="text-sm text-white/70 mt-1 font-medium">Sentinel V3.0 WIF ve Veto Motoru Devrede</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
-                        <Clock className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-600">SLA:</span>
-                        <span className="text-sm font-black text-slate-900">{formData.sla_type === 'FIXED_DATE' ? liveRisk.due_date : `${liveRisk.target_sprints} Sprint`}</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-black/20 border border-white/10 rounded-lg shadow-inner">
+                        <Clock className="w-4 h-4 text-white/70" />
+                        <span className="text-xs font-bold text-white/70">SLA:</span>
+                        <span className="text-sm font-black text-white">{formData.sla_type === 'FIXED_DATE' ? liveRisk.due_date : `${liveRisk.target_sprints} Sprint`}</span>
                     </div>
                     {liveRisk.is_veto_triggered && (
-                        <div className="px-3 py-1.5 rounded-lg bg-red-100 text-red-800 text-xs font-bold border border-red-200 flex items-center gap-1.5 animate-pulse">
+                        <div className="px-3 py-1.5 rounded-lg bg-red-500/30 text-red-100 text-xs font-bold border border-red-500/50 flex items-center gap-1.5 animate-pulse shadow-sm backdrop-blur-sm">
                             <AlertTriangle className="w-4 h-4" /> VETO
                         </div>
                     )}
-                    <div style={{ backgroundColor: liveRisk.color_code }} className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-sm transition-colors duration-300">
+                    <div style={{ backgroundColor: liveRisk.color_code }} className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-md transition-colors duration-300 border border-white/20">
                         {SEVERITY_TR[liveRisk.severity]}: {liveRisk.calculated_score.toFixed(1)}
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors ml-2"><X className="w-5 h-5 text-slate-500" /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2 group">
+                        <X className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+                    </button>
                 </div>
               </div>
           </div>
@@ -302,15 +317,29 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
               
               {/* ONAYLANAN "TEMEL BİLGİLER" TASARIMI GERİ GELDİ */}
               <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2"><FileSearch className="w-5 h-5 text-blue-600"/> Temel Bilgiler</h3>
+                <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+                    <FileSearch className="w-5 h-5 text-blue-600"/> Temel Bilgiler
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-bold text-slate-700 mb-2">Bulgu Başlığı *</label>
-                    <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Örn: Kasa İşlemlerinde Çift Anahtar Kuralı İhlali" />
+                    <input 
+                        type="text" 
+                        value={formData.title} 
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" 
+                        placeholder="Örn: Kasa İşlemlerinde Çift Anahtar Kuralı İhlali" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Referans No *</label>
-                    <input type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white font-mono" placeholder="AUD-2025-SR-XX" />
+                    <input 
+                        type="text" 
+                        value={formData.code} 
+                        onChange={(e) => setFormData({ ...formData, code: e.target.value })} 
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white font-mono" 
+                        placeholder="AUD-2025-SR-XX" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Sistem Tarafından Atanan Seviye</label>
@@ -321,9 +350,13 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">GIAS Kategorisi</label>
-                    <select value={formData.gias_category} onChange={(e) => setFormData({ ...formData, gias_category: e.target.value as any })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select 
+                        value={formData.gias_category} 
+                        onChange={(e) => setFormData({ ...formData, gias_category: e.target.value as any })} 
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
                       <option value="">Seçiniz</option>
-                      {/* FAZ 3: DİNAMİK GIAS KATEGORİLERİ */}
+                      {/* FAZ 3: DİNAMİK GIAS KATEGORİLERİ (STORE'DAN GELİYOR) */}
                       {giasCategories.map(cat => (
                           <option key={cat.id} value={cat.label}>{cat.label}</option>
                       ))}
@@ -331,7 +364,13 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Sorumlu Birim</label>
-                    <input type="text" value={formData.auditee_department} onChange={(e) => setFormData({ ...formData, auditee_department: e.target.value })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Örn: Şube Müdürlüğü" />
+                    <input 
+                        type="text" 
+                        value={formData.auditee_department} 
+                        onChange={(e) => setFormData({ ...formData, auditee_department: e.target.value })} 
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" 
+                        placeholder="Örn: Şube Müdürlüğü" 
+                    />
                   </div>
                 </div>
               </div>
@@ -342,11 +381,14 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   const Icon = section.icon;
                   const isActive = activeSection === section.id;
                   return (
-                    <button key={section.id} onClick={() => setActiveSection(section.id)} 
-                            className={clsx(
-                                'flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-all', 
-                                isActive ? `bg-${section.color}-600 text-white shadow-md shadow-${section.color}-600/20` : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                            )}>
+                    <button 
+                        key={section.id} 
+                        onClick={() => setActiveSection(section.id)} 
+                        className={clsx(
+                            'flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-all', 
+                            isActive ? `bg-${section.color}-600 text-white shadow-md shadow-${section.color}-600/20` : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        )}
+                    >
                       <Icon className="w-4 h-4" />{section.label}
                     </button>
                   );
@@ -362,32 +404,66 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                     <div className="bg-white rounded-xl p-5 border border-indigo-100 shadow-sm flex flex-col min-h-[500px] ring-1 ring-inset ring-indigo-50">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center"><BookOpen className="w-5 h-5 text-indigo-600" /></div>
-                            <div><h3 className="text-lg font-bold text-slate-900">Kriter (Criteria)</h3></div>
+                            <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+                                <BookOpen className="w-5 h-5 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Kriter (Criteria)</h3>
+                            </div>
                         </div>
-                        <button type="button" onClick={() => setIsRegulationModalOpen(true)} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors text-xs font-bold flex items-center gap-1.5"><BookOpen size={14} /> Kütüphaneden Seç</button>
+                        <button 
+                            type="button" 
+                            onClick={() => setIsRegulationModalOpen(true)} 
+                            className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors text-xs font-bold flex items-center gap-1.5"
+                        >
+                            <BookOpen size={14} /> Kütüphaneden Seç
+                        </button>
                       </div>
+                      
                       {selectedRegulation && (
                           <div className="mb-4 p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg flex items-start gap-3">
                               <Scale className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
-                              <div><p className="text-xs font-bold text-indigo-900">{selectedRegulation.category} Mevzuatı</p><p className="text-xs text-indigo-700 mt-0.5 line-clamp-2">{selectedRegulation.title}</p></div>
+                              <div>
+                                  <p className="text-xs font-bold text-indigo-900">{selectedRegulation.category} Mevzuatı</p>
+                                  <p className="text-xs text-indigo-700 mt-0.5 line-clamp-2">{selectedRegulation.title}</p>
+                              </div>
                           </div>
                       )}
+                      
                       <div className="flex-1">
-                          <RichTextEditor value={formData.criteria_html} onChange={(val) => setFormData({...formData, criteria_html: val})} placeholder="İhlal edilen kanun, mevzuat veya standardı yazın..." minHeight="min-h-full" />
+                          <RichTextEditor 
+                              value={formData.criteria_html} 
+                              onChange={(val) => setFormData({...formData, criteria_html: val})} 
+                              placeholder="İhlal edilen kanun, mevzuat veya standardı yazın..." 
+                              minHeight="min-h-full" 
+                          />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-xl p-5 border border-blue-100 shadow-sm flex flex-col min-h-[500px] ring-1 ring-inset ring-blue-50">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center"><FileSearch className="w-5 h-5 text-blue-600" /></div>
-                            <div><h3 className="text-lg font-bold text-slate-900">Tespit (Condition)</h3></div>
+                            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                <FileSearch className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Tespit (Condition)</h3>
+                            </div>
                         </div>
-                        <button type="button" className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold flex items-center gap-1.5"><Sparkles size={14} /> AI Destek</button>
+                        <button 
+                            type="button" 
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold flex items-center gap-1.5"
+                        >
+                            <Sparkles size={14} /> AI Destek
+                        </button>
                       </div>
                       <div className="flex-1">
-                          <RichTextEditor value={formData.detection_html} onChange={(val) => setFormData({...formData, detection_html: val})} placeholder="Saha çalışmasında tespit edilen bulguyu detaylı olarak açıklayın..." minHeight="min-h-full" />
+                          <RichTextEditor 
+                              value={formData.detection_html} 
+                              onChange={(val) => setFormData({...formData, detection_html: val})} 
+                              placeholder="Saha çalışmasında tespit edilen bulguyu detaylı olarak açıklayın..." 
+                              minHeight="min-h-full" 
+                          />
                       </div>
                     </div>
                   </div>
@@ -401,11 +477,16 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                           {/* YENİ: AÇILIR KAPANIR ÇOKLU RİSK SEÇİMİ */}
                           <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
                                <div className="flex items-center gap-3 mb-5">
-                                  <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center"><AlertCircle className="w-5 h-5 text-violet-600" /></div>
-                                  <div><h3 className="text-lg font-bold text-slate-900">Risk Kategorizasyonu</h3><p className="text-xs text-slate-500">Bu bulgu hangi risk türlerini barındırıyor?</p></div>
+                                  <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
+                                      <AlertCircle className="w-5 h-5 text-violet-600" />
+                                  </div>
+                                  <div>
+                                      <h3 className="text-lg font-bold text-slate-900">Risk Kategorizasyonu</h3>
+                                      <p className="text-xs text-slate-500">Bu bulgu hangi risk türlerini barındırıyor?</p>
+                                  </div>
                                </div>
                                
-                               {/* FAZ 3: DİNAMİK RİSK TÜRLERİ */}
+                               {/* FAZ 3: DİNAMİK RİSK TÜRLERİ (STORE'DAN GELİYOR) */}
                                <MultiSelectDropdown 
                                   options={riskTypes} 
                                   selected={formData.selected_risk_categories} 
@@ -426,11 +507,21 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                           {/* ETKİ AÇIKLAMASI */}
                           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col min-h-[400px]">
                               <div className="flex items-center gap-3 mb-4">
-                                  <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-orange-600" /></div>
-                                  <div><h3 className="text-lg font-bold text-slate-900">Risk ve Etki Açıklaması (Effect)</h3><p className="text-xs text-slate-500">Seçilen risklerin kurum üzerindeki etkileri</p></div>
+                                  <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                                      <TrendingUp className="w-5 h-5 text-orange-600" />
+                                  </div>
+                                  <div>
+                                      <h3 className="text-lg font-bold text-slate-900">Risk ve Etki Açıklaması (Effect)</h3>
+                                      <p className="text-xs text-slate-500">Seçilen risklerin kurum üzerindeki etkileri</p>
+                                  </div>
                               </div>
                               <div className="flex-1">
-                                <RichTextEditor value={formData.impact_html} onChange={(val) => setFormData({...formData, impact_html: val})} placeholder="Bu bulgunun kuruma maliyeti, operasyonel zorlukları veya yasal sonuçları neler olabilir?" minHeight="min-h-[250px]" />
+                                <RichTextEditor 
+                                    value={formData.impact_html} 
+                                    onChange={(val) => setFormData({...formData, impact_html: val})} 
+                                    placeholder="Bu bulgunun kuruma maliyeti, operasyonel zorlukları veya yasal sonuçları neler olabilir?" 
+                                    minHeight="min-h-[250px]" 
+                                />
                               </div>
                           </div>
                       </div>
@@ -439,32 +530,50 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                       <div className="flex flex-col gap-6">
                           <div className="bg-white rounded-xl p-6 border border-orange-100 shadow-sm ring-1 ring-inset ring-orange-50">
                               <h3 className="text-base font-black text-slate-800 mb-5 pb-3 border-b border-slate-100">Etki Motoru (WIF)</h3>
+                              
                               <RiskSlider label="Finansal Etki" value={formData.impact_financial} onChange={v => setFormData({...formData, impact_financial: v})} icon={Banknote} />
                               <RiskSlider label="Yasal Etki" value={formData.impact_legal} onChange={v => setFormData({...formData, impact_legal: v})} icon={Scale} />
                               <RiskSlider label="İtibar Etkisi" value={formData.impact_reputation} onChange={v => setFormData({...formData, impact_reputation: v})} icon={Building} />
                               <RiskSlider label="Operasyonel Etki" value={formData.impact_operational} onChange={v => setFormData({...formData, impact_operational: v})} icon={HeartPulse} />
+                              
                               <div className="my-5 border-t border-slate-100"></div>
+                              
                               <RiskSlider label="Gerçekleşme Olasılığı" value={formData.likelihood_score} onChange={v => setFormData({...formData, likelihood_score: v})} icon={ChevronsRight} />
                               <RiskSlider label="Kontrol Zafiyeti" value={formData.control_weakness} onChange={v => setFormData({...formData, control_weakness: v})} icon={ShieldCheck} />
                               
                               <div className="mt-6 pt-5 border-t border-slate-100">
                                   <label className="block text-sm font-bold text-slate-700 mb-2">Ölçülebilir Finansal Etki (TL)</label>
-                                  {/* YENİ: MATEMATİKSEL BİÇİMLENDİRME (Noktalı Gösterim) */}
-                                  <input type="text" value={formatCurrency(formData.financial_impact)} onChange={handleFinancialImpactChange} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white text-base font-bold text-slate-800" placeholder="0" />
+                                  <input 
+                                      type="text" 
+                                      value={formatCurrency(formData.financial_impact)} 
+                                      onChange={handleFinancialImpactChange} 
+                                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white text-base font-bold text-slate-800" 
+                                      placeholder="0" 
+                                  />
                               </div>
                           </div>
 
                           <div className="space-y-4">
                               <div className="bg-emerald-50/50 rounded-xl border-2 border-emerald-100 overflow-hidden shadow-sm">
                                   <div className="flex items-center justify-between p-4 bg-emerald-100/50">
-                                      <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-emerald-700"/><p className="font-bold text-sm text-emerald-900">Şer'i Uyum İhlali</p></div>
-                                      <button type="button" onClick={() => setFormData({...formData, isShariahRisk: !formData.isShariahRisk})}>{formData.isShariahRisk ? <ToggleRight className="w-10 h-10 text-emerald-600" /> : <ToggleLeft className="w-10 h-10 text-emerald-200" />}</button>
+                                      <div className="flex items-center gap-2">
+                                          <Scale className="w-5 h-5 text-emerald-700"/>
+                                          <p className="font-bold text-sm text-emerald-900">Şer'i Uyum İhlali</p>
+                                      </div>
+                                      <button type="button" onClick={() => setFormData({...formData, isShariahRisk: !formData.isShariahRisk})}>
+                                          {formData.isShariahRisk ? <ToggleRight className="w-10 h-10 text-emerald-600" /> : <ToggleLeft className="w-10 h-10 text-emerald-200" />}
+                                      </button>
                                   </div>
                                   {formData.isShariahRisk && (
                                       <div className="p-5 border-t border-emerald-100 bg-white">
                                           <RiskSlider label="Şer'i İhlal Etkisi" value={formData.shariah_impact} onChange={v => setFormData({...formData, shariah_impact: v})} icon={Scale} />
-                                          <button type="button" onClick={() => setFormData({...formData, requires_income_purification: !formData.requires_income_purification})} className="mt-4 flex items-center gap-2 text-sm font-bold text-emerald-800 p-3 border border-emerald-200 rounded-lg w-full bg-emerald-50 hover:bg-emerald-100 transition-colors">
-                                              {formData.requires_income_purification ? <CheckSquare className="w-5 h-5 text-emerald-600"/> : <Square className="w-5 h-5 text-emerald-400"/>} Gelir Arındırması Gerektirir
+                                          <button 
+                                              type="button" 
+                                              onClick={() => setFormData({...formData, requires_income_purification: !formData.requires_income_purification})} 
+                                              className="mt-4 flex items-center gap-2 text-sm font-bold text-emerald-800 p-3 border border-emerald-200 rounded-lg w-full bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                                          >
+                                              {formData.requires_income_purification ? <CheckSquare className="w-5 h-5 text-emerald-600"/> : <Square className="w-5 h-5 text-emerald-400"/>} 
+                                              Gelir Arındırması Gerektirir
                                           </button>
                                       </div>
                                   )}
@@ -473,19 +582,48 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                               <div className="bg-slate-50/50 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                                   <div className="flex items-center justify-between p-4 bg-slate-100/50">
                                       <div><p className="font-bold text-sm text-slate-800">IT / Siber Risk Veto Kapısı</p></div>
-                                      <button type="button" onClick={() => setFormData({...formData, isItRisk: !formData.isItRisk})}>{formData.isItRisk ? <ToggleRight className="w-10 h-10 text-blue-600" /> : <ToggleLeft className="w-10 h-10 text-slate-300" />}</button>
+                                      <button type="button" onClick={() => setFormData({...formData, isItRisk: !formData.isItRisk})}>
+                                          {formData.isItRisk ? <ToggleRight className="w-10 h-10 text-blue-600" /> : <ToggleLeft className="w-10 h-10 text-slate-300" />}
+                                      </button>
                                   </div>
                                   {formData.isItRisk && (
                                       <div className="p-5 grid grid-cols-2 gap-4 border-t border-slate-200 bg-white">
-                                          <div><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">CVSS Skoru</label><input type="number" step="0.1" value={formData.cvss_score} onChange={e=>setFormData({...formData, cvss_score: parseFloat(e.target.value)})} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-bold"/></div>
-                                          <div><label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Varlık Kritiği</label><select value={formData.asset_criticality} onChange={e=>setFormData({...formData, asset_criticality: e.target.value})} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-bold"><option value="Minor">Düşük</option><option value="Major">Orta</option><option value="Critical">Kritik</option></select></div>
+                                          <div>
+                                              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">CVSS Skoru</label>
+                                              <input 
+                                                  type="number" 
+                                                  step="0.1" 
+                                                  value={formData.cvss_score} 
+                                                  onChange={e=>setFormData({...formData, cvss_score: parseFloat(e.target.value)})} 
+                                                  className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-bold"
+                                              />
+                                          </div>
+                                          <div>
+                                              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Varlık Kritiği</label>
+                                              <select 
+                                                  value={formData.asset_criticality} 
+                                                  onChange={e=>setFormData({...formData, asset_criticality: e.target.value})} 
+                                                  className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-bold"
+                                              >
+                                                  <option value="Minor">Düşük</option>
+                                                  <option value="Major">Orta</option>
+                                                  <option value="Critical">Kritik</option>
+                                              </select>
+                                          </div>
                                       </div>
                                   )}
                               </div>
                               
                               <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
                                   <div><p className="font-bold text-sm text-slate-800">Aksiyon Tipi (SLA)</p></div>
-                                  <select value={formData.sla_type} onChange={e => setFormData({...formData, sla_type: e.target.value})} className="px-4 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm font-bold"><option value="FIXED_DATE">Takvim Günü</option><option value="AGILE_SPRINT">Agile Sprint</option></select>
+                                  <select 
+                                      value={formData.sla_type} 
+                                      onChange={e => setFormData({...formData, sla_type: e.target.value})} 
+                                      className="px-4 py-2 border border-slate-300 rounded-lg bg-slate-50 text-sm font-bold"
+                                  >
+                                      <option value="FIXED_DATE">Takvim Günü</option>
+                                      <option value="AGILE_SPRINT">Agile Sprint</option>
+                                  </select>
                               </div>
                           </div>
                       </div>
@@ -497,12 +635,18 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 h-[500px] flex flex-col">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-slate-100 gap-4 shrink-0">
                       <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                          <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                          </div>
                           <div><h3 className="text-lg font-bold text-slate-900">Kök Neden Özeti (Cause)</h3></div>
                       </div>
                       
                       {/* ÇEKMECEYİ AÇAN BUTON */}
-                      <button type="button" onClick={() => setIsRcaDrawerOpen(true)} className="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 shadow-sm ring-1 ring-inset ring-red-100">
+                      <button 
+                          type="button" 
+                          onClick={() => setIsRcaDrawerOpen(true)} 
+                          className="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 shadow-sm ring-1 ring-inset ring-red-100"
+                      >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                           Gelişmiş RCA Aracı
                       </button>
@@ -510,9 +654,13 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                     
                     <div className="mb-6 shrink-0">
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kök Neden Kategorisi</label>
-                        <select value={formData.rca_category} onChange={(e) => setFormData({ ...formData, rca_category: e.target.value })} className="w-full md:w-1/2 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
+                        <select 
+                            value={formData.rca_category} 
+                            onChange={(e) => setFormData({ ...formData, rca_category: e.target.value })} 
+                            className="w-full md:w-1/2 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-white shadow-sm"
+                        >
                           <option value="">Kategori Seçiniz...</option>
-                          {/* FAZ 3: DİNAMİK RCA KATEGORİLERİ */}
+                          {/* FAZ 3: DİNAMİK RCA KATEGORİLERİ (STORE'DAN GELİYOR) */}
                           {rcaCategories.map(cat => (
                               <option key={cat.id} value={cat.label}>{cat.label}</option>
                           ))}
@@ -521,7 +669,12 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
                     <div className="flex-1 flex flex-col min-h-0">
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kök Neden Açıklaması</label>
-                        <RichTextEditor value={formData.root_cause_html} onChange={(val) => setFormData({...formData, root_cause_html: val})} placeholder="Kök neden analizinizin sonucunu detaylı olarak açıklayın..." minHeight="min-h-full" />
+                        <RichTextEditor 
+                            value={formData.root_cause_html} 
+                            onChange={(val) => setFormData({...formData, root_cause_html: val})} 
+                            placeholder="Kök neden analizinizin sonucunu detaylı olarak açıklayın..." 
+                            minHeight="min-h-full" 
+                        />
                     </div>
                   </div>
                 )}
@@ -531,13 +684,25 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-2 h-[500px] flex flex-col">
                     <div className="flex items-center justify-between mb-5 shrink-0 pb-4 border-b border-slate-100">
                       <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center"><Lightbulb className="w-5 h-5 text-emerald-600" /></div>
+                          <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+                              <Lightbulb className="w-5 h-5 text-emerald-600" />
+                          </div>
                           <div><h3 className="text-lg font-bold text-slate-900">Öneri (Recommendation)</h3></div>
                       </div>
-                      <button type="button" className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm"><Sparkles className="w-4 h-4" /> AI Taslak Oluştur</button>
+                      <button 
+                          type="button" 
+                          className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm"
+                      >
+                          <Sparkles className="w-4 h-4" /> AI Taslak Oluştur
+                      </button>
                     </div>
                     <div className="flex-1 flex flex-col min-h-0">
-                      <RichTextEditor value={formData.recommendation_html} onChange={(val) => setFormData({...formData, recommendation_html: val})} placeholder="Bulgunun düzeltilmesi için önerilerinizi zengin metin olarak yazın..." minHeight="min-h-full" />
+                      <RichTextEditor 
+                          value={formData.recommendation_html} 
+                          onChange={(val) => setFormData({...formData, recommendation_html: val})} 
+                          placeholder="Bulgunun düzeltilmesi için önerilerinizi zengin metin olarak yazın..." 
+                          minHeight="min-h-full" 
+                      />
                     </div>
                   </div>
                 )}
@@ -547,10 +712,26 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
           {/* FOOTER */}
           <div className="flex items-center justify-between p-5 border-t border-slate-200 bg-white rounded-b-xl shrink-0">
-            <button onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-bold border border-transparent hover:border-slate-200">İptal Et</button>
+            <button 
+                onClick={onClose} 
+                disabled={isSubmitting} 
+                className="px-6 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-bold border border-transparent hover:border-slate-200"
+            >
+                İptal Et
+            </button>
             <div className="flex gap-3">
-              <button onClick={() => handleSave('DRAFT')} className="px-6 py-2.5 bg-white text-slate-700 border border-slate-300 shadow-sm rounded-lg hover:bg-slate-50 transition-colors font-bold" disabled={isSubmitting}>Taslak Olarak Kaydet</button>
-              <button onClick={() => handleSave('PUBLISHED')} disabled={isSubmitting} className="px-8 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-black flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-70">
+              <button 
+                  onClick={() => handleSave('DRAFT')} 
+                  className="px-6 py-2.5 bg-white text-slate-700 border border-slate-300 shadow-sm rounded-lg hover:bg-slate-50 transition-colors font-bold" 
+                  disabled={isSubmitting}
+              >
+                  Taslak Olarak Kaydet
+              </button>
+              <button 
+                  onClick={() => handleSave('PUBLISHED')} 
+                  disabled={isSubmitting} 
+                  className="px-8 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-black flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-70"
+              >
                 {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Kaydediliyor...</> : <><Save className="w-5 h-5" /> Bulguyu Sisteme İşle</>}
               </button>
             </div>
@@ -558,7 +739,15 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
         </div>
       </div>
 
-      <RegulationSelectorModal isOpen={isRegulationModalOpen} onClose={() => setIsRegulationModalOpen(false)} onSelect={(reg) => { const regHtml = `<p><strong>Kategori:</strong> ${reg.category}</p><p><strong>Mevzuat:</strong> ${reg.title}</p><p><strong>Detay:</strong> ${reg.description}</p>`; setFormData(prev => ({ ...prev, code: reg.code, criteria_html: regHtml })); setSelectedRegulation(reg); }} />
+      <RegulationSelectorModal 
+          isOpen={isRegulationModalOpen} 
+          onClose={() => setIsRegulationModalOpen(false)} 
+          onSelect={(reg) => { 
+              const regHtml = `<p><strong>Kategori:</strong> ${reg.category}</p><p><strong>Mevzuat:</strong> ${reg.title}</p><p><strong>Detay:</strong> ${reg.description}</p>`; 
+              setFormData(prev => ({ ...prev, code: reg.code, criteria_html: regHtml })); 
+              setSelectedRegulation(reg); 
+          }} 
+      />
       
       {/* DRAWER BİLEŞENİ BURADA ÇAĞRILIYOR */}
       <RootCauseDrawer 
