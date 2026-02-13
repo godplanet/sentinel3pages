@@ -16,6 +16,9 @@ import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 // YENİ EKLENEN ÇEKMECE BİLEŞENİ
 import { RootCauseDrawer } from './RootCauseDrawer';
 
+// FAZ 3: MERKEZİ PARAMETRE HAFIZASI
+import { useParameterStore } from '@/shared/stores/parameter-store';
+
 interface NewFindingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,19 +29,6 @@ type FormSection = 'tespit' | 'risk' | 'koken' | 'oneri';
 
 // --- UI ÇEVİRİ SÖZLÜĞÜ ---
 const SEVERITY_TR: Record<string, string> = { CRITICAL: 'Kritik', HIGH: 'Yüksek', MEDIUM: 'Orta', LOW: 'Düşük', OBSERVATION: 'Gözlem' };
-
-// --- BASEL RİSK KATEGORİLERİ (Parametrik Yapıya Hazırlık) ---
-const RISK_CATEGORIES = [
-  { id: 'operational', label: 'Operasyonel Risk' },
-  { id: 'legal', label: 'Yasal / Uyum Riski' },
-  { id: 'reputation', label: 'İtibar Riski' },
-  { id: 'financial', label: 'Finansal Raporlama Riski' },
-  { id: 'credit', label: 'Kredi Riski' },
-  { id: 'market', label: 'Piyasa Riski' },
-  { id: 'liquidity', label: 'Likidite Riski' },
-  { id: 'strategic', label: 'Stratejik Risk' },
-  { id: 'cyber', label: 'Siber / Bilgi Güvenliği Riski' },
-];
 
 // --- ÖZEL ÇOKLU SEÇİM (MULTI-SELECT) BİLEŞENİ ---
 const MultiSelectDropdown = ({ options, selected, onChange, placeholder }: { options: any[], selected: string[], onChange: (val: string[]) => void, placeholder: string }) => {
@@ -159,8 +149,11 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   const [isRegulationModalOpen, setIsRegulationModalOpen] = useState(false);
   const [selectedRegulation, setSelectedRegulation] = useState<any>(null);
 
-  // YENİ: DRAWER STATE
+  // DRAWER STATE
   const [isRcaDrawerOpen, setIsRcaDrawerOpen] = useState(false);
+
+  // FAZ 3: DİNAMİK VERİLERİ STORE'DAN ÇEKİYORUZ
+  const { giasCategories, rcaCategories, riskTypes } = useParameterStore();
 
   const [formData, setFormData] = useState({
     title: '', code: '', auditee_department: '', gias_category: '' as GIASCategory | '',
@@ -330,10 +323,10 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                     <label className="block text-sm font-bold text-slate-700 mb-2">GIAS Kategorisi</label>
                     <select value={formData.gias_category} onChange={(e) => setFormData({ ...formData, gias_category: e.target.value as any })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
                       <option value="">Seçiniz</option>
-                      <option value="Operasyonel Risk">Operasyonel Risk</option>
-                      <option value="Uyum Riski">Uyum Riski</option>
-                      <option value="Finansal Risk">Finansal Risk</option>
-                      <option value="Teknolojik Risk">Teknolojik Risk</option>
+                      {/* FAZ 3: DİNAMİK GIAS KATEGORİLERİ */}
+                      {giasCategories.map(cat => (
+                          <option key={cat.id} value={cat.label}>{cat.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -411,16 +404,19 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                                   <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center"><AlertCircle className="w-5 h-5 text-violet-600" /></div>
                                   <div><h3 className="text-lg font-bold text-slate-900">Risk Kategorizasyonu</h3><p className="text-xs text-slate-500">Bu bulgu hangi risk türlerini barındırıyor?</p></div>
                                </div>
+                               
+                               {/* FAZ 3: DİNAMİK RİSK TÜRLERİ */}
                                <MultiSelectDropdown 
-                                  options={RISK_CATEGORIES} 
+                                  options={riskTypes} 
                                   selected={formData.selected_risk_categories} 
                                   onChange={(val) => setFormData({...formData, selected_risk_categories: val})} 
                                   placeholder="Listeden Risk Türlerini Seçiniz..." 
                                />
+                               
                                {formData.selected_risk_categories.length > 0 && (
                                    <div className="mt-4 flex flex-wrap gap-2">
                                        {formData.selected_risk_categories.map(id => {
-                                           const category = RISK_CATEGORIES.find(c => c.id === id);
+                                           const category = riskTypes.find(c => c.id === id);
                                            return <span key={id} className="px-2.5 py-1 bg-violet-50 text-violet-700 text-xs font-bold rounded-md border border-violet-100">{category?.label}</span>
                                        })}
                                    </div>
@@ -516,10 +512,10 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                         <label className="block text-sm font-bold text-slate-700 mb-2">Kök Neden Kategorisi</label>
                         <select value={formData.rca_category} onChange={(e) => setFormData({ ...formData, rca_category: e.target.value })} className="w-full md:w-1/2 px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-white shadow-sm">
                           <option value="">Kategori Seçiniz...</option>
-                          <option value="insan">İnsan Hatası / Farkındalık Eksikliği</option>
-                          <option value="sistem">Sistem / Altyapı / Yazılım Hatası</option>
-                          <option value="surec">Süreç Tasarımı / Prosedür Eksikliği</option>
-                          <option value="dis">Dış Etken / Üçüncü Taraf</option>
+                          {/* FAZ 3: DİNAMİK RCA KATEGORİLERİ */}
+                          {rcaCategories.map(cat => (
+                              <option key={cat.id} value={cat.label}>{cat.label}</option>
+                          ))}
                         </select>
                     </div>
 
