@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom'; // YENİ: React Portal (Header'ı delip geçmek için)
 import { 
   X, Check, GitBranch, Target, Cpu, Users, Settings, Activity, 
-  FileText, Share, ListOrdered, ShieldAlert, Info, AlertTriangle, Sparkles 
+  FileText, Share, ListOrdered, ShieldAlert, Info, AlertTriangle 
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -16,10 +17,8 @@ type RcaMethod = '5whys' | 'ishikawa' | 'bowtie';
 export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerProps) => {
   const [activeMethod, setActiveMethod] = useState<RcaMethod>('5whys');
 
-  // --- 1. METOT: 5-Whys State ---
   const [whys, setWhys] = useState<string[]>(['', '', '', '', '']);
   
-  // 5-Whys için kademeli ve yönlendirici ipucu metinleri
   const whyPlaceholders = [
       "Sorun tam olarak neydi ve neden meydana geldi?",
       "Bir önceki adımda belirttiğiniz durum neden oluştu?",
@@ -28,12 +27,10 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
       "Sistemsel, kültürel veya yönetimsel asıl (kök) neden nedir?"
   ];
 
-  // --- 2. METOT: Ishikawa (Balık Kılçığı) State ---
   const [ishikawa, setIshikawa] = useState({
     man: '', machine: '', material: '', method: '', measurement: '', environment: ''
   });
 
-  // --- 3. METOT: Papyon (Bow-Tie) State ---
   const [bowtie, setBowtie] = useState({
     preventive: '', event: '', corrective: '', consequences: ''
   });
@@ -44,7 +41,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
       setWhys(newWhys);
   };
 
-  // CANLI ÖNİZLEME (LIVE PREVIEW) VE AKTARIM İÇİN HTML ÜRETİCİ
   const generateHtmlPreview = () => {
     if (activeMethod === '5whys') {
       const filledWhys = whys.filter(w => w.trim() !== '');
@@ -93,7 +89,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
 
   const handleApply = () => {
       const html = generateHtmlPreview();
-      // Eğer sadece boş mesaj dönüyorsa işlem yapma
       if (html.includes('Analiz verisi girilmedi')) {
           onApply('');
       } else {
@@ -101,21 +96,21 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
       }
   };
 
-  return (
+  if (!isOpen) return null;
+
+  // YENİ: createPortal ile Drawer'ı tüm HTML ağacının (body) en tepesine fırlatıyoruz!
+  return createPortal(
     <>
-      {/* ARKA PLAN MASKESİ - Z-index çok yükseğe çekildi */}
       <div 
         className={clsx("fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99998] transition-opacity duration-300", isOpen ? "opacity-100" : "opacity-0 pointer-events-none")} 
         onClick={onClose} 
       />
       
-      {/* ÇEKMECE (DRAWER) PANELİ - Genişletildi (max-w-2xl) ve Z-index artırıldı */}
       <div className={clsx(
         "fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[99999] flex flex-col transform transition-transform duration-300 ease-in-out",
         isOpen ? "translate-x-0" : "translate-x-full"
       )}>
         
-        {/* HEADER */}
         <div className="bg-slate-900 p-6 shrink-0">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-black text-white flex items-center gap-2"><Target className="text-blue-400 w-6 h-6" /> Kök Neden Laboratuvarı</h2>
@@ -129,7 +124,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
           <p className="text-sm text-slate-400">Karmaşık bulgular için profesyonel analiz ve metodoloji aracı.</p>
         </div>
 
-        {/* METOT SEKMELERİ (TABS) */}
         <div className="flex border-b border-slate-200 shrink-0 bg-slate-50 overflow-x-auto no-scrollbar">
           <button onClick={() => setActiveMethod('5whys')} className={clsx("flex-1 py-3.5 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 border-b-2 transition-colors whitespace-nowrap", activeMethod === '5whys' ? "border-blue-600 text-blue-700 bg-white" : "border-transparent text-slate-500 hover:text-slate-800")}>
             <ListOrdered className="w-4 h-4" /> 5-Whys
@@ -142,14 +136,9 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
           </button>
         </div>
 
-        {/* İÇERİK ALANI */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-          
           <div className="grid grid-cols-1 gap-6">
-              
-              {/* ANALİZ GİRİŞ ALANI */}
               <div className="flex-1">
-                  {/* 1. METOT: 5-WHYS */}
                   {activeMethod === '5whys' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-blue-50/80 p-4 rounded-xl border border-blue-200 mb-6 flex gap-3">
@@ -175,7 +164,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                     </div>
                   )}
 
-                  {/* 2. METOT: ISHIKAWA */}
                   {activeMethod === 'ishikawa' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-indigo-50/80 p-4 rounded-xl border border-indigo-200 mb-6 flex gap-3">
@@ -210,7 +198,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                     </div>
                   )}
 
-                  {/* 3. METOT: BOW-TIE (PAPYON) */}
                   {activeMethod === 'bowtie' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-rose-50/80 p-4 rounded-xl border border-rose-200 mb-6 flex gap-3">
@@ -250,7 +237,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                   )}
               </div>
               
-              {/* CANLI ÖNİZLEME (LIVE PREVIEW) */}
               <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 mt-4">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ana Forma Eklenecek Çıktı (Önizleme)</h4>
                   <div 
@@ -260,17 +246,15 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
               </div>
 
           </div>
-
         </div>
 
-        {/* FOOTER - KAYDET BUTONU */}
         <div className="p-5 border-t border-slate-200 bg-white shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
           <button onClick={handleApply} className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-black flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95">
             <Check className="w-5 h-5" /> Analizi Ana Forma Aktar
           </button>
         </div>
-
       </div>
-    </>
+    </>,
+    document.body // PORTAL HEDEFİ: Ana HTML Gövdesi!
   );
 };
