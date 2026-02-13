@@ -142,3 +142,7 @@ function TabButton({ active, onClick, icon, label, isGlass }: { active: boolean;
     </button>
   );
 }
+
+import { AIPanel } from './components/AIPanel';
+// ...
+{activeTab === 'ai' && <AIPanel findingId={findingId} onApplyDraft={(draft) => console.log(draft)} />}
