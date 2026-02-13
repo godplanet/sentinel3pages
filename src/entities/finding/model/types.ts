@@ -29,25 +29,56 @@ export interface Finding {
   state: FindingState;
   status?: string;
 
-  // Risk Scoring
-  impact_score?: number;
-  likelihood_score?: number;
+  // ------------------------------------------------------------------
+  // YENİ: SENTINEL V3.0 WIF & RISK ENGINE ALANLARI
+  // ------------------------------------------------------------------
+  impact_score?: number;     // Legacy
+  likelihood_score?: number; // 1-5 arası olasılık
+  impact_financial?: number; // 1-5 arası skor
+  impact_legal?: number;     // 1-5 arası skor
+  impact_reputation?: number; // 1-5 arası skor
+  impact_operational?: number; // 1-5 arası skor
+  control_weakness?: number;   // 1-5 arası kontrol zafiyeti
+  
+  // Risk Kategorizasyonu (Çoklu Seçim)
+  selected_risk_categories?: string[]; 
+  
+  // Şer'i Uyum & IT Risk (Özel Veto Alanları)
+  is_shariah_risk?: boolean;
+  shariah_impact?: number;
+  requires_income_purification?: boolean;
+  is_it_risk?: boolean;
+  cvss_score?: number;
+  asset_criticality?: 'Minor' | 'Major' | 'Critical';
+  
+  // BDDK, Süreç veya Kurum İçi Özel Kod (SİZİN İSTEĞİNİZ)
+  regulatory_code?: string;
 
   // GIAS 2024
   gias_category?: GIASCategory;
 
   // Finansal
-  financial_impact?: number;
+  financial_impact?: number; // Ölçülebilir finansal etki (TL/USD)
 
-  // İçerik (HTML format)
-  detection_html?: string;
-  impact_html?: string;
-  recommendation_html?: string;
-  description?: string;
+  // ------------------------------------------------------------------
+  // İÇERİK: 5C STANDART METİN ALANLARI (ZENGİN HTML)
+  // ------------------------------------------------------------------
+  detection_html?: string;       // 1. Tespit (Condition)
+  criteria_text?: string;        // 2. Kriter / Mevzuat
+  cause_text?: string;           // 3. Kök Neden Açıklaması
+  impact_html?: string;          // 4. Etki (Effect)
+  recommendation_html?: string;  // 5. Öneri (Recommendation)
+  description?: string;          // Geriye dönük uyumluluk için (Legacy)
 
   // RCA
-  root_cause_analysis?: any;
+  root_cause_analysis?: any;     // Zen Editor / Drawer RCA verisi
   criteria_json?: any[];
+  rca_category?: string;         // İnsan, Sistem, Süreç vb.
+
+  // ------------------------------------------------------------------
+  // MÜFETTİŞİN SON SÖZÜ
+  // ------------------------------------------------------------------
+  auditor_conclusion?: string;   // Kapanışta denetçinin nihai görüşü
 
   // Denetlenen bilgileri
   auditee_id?: string;
@@ -66,6 +97,7 @@ export interface Finding {
   agreement_date?: string;
   finalized_at?: string;
   finding_year?: number;
+  closed_at?: string; // Tamamen kapatılma tarihi
   created_at: string;
   updated_at: string;
 }
@@ -78,6 +110,14 @@ export interface FindingSecret {
   auditor_notes_raw?: Record<string, any>;
   root_cause_analysis_internal?: string;
   detection_methodology?: string;
+
+  // Kök Neden Çekmecesinin Gizli Verileri
+  rca_details?: {
+    method: 'five_whys' | 'fishbone' | 'bowtie';
+    five_whys?: string[];
+    fishbone?: Record<string, string>;
+    bowtie?: Record<string, string>;
+  };
 
   // Legacy 5-Whys Support
   why_1?: string;
@@ -117,7 +157,7 @@ export interface ActionPlan {
   status: ActionPlanStatus;
   priority?: ActionPriority;
 
-  progress_percentage?: number;
+  progress_percentage?: number; // %0 - %100 İlerleme
   extension_count?: number;
   milestones?: any[];
 
@@ -137,8 +177,19 @@ export interface ActionPlan {
   created_by?: string;
 }
 
+// YENİ: AKSİYON ERTELEME TALEPLERİ (Çoklu Revize Tarihi İçin)
+export interface ActionPlanExtension {
+  id: string;
+  action_plan_id: string;
+  requested_date: string; 
+  reason: string;         
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  auditor_response?: string; 
+  created_at: string;
+}
+
 // Finding History
-export type ChangeType = 'STATE_CHANGE' | 'CONTENT_EDIT' | 'SEVERITY_CHANGE' | 'ASSIGNMENT' | 'ACTION_PLAN_ADDED' | 'COMMENT_ADDED';
+export type ChangeType = 'STATE_CHANGE' | 'CONTENT_EDIT' | 'SEVERITY_CHANGE' | 'ASSIGNMENT' | 'ACTION_PLAN_ADDED' | 'COMMENT_ADDED' | 'AI_GENERATION';
 
 export interface FindingHistory {
   id: string;
@@ -158,8 +209,8 @@ export interface FindingHistory {
 }
 
 // Finding Comments
-export type CommentType = 'DISCUSSION' | 'AGREEMENT' | 'DISPUTE' | 'CLARIFICATION';
-export type AuthorRole = 'AUDITOR' | 'AUDITEE' | 'AUDIT_MANAGER';
+export type CommentType = 'DISCUSSION' | 'AGREEMENT' | 'DISPUTE' | 'CLARIFICATION' | 'SYSTEM_LOG';
+export type AuthorRole = 'AUDITOR' | 'AUDITEE' | 'AUDIT_MANAGER' | 'SYSTEM';
 
 export interface FindingComment {
   id: string;
@@ -184,7 +235,7 @@ export interface FindingComment {
 // Comprehensive Finding (tüm ilişkili verilerle)
 export interface ComprehensiveFinding extends Finding {
   secrets?: FindingSecret;
-  action_plans?: ActionPlan[];
+  action_plans?: (ActionPlan & { extensions?: ActionPlanExtension[] })[];
   history?: FindingHistory[];
   comments?: FindingComment[];
 }
