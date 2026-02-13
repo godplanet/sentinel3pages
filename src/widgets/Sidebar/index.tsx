@@ -132,11 +132,17 @@ export const Sidebar = () => {
     }
   };
 
+  // YENİ EKLENDİ: Rol değiştiğinde doğru adrese yönlendirme (Routing)
   const handlePersonaSwitch = (role: PersonaRole) => {
     setPersona(role);
     setShowPersonaMenu(false);
     setShowUserMenu(false);
-    navigate('/dashboard');
+    
+    if (role === 'AUDITEE') {
+        navigate('/auditee');
+    } else {
+        navigate('/dashboard');
+    }
   };
 
   // Filter navigation based on persona
