@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/shared/ui';
 import {
   Settings, Save, RotateCcw, Loader2, CheckCircle2, XCircle,
-  Sliders, Zap, Palette, Activity, AlertTriangle, ListTree, Calculator, Plus, Trash2, GripVertical
+  Sliders, Zap, Palette, Activity, AlertTriangle, ListTree, Calculator, 
+  Plus, Trash2, GripVertical, BookOpen, AlertCircle // EKSİK İKONLAR EKLENDİ
 } from 'lucide-react';
 import clsx from 'clsx';
+import { toast } from 'react-hot-toast'; // BİLDİRİM KÜTÜPHANESİ EKLENDİ
 import {
   useRiskMethodology,
   computeRiskScore,
@@ -312,12 +314,34 @@ function ParameterListManager({ title, description, items, setItems, icon, color
         toast.success(`"${itemToRemove?.label}" listeden silindi.`);
     };
 
+    // Saf CSS class'larının Tailwind tarafından silinmemesi için bir hile (Safelist yerine)
+    const getBorderColor = () => {
+        if (colorTheme === 'indigo') return 'border-indigo-100 ring-indigo-50';
+        if (colorTheme === 'red') return 'border-red-100 ring-red-50';
+        if (colorTheme === 'violet') return 'border-violet-100 ring-violet-50';
+        return 'border-slate-100 ring-slate-50';
+    };
+
+    const getBgColor = () => {
+        if (colorTheme === 'indigo') return 'bg-indigo-50/30 border-indigo-100';
+        if (colorTheme === 'red') return 'bg-red-50/30 border-red-100';
+        if (colorTheme === 'violet') return 'bg-violet-50/30 border-violet-100';
+        return 'bg-slate-50/30 border-slate-100';
+    };
+
+    const getIconBg = () => {
+        if (colorTheme === 'indigo') return 'bg-indigo-100';
+        if (colorTheme === 'red') return 'bg-red-100';
+        if (colorTheme === 'violet') return 'bg-violet-100';
+        return 'bg-slate-100';
+    };
+
     return (
-        <div className={`bg-white border border-${colorTheme}-100 rounded-xl shadow-sm flex flex-col h-full ring-1 ring-inset ring-${colorTheme}-50 overflow-hidden`}>
+        <div className={`bg-white border rounded-xl shadow-sm flex flex-col h-full ring-1 ring-inset overflow-hidden ${getBorderColor()}`}>
             {/* Üst Bilgi */}
-            <div className={`p-5 bg-${colorTheme}-50/30 border-b border-${colorTheme}-100`}>
+            <div className={`p-5 border-b ${getBgColor()}`}>
                 <div className="flex items-center gap-3 mb-1">
-                    <div className={`w-8 h-8 rounded-lg bg-${colorTheme}-100 flex items-center justify-center`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getIconBg()}`}>
                         {icon}
                     </div>
                     <h3 className="text-base font-bold text-slate-800">{title}</h3>
@@ -346,7 +370,7 @@ function ParameterListManager({ title, description, items, setItems, icon, color
             </div>
 
             {/* Liste */}
-            <div className="flex-1 p-2 bg-white">
+            <div className="flex-1 p-2 bg-white min-h-[200px] max-h-[300px] overflow-y-auto">
                 {items.length === 0 ? (
                     <div className="p-8 text-center text-slate-400 text-sm italic">Henüz bir kategori eklenmemiş.</div>
                 ) : (
@@ -374,7 +398,6 @@ function ParameterListManager({ title, description, items, setItems, icon, color
         </div>
     );
 }
-
 
 // ============================================================================
 // ORİJİNAL ALT BİLEŞENLER (BİREBİR KORUNMUŞTUR)
