@@ -150,3 +150,7 @@ import { AIPanel } from './components/AIPanel';
 import { ReviewPanel } from './components/ReviewPanel';
 // ...
 {activeTab === 'review' && <ReviewPanel findingId={findingId} isReviewer={true} />}
+
+import { RCAPanel } from './components/RCAPanel';
+// ...
+{activeTab === 'rca' && <RCAPanel findingId={findingId} onApplyAnalysis={(html, raw) => console.log('RCA Uygulandı:', raw)} />}
