@@ -4,6 +4,7 @@ export interface RiskSignal {
   source: string;
   impact: number;
   reason: string;
+  isVeto?: boolean; // SENTINEL V3.0: Veto bayrağı eklendi
 }
 
 export interface DynamicRiskResult {
@@ -18,106 +19,94 @@ export function calculateDynamicRisk(entity: AuditEntity): DynamicRiskResult {
   const signals: RiskSignal[] = [];
   let base_score = entity.risk_score || 50;
   let total_adjustment = 0;
+  let has_veto = false; // SENTINEL V3.0: Acil durum şalteri
 
-  // BRANCH SIGNALS
-  if (entity.type === 'BRANCH') {
-    const turnover = entity.metadata?.turnover_rate;
-    if (turnover && turnover > 20) {
-      const impact = Math.min(30, (turnover - 20) * 2);
-      signals.push({
-        source: 'Personel Devir Oranı',
-        impact,
-        reason: `${turnover}% personel devri (>20% kritik)`,
-      });
-      total_adjustment += impact;
-    }
+  // --- SENTINEL V3.0: MAKRO VETO KONTROLÜ (SIFIR TOLERANS) ---
+  // Eğer bu birimde aktif bir VETO (Şer'i, Siber, Yasal) veya son denetim notu 'F' ise motoru kilitler.
+  const activeVetoes = entity.metadata?.active_vetoes || [];
+  const lastAuditGrade = entity.metadata?.last_audit_grade;
 
-    const volume = entity.metadata?.transaction_volume;
-    if (volume && volume > 10000000) {
+  if (activeVetoes.length > 0 || lastAuditGrade === 'F') {
+      has_veto = true;
+      const vetoReason = activeVetoes.length > 0 ? activeVetoes[0] : 'Son Denetim Notu: F (Güvence Yok)';
       signals.push({
-        source: 'İşlem Hacmi',
-        impact: 15,
-        reason: `Yüksek işlem hacmi (${(volume / 1000000).toFixed(1)}M TL)`,
+          source: 'Sentinel Veto Motoru',
+          impact: 100, // Maksimum Ceza
+          reason: `SIFIR TOLERANS: ${vetoReason}`,
+          isVeto: true
       });
-      total_adjustment += 15;
-    }
+      total_adjustment += 100;
   }
 
-  // IT ASSET SIGNALS
-  if (entity.type === 'IT_ASSET') {
-    const criticality = entity.metadata?.criticality_level;
-    if (criticality === 'CRITICAL') {
-      signals.push({
-        source: 'Kritiklik Seviyesi',
-        impact: 25,
-        reason: 'Kritik BT varlığı',
-      });
-      total_adjustment += 25;
-    }
+  // Eğer VETO yoksa, standart (KRI) sinyallerini hesaplamaya devam et
+  if (!has_veto) {
+      // BRANCH SIGNALS
+      if (entity.type === 'BRANCH') {
+        const turnover = entity.metadata?.turnover_rate;
+        if (turnover && turnover > 20) {
+          const impact = Math.min(30, (turnover - 20) * 2);
+          signals.push({ source: 'Personel Devir Oranı', impact, reason: `${turnover}% personel devri (>20% kritik)` });
+          total_adjustment += impact;
+        }
 
-    const lastPatch = entity.metadata?.last_patch_date;
-    if (lastPatch) {
-      const daysSincePatch = Math.floor(
-        (new Date().getTime() - new Date(lastPatch).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (daysSincePatch > 90) {
-        const impact = Math.min(40, Math.floor(daysSincePatch / 30) * 10);
-        signals.push({
-          source: 'Yama Güncelliği',
-          impact,
-          reason: `${daysSincePatch} gündür yamanmamış (>90 gün kritik)`,
-        });
-        total_adjustment += impact;
+        const volume = entity.metadata?.transaction_volume;
+        if (volume && volume > 10000000) {
+          signals.push({ source: 'İşlem Hacmi', impact: 15, reason: `Yüksek işlem hacmi (${(volume / 1000000).toFixed(1)}M TL)` });
+          total_adjustment += 15;
+        }
       }
-    }
+
+      // IT ASSET SIGNALS
+      if (entity.type === 'IT_ASSET') {
+        const criticality = entity.metadata?.criticality_level;
+        if (criticality === 'CRITICAL') {
+          signals.push({ source: 'Kritiklik Seviyesi', impact: 25, reason: 'Kritik BT varlığı' });
+          total_adjustment += 25;
+        }
+
+        const lastPatch = entity.metadata?.last_patch_date;
+        if (lastPatch) {
+          const daysSincePatch = Math.floor((new Date().getTime() - new Date(lastPatch).getTime()) / (1000 * 60 * 60 * 24));
+          if (daysSincePatch > 90) {
+            const impact = Math.min(40, Math.floor(daysSincePatch / 30) * 10);
+            signals.push({ source: 'Yama Güncelliği', impact, reason: `${daysSincePatch} gündür yamanmamış (>90 gün kritik)` });
+            total_adjustment += impact;
+          }
+        }
+      }
+
+      // VENDOR SIGNALS
+      if (entity.type === 'VENDOR') {
+        const contractStatus = entity.metadata?.contract_status;
+        if (contractStatus === 'EXPIRED') {
+          signals.push({ source: 'Sözleşme Durumu', impact: 50, reason: 'Sözleşme süresi dolmuş' });
+          total_adjustment += 50;
+        }
+
+        const riskRating = entity.metadata?.risk_rating;
+        if (riskRating === 'HIGH' || riskRating === 'CRITICAL') {
+          signals.push({ source: 'Tedarikçi Risk Notu', impact: 20, reason: `${riskRating} seviye tedarikçi riski` });
+          total_adjustment += 20;
+        }
+
+        const spend = entity.metadata?.annual_spend;
+        if (spend && spend > 1000000) {
+          signals.push({ source: 'Yıllık Harcama', impact: 10, reason: `Yüksek bütçe (${(spend / 1000000).toFixed(1)}M TL)` });
+          total_adjustment += 10;
+        }
+      }
+
+      // SUBSIDIARY SIGNALS
+      if (entity.type === 'SUBSIDIARY') {
+        const ownership = entity.metadata?.ownership_percentage;
+        if (ownership && ownership < 51) {
+          signals.push({ source: 'Kontrol Seviyesi', impact: 15, reason: `Düşük sahiplik oranı (%${ownership})` });
+          total_adjustment += 15;
+        }
+      }
   }
 
-  // VENDOR SIGNALS
-  if (entity.type === 'VENDOR') {
-    const contractStatus = entity.metadata?.contract_status;
-    if (contractStatus === 'EXPIRED') {
-      signals.push({
-        source: 'Sözleşme Durumu',
-        impact: 50,
-        reason: 'Sözleşme süresi dolmuş',
-      });
-      total_adjustment += 50;
-    }
-
-    const riskRating = entity.metadata?.risk_rating;
-    if (riskRating === 'HIGH' || riskRating === 'CRITICAL') {
-      signals.push({
-        source: 'Tedarikçi Risk Notu',
-        impact: 20,
-        reason: `${riskRating} seviye tedarikçi riski`,
-      });
-      total_adjustment += 20;
-    }
-
-    const spend = entity.metadata?.annual_spend;
-    if (spend && spend > 1000000) {
-      signals.push({
-        source: 'Yıllık Harcama',
-        impact: 10,
-        reason: `Yüksek bütçe (${(spend / 1000000).toFixed(1)}M TL)`,
-      });
-      total_adjustment += 10;
-    }
-  }
-
-  // SUBSIDIARY SIGNALS
-  if (entity.type === 'SUBSIDIARY') {
-    const ownership = entity.metadata?.ownership_percentage;
-    if (ownership && ownership < 51) {
-      signals.push({
-        source: 'Kontrol Seviyesi',
-        impact: 15,
-        reason: `Düşük sahiplik oranı (%${ownership})`,
-      });
-      total_adjustment += 15;
-    }
-  }
-
+  // Hesaplama ve Seviyelendirme
   const calculated_score = Math.min(100, Math.max(0, base_score + total_adjustment));
 
   let level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -142,13 +131,13 @@ export function calculateDynamicRisk(entity: AuditEntity): DynamicRiskResult {
 export function getRiskColor(level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'): string {
   switch (level) {
     case 'CRITICAL':
-      return 'text-red-700 bg-red-100';
+      return 'text-red-700 bg-red-100 border-red-200';
     case 'HIGH':
-      return 'text-orange-700 bg-orange-100';
+      return 'text-orange-700 bg-orange-100 border-orange-200';
     case 'MEDIUM':
-      return 'text-yellow-700 bg-yellow-100';
+      return 'text-yellow-700 bg-yellow-100 border-yellow-200';
     case 'LOW':
-      return 'text-green-700 bg-green-100';
+      return 'text-green-700 bg-green-100 border-green-200';
   }
 }
 
