@@ -5,6 +5,9 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
+// YENİ EKLENDİ: Apple Glass Header için Sidebar Rengini çekiyoruz
+import { useUIStore } from '@/shared/stores/ui-store';
+
 interface RootCauseDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -15,6 +18,9 @@ type RcaMethod = '5whys' | 'ishikawa' | 'bowtie';
 
 export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerProps) => {
   const [activeMethod, setActiveMethod] = useState<RcaMethod>('5whys');
+  
+  // YENİ: Apple Glass için tema rengi
+  const { sidebarColor } = useUIStore();
 
   const [whys, setWhys] = useState<string[]>(['', '', '', '', '']);
   
@@ -40,7 +46,7 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
       setWhys(newWhys);
   };
 
-  // GÜVENLİ HTML ÜRETİCİ (Çökme Korumalı)
+  // GÜVENLİ HTML ÜRETİCİ
   const generateHtmlPreview = () => {
     if (activeMethod === '5whys') {
       const filledWhys = (whys || []).filter(w => w?.trim() !== '');
@@ -100,7 +106,7 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
 
   return (
     <>
-      {/* ARKA PLAN MASKESİ - Header'ın altından başlar (top-16) */}
+      {/* ARKA PLAN MASKESİ */}
       <div 
         className={clsx(
             "fixed bottom-0 left-0 right-0 top-[64px] bg-slate-900/40 backdrop-blur-sm z-[40] transition-opacity duration-300", 
@@ -109,25 +115,38 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
         onClick={onClose} 
       />
       
-      {/* ÇEKMECE PANELİ - Header'ın altından başlar (top-16) */}
+      {/* ÇEKMECE PANELİ - Sol köşeler yuvarlatıldı (rounded-tl-2xl) */}
       <div className={clsx(
-        "fixed bottom-0 right-0 top-[64px] w-full max-w-2xl bg-white shadow-2xl z-[45] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-slate-200",
+        "fixed bottom-0 right-0 top-[64px] w-full max-w-2xl bg-white shadow-[rgba(0,0,0,0.56)_0px_22px_70px_4px] z-[45] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-white/20 rounded-tl-2xl",
         isOpen ? "translate-x-0" : "translate-x-full"
       )}>
         
-        <div className="bg-slate-900 p-6 shrink-0">
+        {/* HEADER - APPLE GLASS DOKUNUŞU VE SİDEBAR RENGİ */}
+        <div 
+            className="p-6 shrink-0 border-b border-white/10 rounded-tl-2xl shadow-sm z-10"
+            style={{ 
+                backgroundColor: sidebarColor ? `${sidebarColor}F2` : 'rgba(15, 23, 42, 0.95)', // %95 Opaklık
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)'
+            }}
+        >
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-black text-white flex items-center gap-2"><Target className="text-blue-400 w-6 h-6" /> Kök Neden Laboratuvarı</h2>
+            <h2 className="text-xl font-black text-white drop-shadow-sm flex items-center gap-2">
+                <Target className="text-blue-400 w-6 h-6" /> Kök Neden Laboratuvarı
+            </h2>
             <div className="flex items-center gap-3">
-                <button type="button" className="px-3 py-1.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg hover:bg-blue-500/40 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                    <Sparkles size={14} /> AI Analiz
+                <button type="button" className="px-3 py-1.5 bg-black/20 text-blue-200 border border-white/10 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold flex items-center gap-1.5 shadow-inner backdrop-blur-sm">
+                    <Sparkles size={14} className="text-blue-300" /> AI Analiz
                 </button>
-                <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"><X className="w-5 h-5"/></button>
+                <button onClick={onClose} className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors group">
+                    <X className="w-5 h-5"/>
+                </button>
             </div>
           </div>
-          <p className="text-sm text-slate-400">Karmaşık bulgular için profesyonel analiz ve metodoloji aracı.</p>
+          <p className="text-sm text-white/70 font-medium">Karmaşık bulgular için profesyonel analiz ve metodoloji aracı.</p>
         </div>
 
+        {/* METOT SEKMELERİ */}
         <div className="flex border-b border-slate-200 shrink-0 bg-slate-50 overflow-x-auto no-scrollbar">
           <button onClick={() => setActiveMethod('5whys')} className={clsx("flex-1 py-3.5 px-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 border-b-2 transition-colors whitespace-nowrap", activeMethod === '5whys' ? "border-blue-600 text-blue-700 bg-white" : "border-transparent text-slate-500 hover:text-slate-800")}>
             <ListOrdered className="w-4 h-4" /> 5-Whys
@@ -140,9 +159,12 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
           </button>
         </div>
 
+        {/* İÇERİK ALANI */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <div className="grid grid-cols-1 gap-6">
               <div className="flex-1">
+                  
+                  {/* 1. METOT: 5-WHYS */}
                   {activeMethod === '5whys' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-blue-50/80 p-4 rounded-xl border border-blue-200 mb-6 flex gap-3">
@@ -168,6 +190,7 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                     </div>
                   )}
 
+                  {/* 2. METOT: ISHIKAWA */}
                   {activeMethod === 'ishikawa' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-indigo-50/80 p-4 rounded-xl border border-indigo-200 mb-6 flex gap-3">
@@ -202,6 +225,7 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                     </div>
                   )}
 
+                  {/* 3. METOT: BOW-TIE (PAPYON) */}
                   {activeMethod === 'bowtie' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div className="bg-rose-50/80 p-4 rounded-xl border border-rose-200 mb-6 flex gap-3">
@@ -241,6 +265,7 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
                   )}
               </div>
               
+              {/* CANLI ÖNİZLEME */}
               <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 mt-4">
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ana Forma Eklenecek Çıktı (Önizleme)</h4>
                   <div 
@@ -252,7 +277,8 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-200 bg-white shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
+        {/* FOOTER */}
+        <div className="p-5 border-t border-slate-200 bg-white shrink-0 z-10">
           <button onClick={handleApply} className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-black flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95">
             <Check className="w-5 h-5" /> Analizi Ana Forma Aktar
           </button>
