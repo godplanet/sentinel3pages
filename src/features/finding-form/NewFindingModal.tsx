@@ -3,7 +3,7 @@ import {
   X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2, 
   Banknote, Scale, Building, HeartPulse, ChevronsRight, ShieldCheck, Clock, 
   ToggleRight, ToggleLeft, CheckSquare, Square, BookOpen,
-  Bold, Italic, List, ListOrdered, Heading1, Heading2
+  Bold, Italic, List, ListOrdered, Heading2
 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
@@ -15,8 +15,8 @@ import type { FindingSeverity, GIASCategory } from '../../entities/finding/model
 import { comprehensiveFindingApi } from '../../entities/finding/api/module5-api';
 import { RegulationSelectorModal } from '../finding-studio/components/RegulationSelectorModal';
 
-// --- TIPTAP RICH TEXT EDITOR COMPONENT (Reusable & Clean) ---
-const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder: string }) => {
+// --- TIPTAP RICH TEXT EDITOR COMPONENT ---
+const RichTextEditor = ({ value, onChange, placeholder, minHeight = "min-h-[150px]" }: { value: string, onChange: (val: string) => void, placeholder: string, minHeight?: string }) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -31,9 +31,9 @@ const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onCha
   if (!editor) return null;
 
   return (
-    <div className="w-full border border-gray-300 rounded-lg bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-      {/* Editor Toolbar (Word-like) */}
-      <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-gray-200">
+    <div className="w-full border border-gray-300 rounded-lg bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all flex flex-col h-full">
+      {/* Editor Toolbar */}
+      <div className="flex items-center gap-1 p-2 bg-slate-50 border-b border-gray-200 shrink-0">
         <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={clsx('p-1.5 rounded hover:bg-slate-200 transition-colors', editor.isActive('bold') ? 'bg-slate-200 text-blue-600' : 'text-slate-600')}><Bold size={16} /></button>
         <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={clsx('p-1.5 rounded hover:bg-slate-200 transition-colors', editor.isActive('italic') ? 'bg-slate-200 text-blue-600' : 'text-slate-600')}><Italic size={16} /></button>
         <div className="w-px h-5 bg-slate-300 mx-1" />
@@ -42,8 +42,8 @@ const RichTextEditor = ({ value, onChange, placeholder }: { value: string, onCha
         <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={clsx('p-1.5 rounded hover:bg-slate-200 transition-colors', editor.isActive('bulletList') ? 'bg-slate-200 text-blue-600' : 'text-slate-600')}><List size={16} /></button>
         <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={clsx('p-1.5 rounded hover:bg-slate-200 transition-colors', editor.isActive('orderedList') ? 'bg-slate-200 text-blue-600' : 'text-slate-600')}><ListOrdered size={16} /></button>
       </div>
-      {/* Editor Content Area */}
-      <EditorContent editor={editor} className="p-4 prose prose-sm max-w-none min-h-[150px] focus:outline-none" />
+      {/* Editor Content */}
+      <EditorContent editor={editor} className={clsx("p-4 prose prose-sm max-w-none focus:outline-none flex-1 overflow-y-auto cursor-text", minHeight)} />
     </div>
   );
 };
@@ -57,6 +57,7 @@ const BORDO = '#6A0000'; const KIZIL = '#DC143C'; const TURUNCU = '#FFA500'; con
 const calculateRiskEngine = (data: any) => {
     let finalScore = 0; let severity: FindingSeverity = 'OBSERVATION'; let color_code = YESIL; let is_veto_triggered = false; let veto_reason = undefined;
 
+    // VETO KONTROLLERİ (Şer'i Veto Buradadır)
     if (data.isShariahRisk && (data.shariah_impact >= 4 || data.requires_income_purification)) {
         finalScore = 100; severity = 'CRITICAL'; color_code = BORDO; is_veto_triggered = true; veto_reason = "Şer'i Uyum İhlali (Sıfır Tolerans)";
     } else if (data.isItRisk && data.cvss_score >= 9.0 && data.asset_criticality === 'Critical') {
@@ -64,6 +65,7 @@ const calculateRiskEngine = (data: any) => {
     } else if (data.impact_legal === 5) {
         finalScore = 90; severity = 'HIGH'; color_code = KIZIL; is_veto_triggered = true; veto_reason = "Aşırı Yasal/Düzenleyici Risk";
     } else {
+        // WIF HESAPLAMASI
         const wif = (data.impact_financial * 0.30) + (data.impact_legal * 0.25) + (data.impact_reputation * 0.25) + (data.impact_operational * 0.20);
         const rawScore = wif * data.likelihood_score * (data.control_weakness / 2.5);
         finalScore = Math.min(100, (rawScore / 12.5) * 100);
@@ -119,13 +121,14 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   const [formData, setFormData] = useState({
     title: '', code: '', gias_category: '' as GIASCategory | '', auditee_department: '',
     
-    // Rich Text Fields (Artık HTML formatında tutulacak)
-    detection_html: '', 
+    // Rich Text Fields (HTML formatında tutulacak)
+    criteria_html: '',   // EKLENDİ: Sol taraf Kriter Editörü
+    detection_html: '',  // Sağ taraf Tespit Editörü
     impact_html: '',    
     root_cause_html: '', 
     recommendation_html: '', 
     
-    rca_category: '', // Parametrik yapı için hazırlık (İnsan, Sistem, Süreç)
+    rca_category: '', // Parametrik yapı için hazırlık
     
     financial_impact: 0, impact_score: 3, likelihood_score: 3,
     impact_financial: 1, impact_legal: 1, impact_reputation: 1, impact_operational: 1, control_weakness: 1,
@@ -134,7 +137,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   });
 
   const sections = [
-    { id: 'tespit' as const, label: 'Tespit', icon: FileSearch, color: 'blue' },
+    { id: 'tespit' as const, label: 'Kriter & Tespit', icon: FileSearch, color: 'blue' },
     { id: 'risk' as const, label: 'Risk & Etki', icon: TrendingUp, color: 'orange' },
     { id: 'koken' as const, label: 'Kök Neden', icon: AlertTriangle, color: 'red' },
     { id: 'oneri' as const, label: 'Öneri', icon: Lightbulb, color: 'green' },
@@ -144,8 +147,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
   const handleSave = async (status: 'DRAFT' | 'PUBLISHED' = 'DRAFT') => {
     if (!formData.title.trim()) { toast.error('Lütfen bulgu başlığı giriniz.'); return; }
-    if (!formData.code.trim()) { toast.error('Lütfen ihlal edilen kriteri / mevzuatı belirtiniz.'); return; }
-
+    
     setIsSubmitting(true);
 
     try {
@@ -153,11 +155,12 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
         title: formData.title, severity: liveRisk.severity, status: status, category: 'Audit', engagement_id: 'GENERAL_AUDIT',
         
         // Zengin Metin (HTML) Verileri
-        description: formData.detection_html, // Tespit (HTML)
-        criteria: formData.code,
+        description: formData.detection_html, // Tespit
+        criteria: formData.code || "N/A", // Veritabanı sütunu için referans kodu
         
         details: {
           gias_category: formData.gias_category, auditee_department: formData.auditee_department,
+          criteria_html: formData.criteria_html, // Kriter (HTML)
           impact_text: formData.impact_html, // Etki (HTML)
           recommendation_text: formData.recommendation_html, // Öneri (HTML)
           financial_impact: formData.financial_impact,
@@ -169,9 +172,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
               inputs: { financial: formData.impact_financial, legal: formData.impact_legal, reputation: formData.impact_reputation, operational: formData.impact_operational, likelihood: formData.likelihood_score, control: formData.control_weakness }
           },
           root_cause_analysis: {
-            category: formData.rca_category, // Yeni Kategori Alanı
-            summary_html: formData.root_cause_html, // Zengin Metin Kök Neden Özeti
-            has_advanced_analysis: false // Gelecekte Drawer'dan gelecek veri
+            category: formData.rca_category,
+            summary_html: formData.root_cause_html,
+            has_advanced_analysis: false
           }
         }
       };
@@ -193,7 +196,8 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
+        {/* Genişletilmiş Form Alanı */}
+        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden">
           
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
@@ -224,39 +228,13 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><FileSearch className="text-blue-600"/> Temel Bilgiler</h3>
-              <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-2">
+            <div className="bg-gray-50 rounded-lg p-5 mb-6 border border-gray-200 shadow-sm">
+              <div className="grid grid-cols-12 gap-5">
+                <div className="col-span-12 md:col-span-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Bulgu Başlığı *</label>
                   <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Örn: Kasa İşlemlerinde Çift Anahtar Kuralı İhlali" />
                 </div>
-                <div className="col-span-2">
-                  <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
-                    <span>İhlal Edilen Kriter / Mevzuat *</span>
-                    <button type="button" onClick={() => setIsRegulationModalOpen(true)} className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-md border border-blue-100 transition-colors"><BookOpen size={14} /> Mevzuat Kütüphanesinden Seç</button>
-                  </label>
-                  <input type="text" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Mevzuat, Yönetmelik veya İç Kural Referansı girin..." />
-                  {selectedRegulation && (
-                      <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg flex items-start gap-3">
-                          <Scale className="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" />
-                          <div><p className="text-sm font-bold text-indigo-900">{selectedRegulation.category} Mevzuatı</p><p className="text-xs text-indigo-700 mt-0.5">{selectedRegulation.title}</p></div>
-                      </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sistem Tarafından Atanan Seviye</label>
-                  <div className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 font-bold cursor-not-allowed flex items-center">
-                      <span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: liveRisk.color_code}}></span>{SEVERITY_TR[liveRisk.severity]} (Otomatik)
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">GIAS Kategorisi (Parametrik Olacak)</label>
-                  <select value={formData.gias_category} onChange={(e) => setFormData({ ...formData, gias_category: e.target.value as any })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="">Seçiniz</option><option value="Operasyonel Risk">Operasyonel Risk</option><option value="Uyum Riski">Uyum Riski</option><option value="Finansal Risk">Finansal Risk</option><option value="Teknolojik Risk">Teknolojik Risk</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
+                <div className="col-span-12 md:col-span-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sorumlu Birim</label>
                   <input type="text" value={formData.auditee_department} onChange={(e) => setFormData({ ...formData, auditee_department: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Örn: Şube Müdürlüğü" />
                 </div>
@@ -277,23 +255,51 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
             {/* Section Content */}
             <div className="space-y-6">
+              
+              {/* KRİTER & TESPİT (YAN YANA BÖLÜM) */}
               {activeSection === 'tespit' && (
-                <div className="bg-white rounded-xl p-6 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><FileSearch className="w-5 h-5 text-blue-600" /></div>
-                        <div><h3 className="text-lg font-semibold text-gray-900">Tespit (Condition)</h3><p className="text-sm text-gray-500">Mevcut durumu zengin metin ile açıklayın</p></div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 h-[500px]">
+                  
+                  {/* SOL: KRİTER (CRITERIA) */}
+                  <div className="bg-indigo-50/50 rounded-xl p-5 border border-indigo-100 shadow-sm flex flex-col h-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                      <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center"><BookOpen className="w-5 h-5 text-indigo-600" /></div>
+                          <div><h3 className="text-lg font-semibold text-gray-900">Kriter (Criteria)</h3><p className="text-xs text-gray-500">Olması gereken standart</p></div>
+                      </div>
+                      <div className="flex flex-col xl:flex-row gap-2">
+                          <button type="button" onClick={() => setIsRegulationModalOpen(true)} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-200 transition-colors text-xs font-bold flex items-center gap-1.5"><BookOpen size={14} /> Kütüphane</button>
+                          <button type="button" className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-bold flex items-center gap-1.5"><Sparkles size={14} /> AI Önerisi</button>
+                      </div>
                     </div>
-                    <button className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI Asistan</button>
+                    {/* RICH TEXT EDITOR (KRİTER) */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <RichTextEditor value={formData.criteria_html} onChange={(val) => setFormData({...formData, criteria_html: val})} placeholder="İhlal edilen kanun, mevzuat, standart veya düzenleme maddesini yazın veya kütüphaneden seçin..." minHeight="min-h-[250px] max-h-full" />
+                    </div>
                   </div>
-                  {/* RICH TEXT EDITOR */}
-                  <RichTextEditor value={formData.detection_html} onChange={(val) => setFormData({...formData, detection_html: val})} placeholder="Yapılan inceleme sonucunda tespit edilen bulguyu detaylı olarak açıklayın..." />
+
+                  {/* SAĞ: TESPİT (CONDITION) */}
+                  <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100 shadow-sm flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><FileSearch className="w-5 h-5 text-blue-600" /></div>
+                          <div><h3 className="text-lg font-semibold text-gray-900">Tespit (Condition)</h3><p className="text-xs text-gray-500">Sahadaki mevcut durum</p></div>
+                      </div>
+                      <button type="button" className="px-3 py-1.5 bg-blue-100 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors text-xs font-bold flex items-center gap-1.5"><Sparkles size={14} /> AI ile İyileştir</button>
+                    </div>
+                    {/* RICH TEXT EDITOR (TESPİT) */}
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <RichTextEditor value={formData.detection_html} onChange={(val) => setFormData({...formData, detection_html: val})} placeholder="Yapılan inceleme sonucunda tespit edilen bulguyu detaylı olarak açıklayın..." minHeight="min-h-[250px] max-h-full" />
+                    </div>
+                  </div>
+
                 </div>
               )}
 
+              {/* RİSK & ETKİ (SENTINEL V3 MOTORU) */}
               {activeSection === 'risk' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="bg-white rounded-xl p-6 border border-orange-100 shadow-sm">
+                    <div className="bg-orange-50/50 rounded-xl p-6 border border-orange-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
                             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-orange-600" /></div>
                             <div><h3 className="text-lg font-semibold text-gray-900">Etki Motoru (WIF)</h3><p className="text-sm text-gray-500">Otomatik risk değerlendirmesi</p></div>
@@ -313,15 +319,27 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                     </div>
 
                     <div className="space-y-6">
-                        {/* Veto ve SLA Modülleri (Kısa Tutuldu) */}
-                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Aksiyon Tipi (SLA)</label>
-                            <select value={formData.sla_type} onChange={e => setFormData({...formData, sla_type: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"><option value="FIXED_DATE">Takvim Günü (Sabit SLA)</option><option value="AGILE_SPRINT">Agile Sprint</option></select>
+                        {/* ŞER'İ VETO VURGULANDI */}
+                        <div className="bg-emerald-50/30 rounded-xl border-2 border-emerald-100 overflow-hidden shadow-sm">
+                            <div className="flex items-center justify-between p-4 bg-emerald-50/50">
+                                <div className="flex items-center gap-2"><Scale className="w-5 h-5 text-emerald-600"/><p className="font-bold text-sm text-emerald-900">Şer'i Uyum İhlali (Veto Kapısı)</p></div>
+                                <button type="button" onClick={() => setFormData({...formData, isShariahRisk: !formData.isShariahRisk})}>{formData.isShariahRisk ? <ToggleRight className="w-10 h-10 text-emerald-600" /> : <ToggleLeft className="w-10 h-10 text-emerald-200" />}</button>
+                            </div>
+                            {formData.isShariahRisk && (
+                                <div className="p-4 border-t border-emerald-100 bg-white">
+                                    <RiskSlider label="Şer'i İhlal Etkisi (4 ve üzeri VETO sayılır)" value={formData.shariah_impact} onChange={v => setFormData({...formData, shariah_impact: v})} icon={Scale} />
+                                    <button type="button" onClick={() => setFormData({...formData, requires_income_purification: !formData.requires_income_purification})} className="mt-4 flex items-center gap-2 text-sm font-bold text-emerald-800 p-3 border border-emerald-200 rounded-lg w-full bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                        {formData.requires_income_purification ? <CheckSquare className="w-5 h-5 text-emerald-600"/> : <Square className="w-5 h-5 text-emerald-400"/>} Gelir Arındırması Gerektirir (Anında VETO)
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+
+                        {/* IT VETO */}
+                        <div className="bg-slate-50/30 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                             <div className="flex items-center justify-between p-4 bg-gray-50">
                                 <div><p className="font-bold text-sm text-gray-800">IT / Siber Risk Veto Kapısı</p></div>
-                                <button onClick={() => setFormData({...formData, isItRisk: !formData.isItRisk})}>{formData.isItRisk ? <ToggleRight className="w-10 h-10 text-blue-600" /> : <ToggleLeft className="w-10 h-10 text-gray-400" />}</button>
+                                <button type="button" onClick={() => setFormData({...formData, isItRisk: !formData.isItRisk})}>{formData.isItRisk ? <ToggleRight className="w-10 h-10 text-blue-600" /> : <ToggleLeft className="w-10 h-10 text-gray-400" />}</button>
                             </div>
                             {formData.isItRisk && (
                                 <div className="p-4 grid grid-cols-2 gap-4 border-t border-gray-200 bg-white">
@@ -331,10 +349,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                             )}
                         </div>
                         
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col min-h-[250px]">
                             <label className="block text-sm font-bold text-gray-700 mb-2">Etki Açıklaması (Effect)</label>
-                            {/* RICH TEXT EDITOR */}
-                            <RichTextEditor value={formData.impact_html} onChange={(val) => setFormData({...formData, impact_html: val})} placeholder="Bulgunun organizasyon üzerindeki etkilerini açıklayın..." />
+                            <RichTextEditor value={formData.impact_html} onChange={(val) => setFormData({...formData, impact_html: val})} placeholder="Bulgunun organizasyon üzerindeki etkilerini açıklayın..." minHeight="min-h-[150px] max-h-[300px]" />
                         </div>
                     </div>
                 </div>
@@ -343,15 +360,15 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
               {/* SADELEŞTİRİLMİŞ KÖK NEDEN (RCA) ALANI */}
               {activeSection === 'koken' && (
                 <div className="bg-white rounded-xl p-6 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-gray-100 gap-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
                         <div><h3 className="text-lg font-semibold text-gray-900">Kök Neden Özeti (Cause)</h3><p className="text-sm text-gray-500">Bulgunun kaynağına dair özet bilgi</p></div>
                     </div>
                     {/* AŞAMA 2 İÇİN HAZIRLIK BUTONU */}
-                    <button className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center gap-2">
+                    <button type="button" className="px-5 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                        Gelişmiş Analiz Aracı (RCA Çekmecesi)
+                        Gelişmiş RCA Aracı (5-Whys, Ishikawa)
                     </button>
                   </div>
                   
@@ -366,29 +383,29 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                       </select>
                   </div>
 
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Kök Neden Özeti</label>
-                  {/* RICH TEXT EDITOR */}
-                  <RichTextEditor value={formData.root_cause_html} onChange={(val) => setFormData({...formData, root_cause_html: val})} placeholder="Kök neden analizinizin sonucunu özetleyin..." />
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Kök Neden Açıklaması</label>
+                  <RichTextEditor value={formData.root_cause_html} onChange={(val) => setFormData({...formData, root_cause_html: val})} placeholder="Kök neden analizinizin sonucunu detaylı olarak açıklayın..." minHeight="min-h-[200px]" />
                 </div>
               )}
 
               {activeSection === 'oneri' && (
-                <div className="bg-white rounded-xl p-6 border border-green-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-white rounded-xl p-6 border border-green-100 shadow-sm animate-in fade-in slide-in-from-bottom-2 h-[500px] flex flex-col">
+                  <div className="flex items-center justify-between mb-4 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><Lightbulb className="w-5 h-5 text-green-600" /></div>
                         <div><h3 className="text-lg font-semibold text-gray-900">Öneri (Recommendation)</h3><p className="text-sm text-gray-500">Yönetime sunulan aksiyon planı önerileri</p></div>
                     </div>
-                    <button className="px-4 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI ile Taslak Oluştur</button>
+                    <button type="button" className="px-4 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-bold flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI Taslak Oluştur</button>
                   </div>
-                  {/* RICH TEXT EDITOR */}
-                  <RichTextEditor value={formData.recommendation_html} onChange={(val) => setFormData({...formData, recommendation_html: val})} placeholder="Bulgunun düzeltilmesi için önerilerinizi yazın..." />
+                  <div className="flex-1 flex flex-col min-h-0 mt-2">
+                    <RichTextEditor value={formData.recommendation_html} onChange={(val) => setFormData({...formData, recommendation_html: val})} placeholder="Bulgunun düzeltilmesi için önerilerinizi zengin metin olarak yazın..." minHeight="min-h-full" />
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl shrink-0">
             <button onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-bold">İptal</button>
             <div className="flex gap-3">
               <button onClick={() => handleSave('DRAFT')} className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-bold" disabled={isSubmitting}>Taslak Olarak Kaydet</button>
@@ -400,7 +417,16 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
         </div>
       </div>
 
-      <RegulationSelectorModal isOpen={isRegulationModalOpen} onClose={() => setIsRegulationModalOpen(false)} onSelect={(reg) => { setFormData(prev => ({ ...prev, code: reg.code })); setSelectedRegulation(reg); }} />
+      <RegulationSelectorModal 
+        isOpen={isRegulationModalOpen} 
+        onClose={() => setIsRegulationModalOpen(false)} 
+        onSelect={(reg) => { 
+            // Kütüphaneden seçilen mevzuatı zengin metin (HTML) olarak Kriter editörüne basar
+            const regHtml = `<p><strong>Kategori:</strong> ${reg.category}</p><p><strong>Mevzuat:</strong> ${reg.title}</p><p><strong>Detay:</strong> ${reg.description}</p>`;
+            setFormData(prev => ({ ...prev, code: reg.code, criteria_html: regHtml })); 
+            setSelectedRegulation(reg); 
+        }} 
+      />
     </div>
   );
 };
