@@ -18,6 +18,15 @@ interface NewFindingModalProps {
 
 type FormSection = 'tespit' | 'risk' | 'koken' | 'oneri';
 
+// --- UI ÇEVİRİ SÖZLÜĞÜ (Ekranda Türkçe, Veritabanında İngilizce) ---
+const SEVERITY_TR: Record<string, string> = {
+  CRITICAL: 'Kritik',
+  HIGH: 'Yüksek',
+  MEDIUM: 'Orta',
+  LOW: 'Düşük',
+  OBSERVATION: 'Gözlem'
+};
+
 // --- SENTINEL V3.0 RISK ENGINE (WIF + VETO + SLA) ---
 const BORDO = '#6A0000'; 
 const KIZIL = '#DC143C'; 
@@ -164,7 +173,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
       // 2. API Payload Hazırlığı (Sizin orijinal yapınıza risk motoru eklendi)
       const payload = {
         title: formData.title,
-        severity: liveRisk.severity, // Motorun belirlediği seviye
+        severity: liveRisk.severity, // Motorun belirlediği seviye (İngilizce olarak veritabanına gider)
         status: status,
         category: 'Audit',
         engagement_id: 'GENERAL_AUDIT',
@@ -231,14 +240,15 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   if (!isOpen) return null;
 
   return (
-    // Z-INDEX DÜZELTİLDİ: Sidebar'ın altında kalmasını engellemek için z-50 yerine z-[9999] yapıldı
+    // Z-INDEX DÜZELTİLDİ: Sidebar'ın altında kalmasını engellemek için z-[9999] yapıldı
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+        {/* DÜZELTME: Genişlik max-w-4xl'den max-w-6xl'e (çok daha geniş bir alana) çıkarıldı */}
+        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
           
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
@@ -273,7 +283,8 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                         </div>
                     )}
                     <div style={{ backgroundColor: liveRisk.color_code }} className="px-6 py-2 rounded-xl text-white font-black text-sm tracking-widest shadow-lg transition-colors duration-300">
-                        {liveRisk.severity}: {liveRisk.calculated_score.toFixed(1)}
+                        {/* Ekranda Türkçe gösterim yapılıyor */}
+                        {SEVERITY_TR[liveRisk.severity]}: {liveRisk.calculated_score.toFixed(1)}
                     </div>
                   </div>
               </div>
@@ -315,7 +326,8 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   </label>
                   <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-200 text-gray-700 font-bold cursor-not-allowed flex items-center">
                       <span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: liveRisk.color_code}}></span>
-                      {liveRisk.severity} (Otomatik)
+                      {/* Ekranda Türkçe gösterim yapılıyor */}
+                      {SEVERITY_TR[liveRisk.severity]} (Otomatik)
                   </div>
                 </div>
                 <div>
@@ -460,7 +472,15 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                             {formData.isItRisk && (
                                 <div className="p-4 grid grid-cols-2 gap-4 border-t border-gray-200 bg-white">
                                     <div><label className="text-xs font-bold mb-1 block">CVSS Skoru (0-10)</label><input type="number" step="0.1" value={formData.cvss_score} onChange={e=>setFormData({...formData, cvss_score: parseFloat(e.target.value)})} className="w-full p-2 border rounded-md"/></div>
-                                    <div><label className="text-xs font-bold mb-1 block">Varlık Kritiği</label><select value={formData.asset_criticality} onChange={e=>setFormData({...formData, asset_criticality: e.target.value})} className="w-full p-2 border rounded-md"><option>Minor</option><option>Major</option><option>Critical</option></select></div>
+                                    <div>
+                                        <label className="text-xs font-bold mb-1 block">Varlık Kritiği</label>
+                                        <select value={formData.asset_criticality} onChange={e=>setFormData({...formData, asset_criticality: e.target.value})} className="w-full p-2 border rounded-md">
+                                            {/* DB'ye İngilizce gider, ekranda Türkçe görünür */}
+                                            <option value="Minor">Düşük</option>
+                                            <option value="Major">Orta</option>
+                                            <option value="Critical">Kritik</option>
+                                        </select>
+                                    </div>
                                 </div>
                             )}
                         </div>
