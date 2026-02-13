@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { createPortal } from 'react-dom'; // YENİ: React Portal (Header'ı delip geçmek için)
+import { useState } from 'react';
 import { 
   X, Check, GitBranch, Target, Cpu, Users, Settings, Activity, 
-  FileText, Share, ListOrdered, ShieldAlert, Info, AlertTriangle 
+  FileText, Share, ListOrdered, ShieldAlert, Info, AlertTriangle, Sparkles 
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -36,14 +35,15 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
   });
 
   const updateWhy = (index: number, value: string) => {
-      const newWhys = [...whys];
+      const newWhys = [...(whys || [])];
       newWhys[index] = value;
       setWhys(newWhys);
   };
 
+  // GÜVENLİ HTML ÜRETİCİ (Çökme Korumalı)
   const generateHtmlPreview = () => {
     if (activeMethod === '5whys') {
-      const filledWhys = whys.filter(w => w.trim() !== '');
+      const filledWhys = (whys || []).filter(w => w?.trim() !== '');
       if (filledWhys.length === 0) return '<p class="text-slate-400 italic">Analiz verisi girilmedi...</p>';
       
       return `
@@ -54,33 +54,33 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
       `;
     } 
     else if (activeMethod === 'ishikawa') {
-      const isAnyFieldFilled = Object.values(ishikawa).some(val => val.trim() !== '');
+      const isAnyFieldFilled = Object.values(ishikawa || {}).some(val => val?.trim() !== '');
       if (!isAnyFieldFilled) return '<p class="text-slate-400 italic">Analiz verisi girilmedi...</p>';
 
       return `
         <p><strong>🐟 Gelişmiş Analiz: Balık Kılçığı (Ishikawa 6M)</strong></p>
         <ul>
-            ${ishikawa.man ? `<li><strong>🧑‍🤝‍🧑 İnsan (Man):</strong> ${ishikawa.man}</li>` : ''}
-            ${ishikawa.machine ? `<li><strong>💻 Makine (Machine):</strong> ${ishikawa.machine}</li>` : ''}
-            ${ishikawa.method ? `<li><strong>⚙️ Metot (Method):</strong> ${ishikawa.method}</li>` : ''}
-            ${ishikawa.material ? `<li><strong>📦 Malzeme (Material):</strong> ${ishikawa.material}</li>` : ''}
-            ${ishikawa.measurement ? `<li><strong>📏 Ölçüm (Measurement):</strong> ${ishikawa.measurement}</li>` : ''}
-            ${ishikawa.environment ? `<li><strong>🌍 Ortam (Environment):</strong> ${ishikawa.environment}</li>` : ''}
+            ${ishikawa?.man ? `<li><strong>🧑‍🤝‍🧑 İnsan (Man):</strong> ${ishikawa.man}</li>` : ''}
+            ${ishikawa?.machine ? `<li><strong>💻 Makine (Machine):</strong> ${ishikawa.machine}</li>` : ''}
+            ${ishikawa?.method ? `<li><strong>⚙️ Metot (Method):</strong> ${ishikawa.method}</li>` : ''}
+            ${ishikawa?.material ? `<li><strong>📦 Malzeme (Material):</strong> ${ishikawa.material}</li>` : ''}
+            ${ishikawa?.measurement ? `<li><strong>📏 Ölçüm (Measurement):</strong> ${ishikawa.measurement}</li>` : ''}
+            ${ishikawa?.environment ? `<li><strong>🌍 Ortam (Environment):</strong> ${ishikawa.environment}</li>` : ''}
         </ul>
       `;
     }
     else if (activeMethod === 'bowtie') {
-      if (!bowtie.preventive && !bowtie.event && !bowtie.corrective && !bowtie.consequences) {
+      if (!bowtie?.preventive && !bowtie?.event && !bowtie?.corrective && !bowtie?.consequences) {
           return '<p class="text-slate-400 italic">Analiz verisi girilmedi...</p>';
       }
 
       return `
         <p><strong>🎀 Gelişmiş Analiz: Papyon (Bow-Tie) Risk Modeli</strong></p>
         <ul>
-            ${bowtie.preventive ? `<li><strong>🛡️ Önleyici Kontroller:</strong> ${bowtie.preventive}</li>` : ''}
-            ${bowtie.event ? `<li><strong>💥 Gerçekleşen Olay (Risk):</strong> ${bowtie.event}</li>` : ''}
-            ${bowtie.corrective ? `<li><strong>🩹 Düzeltici Kontroller:</strong> ${bowtie.corrective}</li>` : ''}
-            ${bowtie.consequences ? `<li><strong>📉 Nihai Sonuç ve Etki:</strong> ${bowtie.consequences}</li>` : ''}
+            ${bowtie?.preventive ? `<li><strong>🛡️ Önleyici Kontroller:</strong> ${bowtie.preventive}</li>` : ''}
+            ${bowtie?.event ? `<li><strong>💥 Gerçekleşen Olay (Risk):</strong> ${bowtie.event}</li>` : ''}
+            ${bowtie?.corrective ? `<li><strong>🩹 Düzeltici Kontroller:</strong> ${bowtie.corrective}</li>` : ''}
+            ${bowtie?.consequences ? `<li><strong>📉 Nihai Sonuç ve Etki:</strong> ${bowtie.consequences}</li>` : ''}
         </ul>
       `;
     }
@@ -98,16 +98,20 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
 
   if (!isOpen) return null;
 
-  // YENİ: createPortal ile Drawer'ı tüm HTML ağacının (body) en tepesine fırlatıyoruz!
-  return createPortal(
+  return (
     <>
+      {/* ARKA PLAN MASKESİ - Header'ın altından başlar (top-16) */}
       <div 
-        className={clsx("fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99998] transition-opacity duration-300", isOpen ? "opacity-100" : "opacity-0 pointer-events-none")} 
+        className={clsx(
+            "fixed bottom-0 left-0 right-0 top-[64px] bg-slate-900/40 backdrop-blur-sm z-[40] transition-opacity duration-300", 
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )} 
         onClick={onClose} 
       />
       
+      {/* ÇEKMECE PANELİ - Header'ın altından başlar (top-16) */}
       <div className={clsx(
-        "fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[99999] flex flex-col transform transition-transform duration-300 ease-in-out",
+        "fixed bottom-0 right-0 top-[64px] w-full max-w-2xl bg-white shadow-2xl z-[45] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-slate-200",
         isOpen ? "translate-x-0" : "translate-x-full"
       )}>
         
@@ -254,7 +258,6 @@ export const RootCauseDrawer = ({ isOpen, onClose, onApply }: RootCauseDrawerPro
           </button>
         </div>
       </div>
-    </>,
-    document.body // PORTAL HEDEFİ: Ana HTML Gövdesi!
+    </>
   );
 };
