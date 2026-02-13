@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { 
   X, MessageSquare, History, Network, ShieldCheck, 
-  Sparkles, Bot, AlertCircle 
+  Sparkles, SlidersHorizontal 
 } from 'lucide-react';
 import clsx from 'clsx';
 
-// ALT SEKMELER (Birazdan bunları kodlayacağız)
-// import { ChatPanel } from './components/ChatPanel';
-// import { HistoryPanel } from './components/HistoryPanel';
-// import { RCAPanel } from './components/RCAPanel';
-// import { ReviewPanel } from './components/ReviewPanel';
-// import { AIPanel } from './components/AIPanel';
+// ALT BİLEŞENLERİN İMPORTLARI
+import { ChatPanel } from './components/ChatPanel';
+import { HistoryPanel } from './components/HistoryPanel';
+import { RCAPanel } from './components/RCAPanel';
+import { ReviewPanel } from './components/ReviewPanel';
+import { AIPanel } from './components/AIPanel';
 
+// TİPLER
 export type DrawerTab = 'chat' | 'ai' | 'rca' | 'review' | 'history' | null;
 
 interface UniversalFindingDrawerProps {
@@ -19,9 +20,14 @@ interface UniversalFindingDrawerProps {
   isOpen: boolean;
   defaultTab?: DrawerTab;
   onClose: () => void;
-  // Sizin harika fikriniz: Görünüm değiştirici (View Switcher) desteği
+  
+  // Görünüm Değiştirici (View Switcher) Desteği
   currentViewMode?: 'zen' | 'studio' | 'glass'; 
   onViewModeChange?: (mode: 'zen' | 'studio' | 'glass') => void;
+
+  // Callbackler (Opsiyonel - Parent bileşene veri aktarmak için)
+  onApplyAIDraft?: (draft: any) => void;
+  onApplyRCA?: (html: string, rawData: any) => void;
 }
 
 export function UniversalFindingDrawer({ 
@@ -30,22 +36,25 @@ export function UniversalFindingDrawer({
   defaultTab = 'ai',
   onClose,
   currentViewMode,
-  onViewModeChange
+  onViewModeChange,
+  onApplyAIDraft,
+  onApplyRCA
 }: UniversalFindingDrawerProps) {
   
   const [activeTab, setActiveTab] = useState<DrawerTab>(defaultTab);
 
+  // Çekmece kapalıysa render etme (Performans optimizasyonu)
   if (!isOpen) return null;
 
   return (
     <>
-      {/* ARKA PLAN KARARTMASI */}
+      {/* ARKA PLAN KARARTMASI (Backdrop) */}
       <div 
-        className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[90] transition-opacity duration-300"
+        className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-[90] transition-opacity duration-300"
         onClick={onClose}
       />
 
-      {/* ÇEKMECE PANELİ - Eski RootCauseDrawer'daki gibi sol üst köşesi yuvarlatıldı */}
+      {/* ÇEKMECE PANELİ */}
       <div className={clsx(
         "fixed bottom-0 right-0 top-[64px] w-full max-w-[500px] shadow-[rgba(0,0,0,0.56)_0px_22px_70px_4px] z-[100] flex flex-col transform transition-transform duration-300 ease-in-out border-l rounded-tl-2xl",
         currentViewMode === 'glass' 
@@ -55,7 +64,7 @@ export function UniversalFindingDrawer({
         
         {/* HEADER */}
         <div className={clsx(
-            "h-16 px-6 border-b flex items-center justify-between shrink-0 rounded-tl-2xl z-10",
+            "h-16 px-4 border-b flex items-center justify-between shrink-0 rounded-tl-2xl z-10",
             currentViewMode === 'glass' ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
         )}>
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
@@ -96,23 +105,66 @@ export function UniversalFindingDrawer({
             </button>
         </div>
 
+        {/* OPSİYONEL: GÖRÜNÜM DEĞİŞTİRİCİ (VIEW SWITCHER) */}
+        {onViewModeChange && currentViewMode && (
+          <div className={clsx("px-6 py-2 flex items-center justify-between border-b", currentViewMode === 'glass' ? "bg-white/5 border-white/10" : "bg-blue-50/50 border-blue-100")}>
+             <span className={clsx("text-xs font-bold flex items-center gap-1", currentViewMode === 'glass' ? "text-blue-300" : "text-blue-800")}>
+               <SlidersHorizontal size={14} /> Okuma Modu Değiştir
+             </span>
+             <div className="flex gap-2">
+                <button onClick={() => onViewModeChange('zen')} className={clsx("text-xs font-bold px-2 py-1 rounded", currentViewMode === 'zen' ? "bg-blue-600 text-white" : "text-blue-600 hover:bg-blue-100 bg-white")}>Zen</button>
+                <button onClick={() => onViewModeChange('glass')} className={clsx("text-xs font-bold px-2 py-1 rounded", currentViewMode === 'glass' ? "bg-blue-500 text-white" : "text-blue-600 hover:bg-blue-100 bg-white")}>Glass</button>
+             </div>
+          </div>
+        )}
+
         {/* İÇERİK ALANI */}
         <div className={clsx(
             "flex-1 overflow-y-auto custom-scrollbar relative",
             currentViewMode === 'glass' ? "bg-transparent text-slate-200" : "bg-white text-slate-800"
         )}>
             <div className="p-6 h-full">
-              {/* ALT BİLEŞENLER BURADA ÇAĞRILACAK */}
+              
+              {/* 1. SENTINEL AI PANELİ */}
               {activeTab === 'ai' && (
-                  <div className="text-center mt-20 text-slate-400 animate-pulse">
-                      <Bot size={48} className="mx-auto mb-4 opacity-50" />
-                      <p>Sizin "AITab" ve "NotlarTab" birleşimi buraya gelecek.<br/>(Benzerlik Analizi, Notlardan Bulgu Üretme)</p>
-                  </div>
+                <AIPanel 
+                  findingId={findingId} 
+                  onApplyDraft={(draft) => {
+                    console.log('AI Draft Applied:', draft);
+                    if (onApplyAIDraft) onApplyAIDraft(draft);
+                  }} 
+                />
               )}
-              {activeTab === 'chat' && <div className="text-center mt-20 text-slate-400">"YorumTab" Müzakere Ekranı Gelecek</div>}
-              {activeTab === 'rca' && <div className="text-center mt-20 text-slate-400">"RootCauseDrawer" Kodları Buraya Gelecek</div>}
-              {activeTab === 'review' && <div className="text-center mt-20 text-slate-400">Gözden Geçirme Notları Gelecek</div>}
-              {activeTab === 'history' && <div className="text-center mt-20 text-slate-400">"TarihceTab" Logları Gelecek</div>}
+
+              {/* 2. MÜZAKERE PANELİ */}
+              {activeTab === 'chat' && (
+                <ChatPanel findingId={findingId} />
+              )}
+
+              {/* 3. KÖK NEDEN PANELİ */}
+              {activeTab === 'rca' && (
+                <RCAPanel 
+                  findingId={findingId} 
+                  onApplyAnalysis={(html, raw) => {
+                    console.log('RCA Applied:', raw);
+                    if (onApplyRCA) onApplyRCA(html, raw);
+                  }} 
+                />
+              )}
+
+              {/* 4. GÖZETİM VE ONAY PANELİ */}
+              {activeTab === 'review' && (
+                <ReviewPanel 
+                  findingId={findingId} 
+                  isReviewer={true} // Gerçek uygulamada user role'den gelecek
+                />
+              )}
+
+              {/* 5. TARİHÇE PANELİ */}
+              {activeTab === 'history' && (
+                <HistoryPanel findingId={findingId} />
+              )}
+
             </div>
         </div>
 
@@ -142,15 +194,3 @@ function TabButton({ active, onClick, icon, label, isGlass }: { active: boolean;
     </button>
   );
 }
-
-import { AIPanel } from './components/AIPanel';
-// ...
-{activeTab === 'ai' && <AIPanel findingId={findingId} onApplyDraft={(draft) => console.log(draft)} />}
-
-import { ReviewPanel } from './components/ReviewPanel';
-// ...
-{activeTab === 'review' && <ReviewPanel findingId={findingId} isReviewer={true} />}
-
-import { RCAPanel } from './components/RCAPanel';
-// ...
-{activeTab === 'rca' && <RCAPanel findingId={findingId} onApplyAnalysis={(html, raw) => console.log('RCA Uygulandı:', raw)} />}
