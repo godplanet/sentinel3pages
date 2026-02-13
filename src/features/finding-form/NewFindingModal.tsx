@@ -13,6 +13,9 @@ import { RegulationSelectorModal } from '../finding-studio/components/Regulation
 
 import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 
+// YENİ EKLENEN ÇEKMECE BİLEŞENİ
+import { RootCauseDrawer } from './RootCauseDrawer';
+
 interface NewFindingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,17 +74,37 @@ const MultiSelectDropdown = ({ options, selected, onChange, placeholder }: { opt
 };
 
 // --- SENTINEL V3.0 RISK ENGINE ---
-const BORDO = '#6A0000'; const KIZIL = '#DC143C'; const TURUNCU = '#FFA500'; const SARI = '#FFD700'; const YESIL = '#228B22';   
+const BORDO = '#6A0000'; 
+const KIZIL = '#DC143C'; 
+const TURUNCU = '#FFA500'; 
+const SARI = '#FFD700';    
+const YESIL = '#228B22';   
 
 const calculateRiskEngine = (data: any) => {
-    let finalScore = 0; let severity: FindingSeverity = 'OBSERVATION'; let color_code = YESIL; let is_veto_triggered = false; let veto_reason = undefined;
+    let finalScore = 0; 
+    let severity: FindingSeverity = 'OBSERVATION'; 
+    let color_code = YESIL; 
+    let is_veto_triggered = false; 
+    let veto_reason = undefined;
 
     if (data.isShariahRisk && (data.shariah_impact >= 4 || data.requires_income_purification)) {
-        finalScore = 100; severity = 'CRITICAL'; color_code = BORDO; is_veto_triggered = true; veto_reason = "Şer'i Uyum İhlali (Sıfır Tolerans)";
+        finalScore = 100; 
+        severity = 'CRITICAL'; 
+        color_code = BORDO; 
+        is_veto_triggered = true; 
+        veto_reason = "Şer'i Uyum İhlali (Sıfır Tolerans)";
     } else if (data.isItRisk && data.cvss_score >= 9.0 && data.asset_criticality === 'Critical') {
-        finalScore = 100; severity = 'CRITICAL'; color_code = BORDO; is_veto_triggered = true; veto_reason = "Kritik Siber Zafiyet (CVSS >= 9.0)";
+        finalScore = 100; 
+        severity = 'CRITICAL'; 
+        color_code = BORDO; 
+        is_veto_triggered = true; 
+        veto_reason = "Kritik Siber Zafiyet (CVSS >= 9.0)";
     } else if (data.impact_legal === 5) {
-        finalScore = 90; severity = 'HIGH'; color_code = KIZIL; is_veto_triggered = true; veto_reason = "Aşırı Yasal/Düzenleyici Risk";
+        finalScore = 90; 
+        severity = 'HIGH'; 
+        color_code = KIZIL; 
+        is_veto_triggered = true; 
+        veto_reason = "Aşırı Yasal/Düzenleyici Risk";
     } else {
         const wif = (data.impact_financial * 0.30) + (data.impact_legal * 0.25) + (data.impact_reputation * 0.25) + (data.impact_operational * 0.20);
         const rawScore = wif * data.likelihood_score * (data.control_weakness / 2.5);
@@ -95,11 +118,14 @@ const calculateRiskEngine = (data: any) => {
     }
 
     const getFutureDate = (days: number) => {
-        const d = new Date(); d.setDate(d.getDate() + days);
+        const d = new Date(); 
+        d.setDate(d.getDate() + days);
         return d.toISOString().split('T')[0];
     };
 
-    let due_date = ''; let target_sprints = 0;
+    let due_date = ''; 
+    let target_sprints = 0;
+    
     if (data.sla_type === 'FIXED_DATE') {
         if (severity === 'CRITICAL') due_date = getFutureDate(2);
         else if (severity === 'HIGH') due_date = getFutureDate(30);
@@ -132,6 +158,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegulationModalOpen, setIsRegulationModalOpen] = useState(false);
   const [selectedRegulation, setSelectedRegulation] = useState<any>(null);
+
+  // YENİ: DRAWER STATE
+  const [isRcaDrawerOpen, setIsRcaDrawerOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '', code: '', auditee_department: '', gias_category: '' as GIASCategory | '',
@@ -185,7 +214,11 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
     try {
       const payload = {
-        title: formData.title, severity: liveRisk.severity, status: status, category: 'Audit', engagement_id: 'GENERAL_AUDIT',
+        title: formData.title, 
+        severity: liveRisk.severity, 
+        status: status, 
+        category: 'Audit', 
+        engagement_id: 'GENERAL_AUDIT',
         
         description: formData.detection_html, 
         criteria: formData.code || "N/A", 
@@ -202,17 +235,31 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
           
           regulation_details: selectedRegulation ? { id: selectedRegulation.id, title: selectedRegulation.title, category: selectedRegulation.category } : null,
           risk_engine: {
-              calculated_score: liveRisk.calculated_score, is_veto_triggered: liveRisk.is_veto_triggered, veto_reason: liveRisk.veto_reason,
+              calculated_score: liveRisk.calculated_score, 
+              is_veto_triggered: liveRisk.is_veto_triggered, 
+              veto_reason: liveRisk.veto_reason,
               sla_target: formData.sla_type === 'FIXED_DATE' ? liveRisk.due_date : `${liveRisk.target_sprints} Sprint`,
-              inputs: { financial: formData.impact_financial, legal: formData.impact_legal, reputation: formData.impact_reputation, operational: formData.impact_operational, likelihood: formData.likelihood_score, control: formData.control_weakness }
+              inputs: { 
+                  financial: formData.impact_financial, 
+                  legal: formData.impact_legal, 
+                  reputation: formData.impact_reputation, 
+                  operational: formData.impact_operational, 
+                  likelihood: formData.likelihood_score, 
+                  control: formData.control_weakness 
+              }
           },
-          root_cause_analysis: { category: formData.rca_category, summary_html: formData.root_cause_html, has_advanced_analysis: false }
+          root_cause_analysis: { 
+              category: formData.rca_category, 
+              summary_html: formData.root_cause_html, 
+              has_advanced_analysis: false 
+          }
         }
       };
 
       await comprehensiveFindingApi.create(payload);
       toast.success(status === 'DRAFT' ? 'Bulgu taslak olarak kaydedildi!' : 'Bulgu başarıyla yayınlandı!');
-      onSave(payload); onClose();
+      onSave(payload); 
+      onClose();
     } catch (error: any) {
       console.error('Kayıt Hatası Detayı:', error);
       toast.error(`Kayıt Başarısız: ${error?.message || error?.details || 'Bilinmeyen veritabanı hatası'}`);
@@ -282,7 +329,11 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">GIAS Kategorisi</label>
                     <select value={formData.gias_category} onChange={(e) => setFormData({ ...formData, gias_category: e.target.value as any })} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
-                      <option value="">Seçiniz</option><option value="Operasyonel Risk">Operasyonel Risk</option><option value="Uyum Riski">Uyum Riski</option><option value="Finansal Risk">Finansal Risk</option><option value="Teknolojik Risk">Teknolojik Risk</option>
+                      <option value="">Seçiniz</option>
+                      <option value="Operasyonel Risk">Operasyonel Risk</option>
+                      <option value="Uyum Riski">Uyum Riski</option>
+                      <option value="Finansal Risk">Finansal Risk</option>
+                      <option value="Teknolojik Risk">Teknolojik Risk</option>
                     </select>
                   </div>
                   <div>
@@ -453,7 +504,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                           <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
                           <div><h3 className="text-lg font-bold text-slate-900">Kök Neden Özeti (Cause)</h3></div>
                       </div>
-                      <button type="button" className="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 shadow-sm ring-1 ring-inset ring-red-100">
+                      
+                      {/* ÇEKMECEYİ AÇAN BUTON */}
+                      <button type="button" onClick={() => setIsRcaDrawerOpen(true)} className="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 shadow-sm ring-1 ring-inset ring-red-100">
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                           Gelişmiş RCA Aracı
                       </button>
@@ -510,6 +563,17 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
       </div>
 
       <RegulationSelectorModal isOpen={isRegulationModalOpen} onClose={() => setIsRegulationModalOpen(false)} onSelect={(reg) => { const regHtml = `<p><strong>Kategori:</strong> ${reg.category}</p><p><strong>Mevzuat:</strong> ${reg.title}</p><p><strong>Detay:</strong> ${reg.description}</p>`; setFormData(prev => ({ ...prev, code: reg.code, criteria_html: regHtml })); setSelectedRegulation(reg); }} />
+      
+      {/* DRAWER BİLEŞENİ BURADA ÇAĞRILIYOR */}
+      <RootCauseDrawer 
+        isOpen={isRcaDrawerOpen} 
+        onClose={() => setIsRcaDrawerOpen(false)} 
+        onApply={(html) => { 
+            // Çekmeceden gelen HTML verisini mevcut verinin üzerine ekler
+            setFormData({...formData, root_cause_html: formData.root_cause_html + html}); 
+            setIsRcaDrawerOpen(false); 
+        }} 
+      />
     </div>
   );
 };
