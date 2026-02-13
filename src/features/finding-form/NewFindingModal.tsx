@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { 
+  X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2, 
+  Banknote, Scale, Building, HeartPulse, ChevronsRight, ShieldCheck, Clock, 
+  ToggleRight, ToggleLeft, CheckSquare, Square 
+} from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
 
-// DÜZELTME: @ alias'ı yerine garanti çalışan relative path kullanıldı
 import type { FindingSeverity, GIASCategory } from '../../entities/finding/model/types';
 import { comprehensiveFindingApi } from '../../entities/finding/api/module5-api';
 
@@ -15,33 +18,123 @@ interface NewFindingModalProps {
 
 type FormSection = 'tespit' | 'risk' | 'koken' | 'oneri';
 
+// --- SENTINEL V3.0 RISK ENGINE (WIF + VETO + SLA) ---
+const BORDO = '#6A0000'; 
+const KIZIL = '#DC143C'; 
+const TURUNCU = '#FFA500'; 
+const SARI = '#FFD700';    
+const YESIL = '#228B22';   
+
+const calculateRiskEngine = (data: any) => {
+    let finalScore = 0;
+    let severity: FindingSeverity = 'OBSERVATION';
+    let color_code = YESIL;
+    let is_veto_triggered = false;
+    let veto_reason = undefined;
+
+    // 1. VETO GATES
+    if (data.isShariahRisk && (data.shariah_impact >= 4 || data.requires_income_purification)) {
+        finalScore = 100; severity = 'CRITICAL'; color_code = BORDO; is_veto_triggered = true; veto_reason = "Şer'i Uyum İhlali (Sıfır Tolerans)";
+    }
+    else if (data.isItRisk && data.cvss_score >= 9.0 && data.asset_criticality === 'Critical') {
+        finalScore = 100; severity = 'CRITICAL'; color_code = BORDO; is_veto_triggered = true; veto_reason = "Kritik Siber Zafiyet (CVSS >= 9.0)";
+    }
+    else if (data.impact_legal === 5) {
+        finalScore = 90; severity = 'HIGH'; color_code = KIZIL; is_veto_triggered = true; veto_reason = "Aşırı Yasal/Düzenleyici Risk";
+    }
+    // 2. STANDARD WIF CALCULATION
+    else {
+        const wif = (data.impact_financial * 0.30) + (data.impact_legal * 0.25) + (data.impact_reputation * 0.25) + (data.impact_operational * 0.20);
+        const rawScore = wif * data.likelihood_score * (data.control_weakness / 2.5);
+        finalScore = Math.min(100, (rawScore / 12.5) * 100);
+
+        if (finalScore >= 80) { severity = 'CRITICAL'; color_code = BORDO; }
+        else if (finalScore >= 60) { severity = 'HIGH'; color_code = KIZIL; }
+        else if (finalScore >= 30) { severity = 'MEDIUM'; color_code = TURUNCU; }
+        else if (finalScore >= 10) { severity = 'LOW'; color_code = SARI; }
+        else { severity = 'OBSERVATION'; color_code = YESIL; }
+    }
+
+    // 3. DYNAMIC SLA ENGINE (Native JS Date)
+    const getFutureDate = (days: number) => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    };
+
+    let due_date = '';
+    let target_sprints = 0;
+
+    if (data.sla_type === 'FIXED_DATE') {
+        if (severity === 'CRITICAL') due_date = getFutureDate(2); // 48 Hours
+        else if (severity === 'HIGH') due_date = getFutureDate(30);
+        else if (severity === 'MEDIUM') due_date = getFutureDate(60);
+        else if (severity === 'LOW') due_date = getFutureDate(90);
+    } else {
+        if (severity === 'CRITICAL') target_sprints = 1;
+        else if (severity === 'HIGH') target_sprints = 2;
+        else if (severity === 'MEDIUM') target_sprints = 4;
+        else target_sprints = 6;
+    }
+
+    return { calculated_score: finalScore, severity, color_code, is_veto_triggered, veto_reason, due_date, target_sprints };
+};
+
+// --- REUSABLE SLIDER COMPONENT ---
+const RiskSlider = ({ label, value, onChange, icon: Icon }: { label: string, value: number, onChange: (val: number) => void, icon: any }) => (
+    <div className="group mb-4">
+        <label className="flex items-center text-sm font-medium text-gray-700 mb-2 group-hover:text-blue-600 transition-colors">
+            <Icon className="w-4 h-4 mr-2 text-gray-400 group-hover:text-blue-500" />
+            {label}
+        </label>
+        <div className="flex items-center gap-4">
+            <input type="range" min="1" max="5" step="0.1" value={value} onChange={e => onChange(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+            <span className="font-bold text-sm text-blue-700 w-12 text-center bg-blue-50 rounded-md py-1 border border-blue-100">
+                {value.toFixed(1)}
+            </span>
+        </div>
+    </div>
+);
+
 export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProps) => {
   const [activeSection, setActiveSection] = useState<FormSection>('tespit');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State
+  // Form State (Combined original state + new risk engine state)
   const [formData, setFormData] = useState({
     title: '',
     code: '',
-    severity: 'MEDIUM' as FindingSeverity,
     gias_category: '' as GIASCategory | '',
     auditee_department: '',
-
-    detection: '', // Tespit
-    impact: '',    // Etki
-    root_cause: '', // Kök Neden Özeti
-    recommendation: '', // Öneri
-
+    detection: '', 
+    impact: '',    
+    root_cause: '', 
+    recommendation: '', 
+    financial_impact: 0,
+    
+    // Legacy mapping (kept for backward compatibility with your DB)
     impact_score: 3,
     likelihood_score: 3,
-    financial_impact: 0,
 
     // 5-Whys
-    why_1: '',
-    why_2: '',
-    why_3: '',
-    why_4: '',
-    why_5: '',
+    why_1: '', why_2: '', why_3: '', why_4: '', why_5: '',
+
+    // Sentinel V3 Risk Variables
+    impact_financial: 1,
+    impact_legal: 1,
+    impact_reputation: 1,
+    impact_operational: 1,
+    control_weakness: 1,
+    sla_type: 'FIXED_DATE',
+
+    // Veto Modules
+    isItRisk: false,
+    cvss_score: 0,
+    asset_criticality: 'Minor',
+    isShariahRisk: false,
+    shariah_impact: 1,
+    requires_income_purification: false,
   });
 
   const sections = [
@@ -51,7 +144,10 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
     { id: 'oneri' as const, label: 'Öneri', icon: Lightbulb, color: 'green' },
   ];
 
-  const handleSave = async () => {
+  // Live Risk Calculation
+  const liveRisk = useMemo(() => calculateRiskEngine(formData), [formData]);
+
+  const handleSave = async (status: 'DRAFT' | 'PUBLISHED' = 'DRAFT') => {
     // 1. Validasyon
     if (!formData.title.trim()) {
       toast.error('Lütfen bulgu başlığı giriniz.');
@@ -65,11 +161,11 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
     setIsSubmitting(true);
 
     try {
-      // 2. API Payload Hazırlığı
+      // 2. API Payload Hazırlığı (Sizin orijinal yapınıza risk motoru eklendi)
       const payload = {
         title: formData.title,
-        severity: formData.severity,
-        status: 'DRAFT',
+        severity: liveRisk.severity, // Motorun belirlediği seviye
+        status: status,
         category: 'Audit',
         engagement_id: 'GENERAL_AUDIT',
         
@@ -82,20 +178,35 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
           impact_text: formData.impact,
           recommendation_text: formData.recommendation,
           financial_impact: formData.financial_impact,
+          
+          // Legacy support
           risk_scores: {
             impact: formData.impact_score,
             likelihood: formData.likelihood_score,
             total: formData.impact_score * formData.likelihood_score
           },
+
+          // Sentinel V3.0 Engine Results
+          risk_engine: {
+              calculated_score: liveRisk.calculated_score,
+              is_veto_triggered: liveRisk.is_veto_triggered,
+              veto_reason: liveRisk.veto_reason,
+              sla_target: formData.sla_type === 'FIXED_DATE' ? liveRisk.due_date : `${liveRisk.target_sprints} Sprint`,
+              inputs: {
+                  financial: formData.impact_financial,
+                  legal: formData.impact_legal,
+                  reputation: formData.impact_reputation,
+                  operational: formData.impact_operational,
+                  likelihood: formData.likelihood_score, // Using original state
+                  control: formData.control_weakness
+              }
+          },
+
           root_cause_analysis: {
             summary: formData.root_cause,
             method: '5-Whys',
             whys: [
-              formData.why_1,
-              formData.why_2,
-              formData.why_3,
-              formData.why_4,
-              formData.why_5
+              formData.why_1, formData.why_2, formData.why_3, formData.why_4, formData.why_5
             ].filter(w => w)
           }
         }
@@ -105,7 +216,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
       await comprehensiveFindingApi.create(payload);
 
       // 4. Başarı İşlemleri
-      toast.success('Bulgu başarıyla kaydedildi!');
+      toast.success(status === 'DRAFT' ? 'Bulgu taslak olarak kaydedildi!' : 'Bulgu başarıyla yayınlandı!');
       onSave(payload);
       onClose();
       
@@ -120,27 +231,52 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    // Z-INDEX DÜZELTİLDİ: Sidebar'ın altında kalmasını engellemek için z-50 yerine z-[9999] yapıldı
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+          
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Yeni Bulgu Oluştur</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Tespit edilen bulguyu detaylı olarak kaydedin
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6 text-gray-500" />
-            </button>
+          <div className="bg-white border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 pb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Yeni Bulgu Oluştur</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Sentinel V3.0 WIF ve Veto Motoru Devrede
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-500" />
+                </button>
+              </div>
+
+              {/* LIVE SCORING BANNER */}
+              <div className="px-6 pb-4 flex justify-between items-center bg-gray-50">
+                  <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm mt-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-semibold text-gray-600">Hedef Aksiyon (SLA):</span>
+                      <span className="font-bold text-gray-900">
+                          {formData.sla_type === 'FIXED_DATE' ? liveRisk.due_date : `${liveRisk.target_sprints} Sprint`}
+                      </span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2">
+                    {liveRisk.is_veto_triggered && (
+                        <div className="px-3 py-1.5 rounded-lg bg-red-100 text-red-800 text-xs font-bold border border-red-200 flex items-center gap-2 animate-pulse">
+                            <AlertTriangle className="w-4 h-4" /> VETO: {liveRisk.veto_reason}
+                        </div>
+                    )}
+                    <div style={{ backgroundColor: liveRisk.color_code }} className="px-6 py-2 rounded-xl text-white font-black text-sm tracking-widest shadow-lg transition-colors duration-300">
+                        {liveRisk.severity}: {liveRisk.calculated_score.toFixed(1)}
+                    </div>
+                  </div>
+              </div>
           </div>
 
           {/* Content */}
@@ -175,21 +311,12 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Önem Seviyesi *
+                    Sistem Tarafından Atanan Seviye
                   </label>
-                  <select
-                    value={formData.severity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, severity: e.target.value as FindingSeverity })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                  >
-                    <option value="CRITICAL">Kritik</option>
-                    <option value="HIGH">Yüksek</option>
-                    <option value="MEDIUM">Orta</option>
-                    <option value="LOW">Düşük</option>
-                    <option value="OBSERVATION">Gözlem</option>
-                  </select>
+                  <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-200 text-gray-700 font-bold cursor-not-allowed flex items-center">
+                      <span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: liveRisk.color_code}}></span>
+                      {liveRisk.severity} (Otomatik)
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -254,9 +381,10 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
             {/* Section Content */}
             <div className="space-y-6">
+              
               {/* TESPİT */}
               {activeSection === 'tespit' && (
-                <div className="bg-blue-50 rounded-lg p-6">
+                <div className="bg-blue-50 rounded-lg p-6 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                       <FileSearch className="w-5 h-5 text-white" />
@@ -280,82 +408,94 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
                 </div>
               )}
 
-              {/* RİSK & ETKİ */}
+              {/* RİSK & ETKİ (SENTINEL V3 MOTORU) */}
               {activeSection === 'risk' && (
-                <div className="bg-orange-50 rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-orange-900">Risk & Etki</h3>
-                      <p className="text-sm text-orange-700">
-                        Bulgunun risk değerlendirmesi ve etkisi
-                      </p>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2">
+                    {/* Engine Inputs */}
+                    <div className="bg-orange-50 rounded-lg p-6 border border-orange-100">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-orange-900">Etki Motoru (WIF)</h3>
+                                <p className="text-sm text-orange-700">Sentinel V3.0 Algoritması</p>
+                            </div>
+                        </div>
 
-                  {/* Risk Skorları */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-orange-900 mb-2">
-                        Etki Skoru (1-5)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={formData.impact_score}
-                        onChange={(e) =>
-                          setFormData({ ...formData, impact_score: parseInt(e.target.value) })
-                        }
-                        className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                      />
+                        <RiskSlider label="Finansal Etki" value={formData.impact_financial} onChange={v => setFormData({...formData, impact_financial: v})} icon={Banknote} />
+                        <RiskSlider label="Yasal Etki" value={formData.impact_legal} onChange={v => setFormData({...formData, impact_legal: v})} icon={Scale} />
+                        <RiskSlider label="İtibar Etkisi" value={formData.impact_reputation} onChange={v => setFormData({...formData, impact_reputation: v})} icon={Building} />
+                        <RiskSlider label="Operasyonel Etki" value={formData.impact_operational} onChange={v => setFormData({...formData, impact_operational: v})} icon={HeartPulse} />
+                        <div className="my-5 border-t border-orange-200"></div>
+                        <RiskSlider label="Gerçekleşme Olasılığı" value={formData.likelihood_score} onChange={v => setFormData({...formData, likelihood_score: v})} icon={ChevronsRight} />
+                        <RiskSlider label="Kontrol Zafiyeti" value={formData.control_weakness} onChange={v => setFormData({...formData, control_weakness: v})} icon={ShieldCheck} />
+                        
+                        <div className="mt-6">
+                            <label className="block text-sm font-medium text-orange-900 mb-2">
+                                Ölçülebilir Finansal Etki (TL)
+                            </label>
+                            <input type="number" value={formData.financial_impact} onChange={(e) => setFormData({ ...formData, financial_impact: parseFloat(e.target.value) })} className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white" placeholder="0" />
+                        </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-orange-900 mb-2">
-                        Olasılık Skoru (1-5)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={formData.likelihood_score}
-                        onChange={(e) =>
-                          setFormData({ ...formData, likelihood_score: parseInt(e.target.value) })
-                        }
-                        className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-orange-900 mb-2">
-                        Finansal Etki (TL)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.financial_impact}
-                        onChange={(e) =>
-                          setFormData({ ...formData, financial_impact: parseFloat(e.target.value) })
-                        }
-                        className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
 
-                  <textarea
-                    value={formData.impact}
-                    onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
-                    className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none bg-white"
-                    rows={10}
-                    placeholder="Bulgunun organizasyon üzerindeki risk ve etkisini detaylı olarak açıklayın..."
-                  />
+                    {/* Veto & Details */}
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-lg p-5 border border-gray-200 shadow-sm">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Aksiyon Tipi (SLA)</label>
+                            <select value={formData.sla_type} onChange={e => setFormData({...formData, sla_type: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                                <option value="FIXED_DATE">Takvim Günü (Sabit SLA)</option>
+                                <option value="AGILE_SPRINT">Agile Sprint</option>
+                            </select>
+                        </div>
+
+                        {/* Veto Toggles */}
+                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                            <div className="flex items-center justify-between p-4 bg-gray-50">
+                                <div><p className="font-bold text-sm text-gray-800">IT / Siber Risk mi?</p></div>
+                                <button onClick={() => setFormData({...formData, isItRisk: !formData.isItRisk})}>
+                                    {formData.isItRisk ? <ToggleRight className="w-10 h-10 text-blue-600" /> : <ToggleLeft className="w-10 h-10 text-gray-400" />}
+                                </button>
+                            </div>
+                            {formData.isItRisk && (
+                                <div className="p-4 grid grid-cols-2 gap-4 border-t border-gray-200 bg-white">
+                                    <div><label className="text-xs font-bold mb-1 block">CVSS Skoru (0-10)</label><input type="number" step="0.1" value={formData.cvss_score} onChange={e=>setFormData({...formData, cvss_score: parseFloat(e.target.value)})} className="w-full p-2 border rounded-md"/></div>
+                                    <div><label className="text-xs font-bold mb-1 block">Varlık Kritiği</label><select value={formData.asset_criticality} onChange={e=>setFormData({...formData, asset_criticality: e.target.value})} className="w-full p-2 border rounded-md"><option>Minor</option><option>Major</option><option>Critical</option></select></div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                            <div className="flex items-center justify-between p-4 bg-gray-50">
+                                <div><p className="font-bold text-sm text-gray-800">Şer'i Uyum İhlali mi?</p></div>
+                                <button onClick={() => setFormData({...formData, isShariahRisk: !formData.isShariahRisk})}>
+                                    {formData.isShariahRisk ? <ToggleRight className="w-10 h-10 text-emerald-600" /> : <ToggleLeft className="w-10 h-10 text-gray-400" />}
+                                </button>
+                            </div>
+                            {formData.isShariahRisk && (
+                                <div className="p-4 border-t border-gray-200 bg-white">
+                                    <RiskSlider label="Şer'i İhlal Etkisi" value={formData.shariah_impact} onChange={v => setFormData({...formData, shariah_impact: v})} icon={Scale} />
+                                    <button onClick={() => setFormData({...formData, requires_income_purification: !formData.requires_income_purification})} className="mt-2 flex items-center gap-2 text-sm font-bold text-gray-700 p-2 border rounded-lg w-full bg-gray-50">
+                                        {formData.requires_income_purification ? <CheckSquare className="w-5 h-5 text-emerald-600"/> : <Square className="w-5 h-5 text-gray-400"/>} Gelir Arındırması Gerektirir
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <textarea
+                            value={formData.impact}
+                            onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
+                            className="w-full px-4 py-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none bg-white"
+                            rows={4}
+                            placeholder="Bulgunun organizasyon üzerindeki genel etkisini yazıyla özetleyin..."
+                        />
+                    </div>
                 </div>
               )}
 
               {/* KÖK NEDEN ANALİZİ (5-WHYS) */}
               {activeSection === 'koken' && (
-                <div className="bg-red-50 rounded-lg p-6">
+                <div className="bg-red-50 rounded-lg p-6 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                       <AlertTriangle className="w-5 h-5 text-white" />
@@ -408,7 +548,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
 
               {/* ÖNERİ */}
               {activeSection === 'oneri' && (
-                <div className="bg-green-50 rounded-lg p-6">
+                <div className="bg-green-50 rounded-lg p-6 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                       <Lightbulb className="w-5 h-5 text-white" />
@@ -447,13 +587,14 @@ export const NewFindingModal = ({ isOpen, onClose, onSave }: NewFindingModalProp
             </button>
             <div className="flex gap-3">
               <button 
+                onClick={() => handleSave('DRAFT')}
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
                 disabled={isSubmitting}
               >
                 Taslak Olarak Kaydet
               </button>
               <button
-                onClick={handleSave}
+                onClick={() => handleSave('PUBLISHED')}
                 disabled={isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
