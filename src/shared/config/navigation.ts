@@ -46,6 +46,7 @@ import {
   Zap,
   GitBranch,
   Database,
+  Sliders // YENİ: Metodoloji ayarları için eklendi
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -174,12 +175,7 @@ export const navigationConfig: NavigationItem[] = [
         path: '/resources/talent-os',
         icon: UserCheck,
       },
-      {
-        id: 'methodology',
-        label: 'Risk Metodolojisi',
-        path: '/settings/methodology',
-        icon: FileText,
-      },
+      // NOT: "Risk Metodolojisi" buradan kaldırılıp Sistem Ayarlarına taşındı!
       {
         id: 'quant-analysis',
         label: 'Kantitatif Analiz',
@@ -513,6 +509,19 @@ export const navigationConfig: NavigationItem[] = [
         path: '/settings/risk-constitution',
         icon: FileText,
       },
+      // YENİ DÜZENLEME: Metodoloji ve Şablonlar mantıklı bir sıra ile eklendi
+      {
+        id: 'methodology',
+        label: 'Metodoloji & Parametreler',
+        path: '/settings/methodology',
+        icon: Sliders,
+      },
+      {
+        id: 'templates',
+        label: 'Şablon Yöneticisi',
+        path: '/settings/templates',
+        icon: FileText,
+      },
       {
         id: 'users',
         label: 'Kullanıcılar',
@@ -541,12 +550,6 @@ export const navigationConfig: NavigationItem[] = [
         id: 'custom-fields',
         label: 'Özel Alanlar',
         path: '/settings/custom-fields',
-        icon: FileText,
-      },
-      {
-        id: 'templates',
-        label: 'Şablon Yöneticisi',
-        path: '/settings/templates',
         icon: FileText,
       },
       {
@@ -579,30 +582,7 @@ export const navigationConfig: NavigationItem[] = [
 
 /**
  * PAGE COVERAGE AUDIT (95+ Pages Mapped)
- *
- * SIDEBAR (Direct L2 Links): ~65 pages
- * DASHBOARD TABS: 3 sub-views (Genel, Stratejik, Ekosistem)
- * RESOURCES TABS: 4 sub-views (Profiles, Talent, Timesheets, Capacity)
- * QAIP TABS: 5 sub-views (Internal, Reviews, KPI, External, Surveys)
- * CCM TABS: 3 sub-views (Predator, Anomalies, Data Monitor)
- * EXECUTION DETAIL: Sprint boards, workpaper detail pages
- * REPORTING DETAIL: Report editor pages
- * INVESTIGATION DETAIL: Case detail pages
- * ADVISORY DETAIL: Advisory workspace pages
- * AUDITEE PORTAL: Separate layout with 3+ pages
- * VENDOR PORTAL: Token-based access pages
- *
- * ORPHANED PAGES (Must be accessible via other means):
- * - /execution/start - Wizard accessed via button
- * - /execution/new-engagement - Modal/wizard
- * - /execution/sprint-board/:id - Detail page
- * - /reporting/edit/:id - Detail page
- * - /investigation/:id - Detail page
- * - /advisory/:id - Workspace detail
- * - /portal/:findingId - Negotiation (auditee)
- * - /auditee-portal - Separate public portal
- * - /demo/* - Developer tools
- * - /login, /403, /404 - System pages
+ * ...
  */
 
 export function getAllNavigationPaths(): string[] {
