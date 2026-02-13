@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/shared/ui';
 import {
   Settings, Save, RotateCcw, Loader2, CheckCircle2, XCircle,
-  Sliders, Zap, Palette, Activity, AlertTriangle,
+  Sliders, Zap, Palette, Activity, AlertTriangle, ListTree, Calculator, Plus, Trash2, GripVertical
 } from 'lucide-react';
 import clsx from 'clsx';
 import {
@@ -15,6 +15,7 @@ import type { RiskImpacts, VelocityLevel, RiskConfiguration } from '@/features/r
 
 type WeightKey = 'financial' | 'reputation' | 'operational' | 'legal';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type ActiveTab = 'engine' | 'parameters';
 
 const WEIGHT_META: { key: WeightKey; label: string; color: string }[] = [
   { key: 'financial', label: 'Finansal Etki', color: '#2563eb' },
@@ -31,7 +32,11 @@ const VELOCITY_OPTIONS: { value: VelocityLevel; label: string }[] = [
 
 export default function MethodologyPage() {
   const { config, loading, updateConfig } = useRiskMethodology();
+  
+  // SEKME YÖNETİMİ
+  const [activeTab, setActiveTab] = useState<ActiveTab>('engine');
 
+  // RİSK MOTORU STATE'LERİ (Orijinal)
   const [weights, setWeights] = useState<Record<WeightKey, number>>({
     financial: 0.3, reputation: 0.25, operational: 0.25, legal: 0.2,
   });
@@ -167,62 +172,213 @@ export default function MethodologyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <PageHeader
-        title="Stratejik Risk Metodolojisi"
-        description="KERD-2026 Anayasasi -- Parametrik Risk Motoru Konfigurasyonu"
+        title="Metodoloji ve Parametreler"
+        description="KERD-2026 Anayasasi: Risk Motoru ve Sistem Sınıflandırmaları"
         icon={Settings}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <WeightsCard
-            weights={weights}
-            totalWeight={totalWeight}
-            isValid={isWeightValid}
-            onChange={handleWeightChange}
-          />
-          <VelocityCard
-            high={velocityHigh}
-            medium={velocityMedium}
-            onHighChange={v => { setVelocityHigh(v); setSaveStatus('idle'); }}
-            onMediumChange={v => { setVelocityMedium(v); setSaveStatus('idle'); }}
-          />
-          <ThresholdsCard
-            critical={thresholdCritical}
-            high={thresholdHigh}
-            medium={thresholdMedium}
-            onCriticalChange={v => { setThresholdCritical(v); setSaveStatus('idle'); }}
-            onHighChange={v => { setThresholdHigh(v); setSaveStatus('idle'); }}
-            onMediumChange={v => { setThresholdMedium(v); setSaveStatus('idle'); }}
-          />
-          <SaveBar
-            status={saveStatus}
-            isValid={isWeightValid}
-            onSave={handleSave}
-            onReset={handleReset}
-          />
-        </div>
-
-        <div className="lg:sticky lg:top-20 lg:self-start">
-          <SimulatorPanel
-            weights={weights}
-            velocityHigh={velocityHigh}
-            velocityMedium={velocityMedium}
-            liveScore={liveScore}
-            liveZone={liveZone}
-            simImpacts={simImpacts}
-            simLikelihood={simLikelihood}
-            simVelocity={simVelocity}
-            onImpactChange={(k, v) => setSimImpacts(prev => ({ ...prev, [k]: v }))}
-            onLikelihoodChange={setSimLikelihood}
-            onVelocityChange={setSimVelocity}
-          />
-        </div>
+      {/* SEKME NAVİGASYONU */}
+      <div className="flex gap-2 border-b border-slate-200">
+          <button 
+              onClick={() => setActiveTab('engine')}
+              className={clsx(
+                  "px-6 py-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors",
+                  activeTab === 'engine' ? "border-blue-600 text-blue-700 bg-blue-50/50" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+              )}
+          >
+              <Calculator size={18} /> Risk Motoru (WIF)
+          </button>
+          <button 
+              onClick={() => setActiveTab('parameters')}
+              className={clsx(
+                  "px-6 py-3.5 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors",
+                  activeTab === 'parameters' ? "border-indigo-600 text-indigo-700 bg-indigo-50/50" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+              )}
+          >
+              <ListTree size={18} /> Sınıflandırma ve Parametreler
+          </button>
       </div>
+
+      {/* SEKME 1: ORİJİNAL RİSK MOTORU */}
+      {activeTab === 'engine' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="lg:col-span-2 space-y-4">
+            <WeightsCard weights={weights} totalWeight={totalWeight} isValid={isWeightValid} onChange={handleWeightChange} />
+            <VelocityCard high={velocityHigh} medium={velocityMedium} onHighChange={v => { setVelocityHigh(v); setSaveStatus('idle'); }} onMediumChange={v => { setVelocityMedium(v); setSaveStatus('idle'); }} />
+            <ThresholdsCard critical={thresholdCritical} high={thresholdHigh} medium={thresholdMedium} onCriticalChange={v => { setThresholdCritical(v); setSaveStatus('idle'); }} onHighChange={v => { setThresholdHigh(v); setSaveStatus('idle'); }} onMediumChange={v => { setThresholdMedium(v); setSaveStatus('idle'); }} />
+            <SaveBar status={saveStatus} isValid={isWeightValid} onSave={handleSave} onReset={handleReset} />
+          </div>
+
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <SimulatorPanel weights={weights} velocityHigh={velocityHigh} velocityMedium={velocityMedium} liveScore={liveScore} liveZone={liveZone} simImpacts={simImpacts} simLikelihood={simLikelihood} simVelocity={simVelocity} onImpactChange={(k, v) => setSimImpacts(prev => ({ ...prev, [k]: v }))} onLikelihoodChange={setSimLikelihood} onVelocityChange={setSimVelocity} />
+          </div>
+        </div>
+      )}
+
+      {/* SEKME 2: YENİ PARAMETRE YÖNETİMİ (FAZ 3) */}
+      {activeTab === 'parameters' && (
+         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+             <ParameterManagementTab />
+         </div>
+      )}
     </div>
   );
 }
+
+// ============================================================================
+// YENİ BİLEŞENLER: PARAMETRE YÖNETİMİ (FAZ 3)
+// ============================================================================
+
+function ParameterManagementTab() {
+    // Örnek State'ler (Gerçekte Supabase'den gelecek)
+    const [giasCategories, setGiasCategories] = useState([
+        { id: '1', label: 'Operasyonel Risk' },
+        { id: '2', label: 'Uyum Riski' },
+        { id: '3', label: 'Finansal Risk' },
+        { id: '4', label: 'Teknolojik Risk' },
+    ]);
+
+    const [rcaCategories, setRcaCategories] = useState([
+        { id: '1', label: 'İnsan Hatası / Farkındalık Eksikliği' },
+        { id: '2', label: 'Sistem / Altyapı / Yazılım Hatası' },
+        { id: '3', label: 'Süreç Tasarımı / Prosedür Eksikliği' },
+        { id: '4', label: 'Dış Etken / Üçüncü Taraf' },
+    ]);
+
+    const [riskTypes, setRiskTypes] = useState([
+        { id: 'operational', label: 'Operasyonel Risk' },
+        { id: 'legal', label: 'Yasal / Uyum Riski' },
+        { id: 'reputation', label: 'İtibar Riski' },
+        { id: 'credit', label: 'Kredi Riski' },
+        { id: 'market', label: 'Piyasa Riski' },
+        { id: 'cyber', label: 'Siber / Bilgi Güvenliği Riski' },
+    ]);
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ParameterListManager 
+                title="GIAS Kategorileri" 
+                description="Bulgu formunda seçilebilecek ana denetim standartları."
+                items={giasCategories} 
+                setItems={setGiasCategories} 
+                icon={<BookOpen className="text-indigo-500" />}
+                colorTheme="indigo"
+            />
+            
+            <ParameterListManager 
+                title="Kök Neden (RCA) Sınıflandırmaları" 
+                description="5-Whys veya Ishikawa analizleri sonucunda atanacak kök neden tipleri."
+                items={rcaCategories} 
+                setItems={setRcaCategories} 
+                icon={<AlertTriangle className="text-red-500" />}
+                colorTheme="red"
+            />
+
+            <div className="lg:col-span-2">
+                <ParameterListManager 
+                    title="Basel Risk Türleri" 
+                    description="Bulgu risk ve etki sekmesinde çoklu olarak seçilebilecek risk kategorileri."
+                    items={riskTypes} 
+                    setItems={setRiskTypes} 
+                    icon={<AlertCircle className="text-violet-500" />}
+                    colorTheme="violet"
+                />
+            </div>
+        </div>
+    );
+}
+
+function ParameterListManager({ title, description, items, setItems, icon, colorTheme }: any) {
+    const [newItemLabel, setNewItemLabel] = useState('');
+
+    const handleAdd = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newItemLabel.trim()) return;
+        
+        const newItem = {
+            id: Math.random().toString(36).substring(7),
+            label: newItemLabel.trim()
+        };
+        setItems([...items, newItem]);
+        setNewItemLabel('');
+        toast.success(`"${newItem.label}" başarıyla eklendi.`);
+    };
+
+    const handleRemove = (id: string) => {
+        const itemToRemove = items.find((i:any) => i.id === id);
+        setItems(items.filter((i:any) => i.id !== id));
+        toast.success(`"${itemToRemove?.label}" listeden silindi.`);
+    };
+
+    return (
+        <div className={`bg-white border border-${colorTheme}-100 rounded-xl shadow-sm flex flex-col h-full ring-1 ring-inset ring-${colorTheme}-50 overflow-hidden`}>
+            {/* Üst Bilgi */}
+            <div className={`p-5 bg-${colorTheme}-50/30 border-b border-${colorTheme}-100`}>
+                <div className="flex items-center gap-3 mb-1">
+                    <div className={`w-8 h-8 rounded-lg bg-${colorTheme}-100 flex items-center justify-center`}>
+                        {icon}
+                    </div>
+                    <h3 className="text-base font-bold text-slate-800">{title}</h3>
+                </div>
+                <p className="text-xs text-slate-500 ml-11">{description}</p>
+            </div>
+
+            {/* Ekleme Formu */}
+            <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                <form onSubmit={handleAdd} className="flex gap-2">
+                    <input 
+                        type="text" 
+                        value={newItemLabel} 
+                        onChange={(e) => setNewItemLabel(e.target.value)}
+                        placeholder="Yeni kategori adı yazın..."
+                        className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={!newItemLabel.trim()}
+                        className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Plus size={16} /> Ekle
+                    </button>
+                </form>
+            </div>
+
+            {/* Liste */}
+            <div className="flex-1 p-2 bg-white">
+                {items.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 text-sm italic">Henüz bir kategori eklenmemiş.</div>
+                ) : (
+                    <div className="space-y-1">
+                        {items.map((item: any) => (
+                            <div key={item.id} className="group flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg border border-transparent hover:border-slate-100 transition-all">
+                                <GripVertical className="text-slate-300 cursor-grab active:cursor-grabbing opacity-50 group-hover:opacity-100" size={16} />
+                                <span className="flex-1 text-sm font-semibold text-slate-700">{item.label}</span>
+                                <button 
+                                    onClick={() => handleRemove(item.id)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                                    title="Sil"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            
+            <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                <p className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">Toplam {items.length} Kayıt</p>
+            </div>
+        </div>
+    );
+}
+
+
+// ============================================================================
+// ORİJİNAL ALT BİLEŞENLER (BİREBİR KORUNMUŞTUR)
+// ============================================================================
 
 function WeightsCard({
   weights, totalWeight, isValid, onChange,
