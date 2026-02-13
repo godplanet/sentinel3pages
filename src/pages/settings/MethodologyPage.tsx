@@ -4,16 +4,19 @@ import { PageHeader } from '@/shared/ui';
 import {
   Settings, Save, RotateCcw, Loader2, CheckCircle2, XCircle,
   Sliders, Zap, Palette, Activity, AlertTriangle, ListTree, Calculator, 
-  Plus, Trash2, GripVertical, BookOpen, AlertCircle // EKSİK İKONLAR EKLENDİ
+  Plus, Trash2, GripVertical, BookOpen, AlertCircle
 } from 'lucide-react';
 import clsx from 'clsx';
-import { toast } from 'react-hot-toast'; // BİLDİRİM KÜTÜPHANESİ EKLENDİ
+import { toast } from 'react-hot-toast';
 import {
   useRiskMethodology,
   computeRiskScore,
   determineRiskZone,
 } from '@/features/risk-engine/useRiskMethodology';
 import type { RiskImpacts, VelocityLevel, RiskConfiguration } from '@/features/risk-engine/useRiskMethodology';
+
+// YENİ EKLENDİ: GLOBAL PARAMETRE HAFIZAMIZ
+import { useParameterStore } from '@/shared/stores/parameter-store';
 
 type WeightKey = 'financial' | 'reputation' | 'operational' | 'legal';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -230,41 +233,21 @@ export default function MethodologyPage() {
 }
 
 // ============================================================================
-// YENİ BİLEŞENLER: PARAMETRE YÖNETİMİ (FAZ 3)
+// BİLEŞENLER: PARAMETRE YÖNETİMİ (GLOBAL STORE'A BAĞLANDI)
 // ============================================================================
 
 function ParameterManagementTab() {
-    // Örnek State'ler (Gerçekte Supabase'den gelecek)
-    const [giasCategories, setGiasCategories] = useState([
-        { id: '1', label: 'Operasyonel Risk' },
-        { id: '2', label: 'Uyum Riski' },
-        { id: '3', label: 'Finansal Risk' },
-        { id: '4', label: 'Teknolojik Risk' },
-    ]);
-
-    const [rcaCategories, setRcaCategories] = useState([
-        { id: '1', label: 'İnsan Hatası / Farkındalık Eksikliği' },
-        { id: '2', label: 'Sistem / Altyapı / Yazılım Hatası' },
-        { id: '3', label: 'Süreç Tasarımı / Prosedür Eksikliği' },
-        { id: '4', label: 'Dış Etken / Üçüncü Taraf' },
-    ]);
-
-    const [riskTypes, setRiskTypes] = useState([
-        { id: 'operational', label: 'Operasyonel Risk' },
-        { id: 'legal', label: 'Yasal / Uyum Riski' },
-        { id: 'reputation', label: 'İtibar Riski' },
-        { id: 'credit', label: 'Kredi Riski' },
-        { id: 'market', label: 'Piyasa Riski' },
-        { id: 'cyber', label: 'Siber / Bilgi Güvenliği Riski' },
-    ]);
+    // DÜZELTME: Artık yerel (sabit) state kullanmıyoruz, Global Hafızayı (Zustand) kullanıyoruz!
+    const store = useParameterStore();
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ParameterListManager 
                 title="GIAS Kategorileri" 
                 description="Bulgu formunda seçilebilecek ana denetim standartları."
-                items={giasCategories} 
-                setItems={setGiasCategories} 
+                items={store.giasCategories} 
+                onAdd={(label: string) => store.addGiasCategory(label)}
+                onRemove={(id: string) => store.removeGiasCategory(id)}
                 icon={<BookOpen className="text-indigo-500" />}
                 colorTheme="indigo"
             />
@@ -272,8 +255,9 @@ function ParameterManagementTab() {
             <ParameterListManager 
                 title="Kök Neden (RCA) Sınıflandırmaları" 
                 description="5-Whys veya Ishikawa analizleri sonucunda atanacak kök neden tipleri."
-                items={rcaCategories} 
-                setItems={setRcaCategories} 
+                items={store.rcaCategories} 
+                onAdd={(label: string) => store.addRcaCategory(label)}
+                onRemove={(id: string) => store.removeRcaCategory(id)}
                 icon={<AlertTriangle className="text-red-500" />}
                 colorTheme="red"
             />
@@ -282,8 +266,9 @@ function ParameterManagementTab() {
                 <ParameterListManager 
                     title="Basel Risk Türleri" 
                     description="Bulgu risk ve etki sekmesinde çoklu olarak seçilebilecek risk kategorileri."
-                    items={riskTypes} 
-                    setItems={setRiskTypes} 
+                    items={store.riskTypes} 
+                    onAdd={(label: string) => store.addRiskType(label)}
+                    onRemove={(id: string) => store.removeRiskType(id)}
                     icon={<AlertCircle className="text-violet-500" />}
                     colorTheme="violet"
                 />
@@ -292,29 +277,23 @@ function ParameterManagementTab() {
     );
 }
 
-function ParameterListManager({ title, description, items, setItems, icon, colorTheme }: any) {
+function ParameterListManager({ title, description, items, onAdd, onRemove, icon, colorTheme }: any) {
     const [newItemLabel, setNewItemLabel] = useState('');
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newItemLabel.trim()) return;
         
-        const newItem = {
-            id: Math.random().toString(36).substring(7),
-            label: newItemLabel.trim()
-        };
-        setItems([...items, newItem]);
+        onAdd(newItemLabel.trim());
         setNewItemLabel('');
-        toast.success(`"${newItem.label}" başarıyla eklendi.`);
+        toast.success(`"${newItemLabel.trim()}" başarıyla eklendi.`);
     };
 
-    const handleRemove = (id: string) => {
-        const itemToRemove = items.find((i:any) => i.id === id);
-        setItems(items.filter((i:any) => i.id !== id));
-        toast.success(`"${itemToRemove?.label}" listeden silindi.`);
+    const handleRemove = (id: string, label: string) => {
+        onRemove(id);
+        toast.success(`"${label}" listeden silindi.`);
     };
 
-    // Saf CSS class'larının Tailwind tarafından silinmemesi için bir hile (Safelist yerine)
     const getBorderColor = () => {
         if (colorTheme === 'indigo') return 'border-indigo-100 ring-indigo-50';
         if (colorTheme === 'red') return 'border-red-100 ring-red-50';
@@ -338,7 +317,6 @@ function ParameterListManager({ title, description, items, setItems, icon, color
 
     return (
         <div className={`bg-white border rounded-xl shadow-sm flex flex-col h-full ring-1 ring-inset overflow-hidden ${getBorderColor()}`}>
-            {/* Üst Bilgi */}
             <div className={`p-5 border-b ${getBgColor()}`}>
                 <div className="flex items-center gap-3 mb-1">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getIconBg()}`}>
@@ -349,7 +327,6 @@ function ParameterListManager({ title, description, items, setItems, icon, color
                 <p className="text-xs text-slate-500 ml-11">{description}</p>
             </div>
 
-            {/* Ekleme Formu */}
             <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                 <form onSubmit={handleAdd} className="flex gap-2">
                     <input 
@@ -369,7 +346,6 @@ function ParameterListManager({ title, description, items, setItems, icon, color
                 </form>
             </div>
 
-            {/* Liste */}
             <div className="flex-1 p-2 bg-white min-h-[200px] max-h-[300px] overflow-y-auto">
                 {items.length === 0 ? (
                     <div className="p-8 text-center text-slate-400 text-sm italic">Henüz bir kategori eklenmemiş.</div>
@@ -380,7 +356,7 @@ function ParameterListManager({ title, description, items, setItems, icon, color
                                 <GripVertical className="text-slate-300 cursor-grab active:cursor-grabbing opacity-50 group-hover:opacity-100" size={16} />
                                 <span className="flex-1 text-sm font-semibold text-slate-700">{item.label}</span>
                                 <button 
-                                    onClick={() => handleRemove(item.id)}
+                                    onClick={() => handleRemove(item.id, item.label)}
                                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
                                     title="Sil"
                                 >
