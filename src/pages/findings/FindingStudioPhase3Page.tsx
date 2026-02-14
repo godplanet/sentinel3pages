@@ -1,189 +1,215 @@
 import { useState, useEffect } from 'react';
 import { 
   FileText, AlertCircle, Plus, Save, 
-  Scale, Users, CheckCircle2 
+  Scale, Users, CheckCircle2, XCircle, AlertOctagon 
 } from 'lucide-react';
 import clsx from 'clsx';
 
-// --- MİMARİ BAĞLANTILAR (Single Source of Truth) ---
+// --- MİMARİ BAĞLANTILAR ---
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 import type { ComprehensiveFinding, ActionPlan } from '@/entities/finding/model/types';
 import { useParameterStore } from '@/shared/stores/parameter-store';
 
 // --- BİLEŞENLER ---
-import { ActionPlanCard } from '@/features/finding-studio/components/ActionPlanCard';
+import { GlassCard } from '@/shared/ui/GlassCard'; // LİKİT TASARIM
+import { FileUploader } from '@/shared/ui/FileUploader'; // DOSYA YÜKLEME
+import { WorkflowStepper } from '@/widgets/FindingStudio/WorkflowStepper';
 import { FindingSignOff } from '@/features/finding-studio/components/FindingSignOff';
-
-// Mock Kullanıcı Listesi (Atama işlemleri için)
-const MOCK_USERS = [
-  { id: 'u1', name: 'Ahmet Yılmaz', role: 'Kıdemli Denetçi' },
-  { id: 'u2', name: 'Mehmet Kara', role: 'Şube Müdürü' },
-  { id: 'u3', name: 'Ayşe Demir', role: 'Operasyon Yöneticisi' },
-  { id: 'u4', name: 'Fatma Arslan', role: 'Uyum Sorumlusu' },
-];
 
 interface Phase3Props {
   findingId: string;
-  onNextPhase: () => void; // Master sayfadan gelen fonksiyon
+  onNextPhase: () => void;
 }
 
 export default function FindingStudioPhase3Page({ findingId, onNextPhase }: Phase3Props) {
-  const { getSeverityColor } = useParameterStore();
-
-  // STATE YÖNETİMİ
   const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
   const [actionPlans, setActionPlans] = useState<ActionPlan[]>([]);
+  
+  // Risk Kabul State'i (Screenshot'taki mantık)
+  const [riskAcceptanceMode, setRiskAcceptanceMode] = useState<Record<string, boolean>>({});
+  const [riskJustification, setRiskJustification] = useState<Record<string, string>>({});
 
-  // 1. VERİ YÜKLEME
   useEffect(() => {
     const found = mockComprehensiveFindings.find(f => f.id === findingId);
-    
     if (found) {
         setFinding(found);
-        // Tip dönüşümü yaparak aksiyon planlarını state'e alıyoruz
         setActionPlans(found.action_plans as unknown as ActionPlan[] || []);
     }
   }, [findingId]);
 
-  // --- HANDLERS ---
-
-  const handleAddActionPlan = () => {
-    const newPlan: ActionPlan = {
-      id: `ap-${Date.now()}`,
-      finding_id: finding?.id || '',
-      title: 'Yeni Aksiyon Planı',
-      description: '',
-      responsible_person: '',
-      target_date: new Date().toISOString().split('T')[0],
-      status: 'DRAFT',
-      current_state: 'PROPOSED', // NegotiationState
-      created_at: new Date().toISOString()
-    };
-    setActionPlans([...actionPlans, newPlan]);
+  const toggleAgreement = (planId: string, isAgreed: boolean) => {
+    setRiskAcceptanceMode(prev => ({ ...prev, [planId]: !isAgreed }));
   };
 
-  const handleUpdateActionPlan = (planId: string, updates: Partial<ActionPlan>) => {
-    setActionPlans(prev => prev.map(p => p.id === planId ? { ...p, ...updates } : p));
-  };
-
-  const handleDeleteActionPlan = (planId: string) => {
-    setActionPlans(prev => prev.filter(p => p.id !== planId));
-  };
-
-  if (!finding) return <div className="p-8 text-center text-slate-500">Veriler yükleniyor...</div>;
+  if (!finding) return <div>Yükleniyor...</div>;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
       
-      {/* Müzakere Uyarısı */}
-      <div className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl px-6 py-4 shadow-lg flex items-start gap-4">
-          <div className="p-2 bg-white/20 rounded-lg"><AlertCircle className="w-6 h-6" /></div>
+      {/* Banner */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl px-8 py-6 shadow-xl flex items-start gap-4">
+          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm"><AlertCircle className="w-8 h-8" /></div>
           <div>
-              <div className="font-bold text-lg mb-1">⚖️ Mutabakat Aşaması Aktif</div>
-              <div className="text-sm text-blue-100 leading-relaxed">
+              <div className="font-bold text-xl mb-1">Mutabakat Aşaması Aktif</div>
+              <div className="text-indigo-100 leading-relaxed text-sm">
                   Bu bulgu için denetlenen birim (Auditee) ile mutabakat süreci devam etmektedir. 
-                  Tüm aksiyon planları için <strong>"Kabul Edildi"</strong> veya <strong>"Reddedildi"</strong> durumu belirlenmelidir.
+                  Her aksiyon için ya <strong>Mutabakat</strong> sağlanmalı ya da <strong>Risk Kabulü (İtiraz)</strong> süreci işletilmelidir.
               </div>
           </div>
       </div>
 
       <div className="grid grid-cols-12 gap-8">
         
-        {/* SOL PANEL: AKSİYON PLANLARI */}
+        {/* SOL: AKSİYONLAR */}
         <div className="col-span-12 lg:col-span-8 space-y-8">
-          
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Aksiyon Planları</h2>
-                <p className="text-sm text-slate-500">Mutabakat durumunu yönetin</p>
-              </div>
-              <button
-                onClick={handleAddActionPlan}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-bold text-xs"
-              >
-                <Plus className="w-4 h-4" /> Yeni Aksiyon
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {actionPlans.length === 0 ? (
-                <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/30">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                  <p className="text-slate-500 font-medium">Henüz aksiyon planı eklenmemiş</p>
-                  <button
-                    onClick={handleAddActionPlan}
-                    className="mt-4 text-indigo-600 hover:text-indigo-700 font-bold text-sm underline"
-                  >
-                    İlk aksiyonu ekleyin
-                  </button>
+          {actionPlans.map((plan) => (
+            <GlassCard key={plan.id} className="p-8">
+                
+                {/* 1. Başlık ve Toggle */}
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Aksiyon Planı</span>
+                        <h3 className="text-lg font-bold text-slate-800 mt-1">{plan.title}</h3>
+                    </div>
+                    {riskAcceptanceMode[plan.id] && (
+                        <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                            <AlertOctagon size={12}/> Risk Kabul Gerektirir
+                        </span>
+                    )}
                 </div>
-              ) : (
-                actionPlans.map((plan) => (
-                  <ActionPlanCard
-                    key={plan.id}
-                    actionPlan={plan}
-                    onUpdate={(updates: any) => handleUpdateActionPlan(plan.id, updates)}
-                    onDelete={() => handleDeleteActionPlan(plan.id)}
-                    availableOwners={MOCK_USERS}
-                  />
-                ))
-              )}
-            </div>
-          </div>
 
-          {/* İMZA KUTUSU */}
-          <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6">
-              <FindingSignOff
-                  findingId={finding.id}
-                  currentUserId="u1"
-                  currentUserName="Ahmet Yılmaz"
-                  currentUserRole="MANAGER"
-                  tenantId="default-tenant"
-                  riskLevel={finding.severity}
-              />
-          </div>
+                {/* 2. Mutabakat Durumu (SCREENSHOT'taki Toggle) */}
+                <div className="bg-slate-50 p-1.5 rounded-xl flex mb-6 border border-slate-200">
+                    <button 
+                        onClick={() => toggleAgreement(plan.id, true)}
+                        className={clsx(
+                            "flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all",
+                            !riskAcceptanceMode[plan.id] 
+                                ? "bg-white text-emerald-600 shadow-md ring-1 ring-black/5" 
+                                : "text-slate-500 hover:bg-slate-100"
+                        )}
+                    >
+                        <CheckCircle2 size={16}/> Mutabıkım
+                    </button>
+                    <button 
+                        onClick={() => toggleAgreement(plan.id, false)}
+                        className={clsx(
+                            "flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all",
+                            riskAcceptanceMode[plan.id] 
+                                ? "bg-red-600 text-white shadow-md" 
+                                : "text-slate-500 hover:bg-slate-100"
+                        )}
+                    >
+                        <XCircle size={16}/> Mutabık Değilim
+                    </button>
+                </div>
 
-          {/* SONRAKİ AŞAMA BUTONU */}
-          <div className="flex justify-end">
+                {/* 3. İçerik Alanı */}
+                <div className="space-y-6">
+                    {/* Aksiyon Açıklaması */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Aksiyon Açıklaması</label>
+                        <textarea 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                            rows={3}
+                            defaultValue={plan.description}
+                            disabled={riskAcceptanceMode[plan.id]} // Risk kabulünde ise burası kilitlenir
+                        />
+                    </div>
+
+                    {/* --- RİSK KABUL FORMU (Kırmızı Alan) --- */}
+                    {riskAcceptanceMode[plan.id] && (
+                        <div className="border-2 border-red-100 bg-red-50/50 rounded-xl p-6 animate-in fade-in slide-in-from-top-4">
+                            <div className="flex items-center gap-2 mb-4 text-red-800 font-bold text-sm">
+                                <AlertOctagon size={18}/> RISK KABUL / İTİRAZ FORMU
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-red-700 mb-2">İtiraz Gerekçesi (Min. 50 Karakter)</label>
+                                    <textarea 
+                                        className="w-full bg-white border border-red-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none text-slate-700 placeholder:text-red-300"
+                                        rows={3}
+                                        placeholder="Neden bu aksiyon planını kabul etmiyorsunuz? Detaylı açıklayın..."
+                                        onChange={(e) => setRiskJustification({...riskJustification, [plan.id]: e.target.value})}
+                                    />
+                                </div>
+
+                                <div className="flex items-start gap-3 p-3 bg-white/50 rounded-lg border border-red-100">
+                                    <input type="checkbox" className="mt-1 w-4 h-4 text-red-600 rounded focus:ring-red-500" />
+                                    <p className="text-xs text-red-800/80 leading-snug">
+                                        <span className="font-bold">Risk Kabulü Onayı:</span> Bu aksiyonun uygulanmamasından kaynaklanabilecek tüm risklerin ve olası sonuçların sorumluluğunu üstleniyorum.
+                                    </p>
+                                </div>
+
+                                {/* Kanıt Yükleme */}
+                                <FileUploader label="Kanıt / Belge (Opsiyonel)" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Normal Aksiyon Detayları (Sadece Mutabıksa Görünür) */}
+                    {!riskAcceptanceMode[plan.id] && (
+                        <div className="grid grid-cols-2 gap-6 animate-in fade-in">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Sorumlu Kişi</label>
+                                <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700">
+                                    <option>Seçiniz...</option>
+                                    <option>Mehmet Kara (Şube Müdürü)</option>
+                                    <option>Ayşe Demir (Operasyon)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Termin Tarihi</label>
+                                <input type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700" defaultValue={plan.target_date} />
+                            </div>
+                            
+                            {/* Dosya Yükleme */}
+                            <div className="col-span-2">
+                                <FileUploader label="Destekleyici Dokümanlar" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+            </GlassCard>
+          ))}
+
+          {/* İMZA VE ONAY */}
+          <div className="flex justify-end pt-6">
               <button 
                   onClick={onNextPhase}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg flex items-center gap-2 transition-transform active:scale-95"
+                  className="px-8 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 shadow-xl shadow-slate-200 flex items-center gap-3 transition-transform active:scale-95"
               >
-                  <CheckCircle2 size={18} /> Müzakereyi Tamamla ve Finale Gönder
+                  <CheckCircle2 size={20} /> 
+                  {Object.values(riskAcceptanceMode).some(v => v) ? 'Risk Kabulünü Onaya Gönder' : 'Mutabakatı Tamamla ve İmzala'}
               </button>
           </div>
-
         </div>
 
-        {/* SAĞ PANEL: ÖZET BİLGİ */}
+        {/* SAĞ PANEL: BİLGİ */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm sticky top-24">
+           <GlassCard className="p-6 sticky top-24">
                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                   <Users size={18} className="text-indigo-600"/> Taraf Bilgileri
+                   <Users size={18} className="text-indigo-600"/> Onay Zinciri (Parametrik)
                </h3>
                
                <div className="space-y-4">
-                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                       <div className="text-xs text-slate-400 font-bold uppercase mb-1">Denetçi</div>
-                       <div className="flex items-center gap-2">
-                           <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs">AY</div>
-                           <div className="text-sm font-bold text-slate-700">Ahmet Yılmaz</div>
-                       </div>
+                   {/* Burası Parametrik Ayarlardan Gelecek */}
+                   <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 opacity-50">
+                       <div className="text-xs text-slate-400 font-bold uppercase mb-1">Hazırlayan</div>
+                       <div className="text-sm font-bold text-slate-700">Ahmet Yılmaz</div>
                    </div>
-
+                   <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100 ring-2 ring-indigo-500/20">
+                       <div className="text-xs text-indigo-500 font-bold uppercase mb-1">Mevcut Aşama</div>
+                       <div className="text-sm font-bold text-indigo-900">Şube Müdürü Onayı</div>
+                   </div>
                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                       <div className="text-xs text-slate-400 font-bold uppercase mb-1">Denetlenen Birim</div>
-                       <div className="flex items-center gap-2">
-                           <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs">MK</div>
-                           <div>
-                               <div className="text-sm font-bold text-slate-700">Mehmet Kara</div>
-                               <div className="text-xs text-slate-500">{finding.auditee_department}</div>
-                           </div>
-                       </div>
+                       <div className="text-xs text-slate-400 font-bold uppercase mb-1">Nihai Onay</div>
+                       <div className="text-sm font-bold text-slate-700">İç Denetim Başkanı</div>
                    </div>
                </div>
-           </div>
+           </GlassCard>
         </div>
 
       </div>
