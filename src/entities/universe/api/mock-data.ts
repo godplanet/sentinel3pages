@@ -354,3 +354,23 @@ export const mockUniverseData: AuditEntity[] = [
     updated_at: new Date().toISOString(),
   },
 ];
+
+export type EntityType = 'GM - Hazine / Krediler' | 'GM - BT / Dijital' | 'Bölge Müdürlükleri' | 'Ticari Şubeler (Mega)' | 'Perakende Şubeler' | 'Uydu / Mobil Şubeler';
+
+export interface AuditEntity {
+  id: string;
+  name: string;
+  type: EntityType;
+  path: string; 
+  weight: number; 
+  findings: { bordo: number; kizil: number; turuncu: number; sari: number; gozlem: number; shariah_systemic: number };
+  lastAudit: string;
+}
+
+export const MOCK_UNIVERSE: AuditEntity[] = [
+  { id: 'hq-1', name: 'Hazine ve Fon Yönetimi', type: 'GM - Hazine / Krediler', path: 'sentinel.hq.treasury', weight: 10.0, findings: { bordo: 0, kizil: 0, turuncu: 1, sari: 2, gozlem: 0, shariah_systemic: 1 }, lastAudit: '2025-11-10' },
+  { id: 'it-1', name: 'Bilgi Teknolojileri ve Siber Güvenlik', type: 'GM - BT / Dijital', path: 'sentinel.hq.it', weight: 8.0, findings: { bordo: 0, kizil: 4, turuncu: 5, sari: 10, gozlem: 2, shariah_systemic: 0 }, lastAudit: '2025-08-20' },
+  { id: 'br-101', name: 'Kadıköy Ticari Şubesi', type: 'Ticari Şubeler (Mega)', path: 'sentinel.branches.kadikoy', weight: 2.0, findings: { bordo: 1, kizil: 0, turuncu: 0, sari: 1, gozlem: 5, shariah_systemic: 0 }, lastAudit: '2025-12-01' },
+  { id: 'br-102', name: 'Ümraniye Perakende Şubesi', type: 'Perakende Şubeler', path: 'sentinel.branches.umraniye', weight: 1.0, findings: { bordo: 0, kizil: 0, turuncu: 0, sari: 1, gozlem: 3, shariah_systemic: 0 }, lastAudit: '2024-05-10' },
+  { id: 'reg-1', name: 'Marmara Bölge Müdürlüğü', type: 'Bölge Müdürlükleri', path: 'sentinel.regions.marmara', weight: 3.0, findings: { bordo: 0, kizil: 1, turuncu: 2, sari: 4, gozlem: 1, shariah_systemic: 0 }, lastAudit: '2025-02-15' }
+];
