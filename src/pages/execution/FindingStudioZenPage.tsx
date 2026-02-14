@@ -9,10 +9,12 @@ import clsx from 'clsx';
 
 // BİLEŞENLER
 import { useUIStore } from '@/shared/stores/ui-store';
+// Named Import kullanıyoruz
 import { ZenEditor, type FindingEditorData } from '@/features/finding-studio/components/ZenEditor';
 import { UniversalFindingDrawer, type DrawerTab } from '@/widgets/UniversalFindingDrawer';
 
 // --- GERÇEKÇİ DENETİM VERİSİ (SENARYO: SWIFT FRAUD) ---
+// Bu veri, sayfa açıldığında editöre otomatik olarak doldurulacak
 const FULL_CONTENT_DATA: FindingEditorData = {
   criteria: `
     <p><strong>BDDK Bilgi Sistemleri Yönetmeliği - Madde 12/3:</strong></p>
@@ -34,7 +36,7 @@ const FULL_CONTENT_DATA: FindingEditorData = {
       'Sistemde "Maker" ve "Checker" yetkileri aynı profilde birleştirilmiş.',
       'Geçen ay yapılan rol tanımlama güncellemesinde "Süper Kullanıcı" profili yanlışlıkla operasyonel ekibe atandı.',
       'Yetki matrisi değişikliği Bilgi Güvenliği onayı olmadan canlıya alındı.',
-      'Değişiklik Yönetimi (Change Management) sürecinde "Acil Geçiş" adımı suistimal edildi ve kontrolsüz yetki verildi.'
+      'Değişiklik Yönetimi (Change Management) sürecinde "Acil Geçiş" adımı suistimal edildi.'
     ]
   },
   effect: `
@@ -77,15 +79,23 @@ export default function FindingStudioZenPage() {
   const aiSummary = "Hazine operasyonlarında 3.2 Milyon USD tutarındaki işlemlerde Maker-Checker prensibi ihlal edilmiştir. Kök neden, değişiklik yönetimi sürecindeki yetki aşımıdır. Dolandırıcılık riski yüksektir.";
 
   useEffect(() => {
-    // Sidebar kapat
-    if (isSidebarOpen && toggleSidebar) toggleSidebar();
+    // Sidebar'ı kapat
+    if (isSidebarOpen && toggleSidebar) {
+        toggleSidebar();
+    }
     
     // Yükleme efekti
     setTimeout(() => {
       setLoading(false);
-      // Eğer yeni kayıtsa boş başlat, değilse dolu veriyi koru
-      if (isNew) setEditorData({ criteria: '', condition: '', effect: '', recommendation: '', root_cause_analysis: { method: 'five_whys' } });
+      // Eğer "yeni" bir kayıt ise bile demo verisiyle dolduruyoruz ki tasarım görünsün.
+      // Normalde: if (isNew) setEditorData(EMPTY_DATA);
+      setEditorData(FULL_CONTENT_DATA); 
     }, 600);
+    
+    // Cleanup
+    return () => {
+        // if (toggleSidebar) toggleSidebar(); 
+    };
   }, []);
 
   const handleSave = () => {
@@ -104,7 +114,7 @@ export default function FindingStudioZenPage() {
   return (
     <div className={clsx("min-h-screen bg-slate-100 text-slate-800 flex flex-col overflow-hidden", isTwoPageMode ? "h-screen" : "")}>
       
-      {/* Warmth Layer */}
+      {/* Warmth Layer (Kağıt Hissi) */}
       <div className="absolute inset-0 pointer-events-none z-50 mix-blend-multiply" style={{ backgroundColor: '#fdf6e3', opacity: warmth * 0.01 }} />
 
       {/* --- HEADER --- */}
@@ -198,26 +208,4 @@ export default function FindingStudioZenPage() {
                     <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">GECİKMİŞ</span>
                     <AlertTriangle size={14} className="text-red-400" />
                  </div>
-                 <h3 className="font-bold text-slate-800 text-sm mb-1 group-hover:text-blue-600">Acil Durum (Override) Prosedürü</h3>
-                 <p className="text-xs text-slate-500 mb-3 line-clamp-2">Acil durum yetki tanımlamalarının sadece CISO onayı ile yapılması için süreç değişikliği.</p>
-                 <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
-                    <div className="flex items-center gap-1"><User size={12}/> Merve K. (Risk)</div>
-                    <div className="flex items-center gap-1 text-red-500"><Calendar size={12}/> 01.02.2026</div>
-                 </div>
-              </div>
-
-              {/* Yeni Ekle */}
-              <button className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 font-bold text-xs hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
-                 + Yeni Aksiyon Planı Ekle
-              </button>
-           </div>
-        </div>
-
-      </div>
-
-      {/* DRAWER */}
-      <UniversalFindingDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} defaultTab={activeDrawerTab} findingId={findingId} currentViewMode="zen" />
-
-    </div>
-  );
-}
+                 <h3 className="font-bold text-slate-800 text-sm mb-1 group-hover:
