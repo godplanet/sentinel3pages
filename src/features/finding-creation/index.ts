@@ -1,1 +1,0 @@
-export { QuickFindingForm } from './QuickFindingForm';
