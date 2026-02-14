@@ -9,16 +9,15 @@ import clsx from 'clsx';
 // MİMARİ BAĞLANTILAR
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { FindingDataGrid } from '@/widgets/tables/FindingDataGrid';
-import { FindingKanbanBoard } from '@/features/finding-hub'; // Eğer feature temizliği yaptıysanız bu yolu kontrol edin
-import { NewFindingModal } from '@/features/finding-form/NewFindingModal'; // Eski feature'dan taşıdığımız modal
+import { FindingKanbanBoard } from '@/features/finding-hub';
+import { NewFindingModal } from '@/features/finding-hub/ui/NewFindingModal'; 
 import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 import type { ComprehensiveFinding, FindingState } from '@/entities/finding/model/types';
 import { useParameterStore } from '@/shared/stores/parameter-store';
 
-// WIDGETS
+// WIDGETS (TEK DRAWER KURALI)
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
-// --- TİP TANIMLARI ---
 type RiskLevel = 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 type StatusFilter = 'ALL' | FindingState;
 type ViewMode = 'list' | 'kanban';
@@ -27,15 +26,16 @@ export default function FindingCenterPage() {
   const navigate = useNavigate();
   const { getSeverityColor } = useParameterStore();
 
-  // STATE
   const [findings, setFindings] = useState<ComprehensiveFinding[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Görünüm ve Filtre State'leri
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filterRisk, setFilterRisk] = useState<RiskLevel>('ALL');
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // MODAL & DRAWER KONTROLLERİ
+  // Modal ve Drawer Kontrolleri
   const [showNewFindingModal, setShowNewFindingModal] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
@@ -58,22 +58,30 @@ export default function FindingCenterPage() {
     }
   };
 
-  // 2. FİLTRELEME
+  // 2. FİLTRELEME MANTIĞI
   const filteredFindings = useMemo(() => {
     let filtered = [...findings];
-    if (filterRisk !== 'ALL') filtered = filtered.filter(f => f.severity === filterRisk);
-    if (filterStatus !== 'ALL') filtered = filtered.filter(f => f.state === filterStatus);
+    
+    if (filterRisk !== 'ALL') {
+        filtered = filtered.filter(f => f.severity === filterRisk);
+    }
+    
+    if (filterStatus !== 'ALL') {
+        filtered = filtered.filter(f => f.state === filterStatus);
+    }
+    
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(f => 
         f.title?.toLowerCase().includes(query) || 
-        f.code?.toLowerCase().includes(query)
+        f.code?.toLowerCase().includes(query) ||
+        (f.details as any)?.code?.toLowerCase().includes(query)
       );
     }
     return filtered;
   }, [findings, filterRisk, filterStatus, searchQuery]);
 
-  // 3. İSTATİSTİKLER (Dashboard Widget Mantığı)
+  // 3. İSTATİSTİKLER
   const stats = useMemo(() => {
     return {
       total: findings.length,
@@ -84,9 +92,8 @@ export default function FindingCenterPage() {
     };
   }, [findings]);
 
-  // 4. ETKİLEŞİM
+  // 4. NAVİGASYON (Drawer Açma)
   const handleRowClick = (finding: ComprehensiveFinding) => {
-    // Listede tıklayınca Sidebar (Drawer) açılır -> Hızlı önizleme
     setSelectedFindingId(finding.id);
     setIsDrawerOpen(true);
   };
@@ -94,29 +101,41 @@ export default function FindingCenterPage() {
   const handleNavigateToDetail = (id: string, mode: 'zen' | 'studio' | 'form') => {
       if (mode === 'zen') navigate(`/execution/findings/zen/${id}`);
       else if (mode === 'studio') navigate(`/execution/findings/${id}/studio`);
-      else navigate(`/execution/findings/${id}`); // Default Form
+      else navigate(`/execution/findings/${id}`); // Varsayılan Form
   };
 
   return (
     <div className="space-y-6 p-6 min-h-screen bg-slate-50">
       
-      {/* ÜST BAŞLIK VE BUTONLAR */}
+      {/* HEADER */}
       <PageHeader
         title="Bulgu Merkezi & Müzakere"
         description="Denetim bulguları, aksiyon takibi ve müzakere süreç yönetimi."
         icon={FileSearch}
         action={
           <div className="flex items-center gap-3">
-            {/* Görünüm Modu */}
+            {/* Görünüm Değiştirici */}
             <div className="flex bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden p-0.5">
-              <button onClick={() => setViewMode('list')} className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'list' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}><List size={16}/></button>
-              <button onClick={() => setViewMode('kanban')} className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'kanban' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}><LayoutGrid size={16}/></button>
+              <button 
+                  onClick={() => setViewMode('list')} 
+                  className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'list' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}
+                  title="Liste Görünümü"
+              >
+                  <List size={16}/>
+              </button>
+              <button 
+                  onClick={() => setViewMode('kanban')} 
+                  className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'kanban' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}
+                  title="Kanban Görünümü"
+              >
+                  <LayoutGrid size={16}/>
+              </button>
             </div>
 
-            {/* Hızlı Zen Modu */}
+            {/* Zen Modu */}
             <button
               onClick={() => navigate('/execution/findings/zen/new')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:shadow-lg transition-all font-semibold text-xs"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 shadow-sm font-bold text-xs transition-all"
             >
               <Sparkles size={16} /> Zen Modu
             </button>
@@ -141,7 +160,7 @@ export default function FindingCenterPage() {
         <StatCard label="Ort. Risk Skoru" value={stats.avgRiskScore} icon={TrendingUp} color="slate" />
       </div>
 
-      {/* FİLTRE ALANI */}
+      {/* FİLTRE VE ARAMA */}
       <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="relative flex-1">
               <FileSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -171,18 +190,18 @@ export default function FindingCenterPage() {
 
       {/* LİSTE GÖRÜNÜMÜ */}
       {loading ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-           <div className="animate-spin w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3" />
-           <span className="text-sm text-slate-500">Yükleniyor...</span>
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+          <div className="animate-spin w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3" />
+          <span className="text-sm text-slate-500 font-medium">Veriler yükleniyor...</span>
         </div>
       ) : filteredFindings.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-           <FileSearch size={48} className="mx-auto mb-4 text-slate-300" />
-           <h3 className="text-lg font-bold text-slate-800">Kayıt Bulunamadı</h3>
+        <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
+          <FileSearch size={32} className="mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-bold text-slate-800 mb-1">Eşleşen kayıt bulunamadı</h3>
+          <p className="text-sm text-slate-500">Arama kriterlerinizi değiştirin veya yeni bir bulgu ekleyin.</p>
         </div>
       ) : viewMode === 'list' ? (
         <div className="space-y-3">
-             {/* Özel Liste Kartları */}
              {filteredFindings.map((finding) => (
                 <div 
                     key={finding.id} 
@@ -209,7 +228,6 @@ export default function FindingCenterPage() {
                         </div>
                         
                         <div className="flex items-center gap-4">
-                             {/* Hızlı Aksiyon Butonları */}
                              <button 
                                 onClick={(e) => { e.stopPropagation(); handleNavigateToDetail(finding.id, 'studio'); }}
                                 className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
@@ -226,16 +244,15 @@ export default function FindingCenterPage() {
         <FindingKanbanBoard findings={filteredFindings} onFindingUpdate={() => {}} />
       )}
 
-      {/* YENİ BULGU MODALI */}
       <NewFindingModal isOpen={showNewFindingModal} onClose={() => setShowNewFindingModal(false)} onSave={() => loadFindings()} />
-
-      {/* EVRENSEL DRAWER (SIDEBAR) */}
+      
+      {/* EVRENSEL DRAWER (Sidebar Bağlantısı) */}
       <UniversalFindingDrawer 
          isOpen={isDrawerOpen}
          onClose={() => setIsDrawerOpen(false)}
          findingId={selectedFindingId}
          defaultTab="detay"
-         currentViewMode="form" // Listeden açılınca form modu gibi davranır
+         currentViewMode="form"
       />
     </div>
   );
@@ -250,6 +267,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
       emerald: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
       slate: 'text-slate-600 bg-slate-50 border-slate-200' 
   };
+  
   return (
     <div className={clsx("rounded-xl border p-4 flex items-center gap-4 transition-all hover:shadow-sm", colors[color])}>
       <div className="p-3 bg-white/80 rounded-lg shadow-sm">
