@@ -46,7 +46,8 @@ import {
   Zap,
   GitBranch,
   Database,
-  Sliders // YENİ: Metodoloji ayarları için eklendi
+  Sliders, // YENİ: Metodoloji ayarları için eklendi
+  GitMerge // YENİ: İş Akışı ayarları için eklendi
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -517,6 +518,12 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Metodoloji & Parametreler',
         path: '/settings/methodology',
         icon: Sliders,
+      },
+      {
+        id: 'workflow',
+        label: 'İş Akışı & Yetki',
+        path: '/settings/workflow',
+        icon: GitMerge,
       },
       {
         id: 'templates',

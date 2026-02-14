@@ -41,6 +41,7 @@ import CognitiveEnginePage from '@/pages/settings/CognitiveEnginePage';
 import CustomFieldsPage from '@/pages/settings/CustomFieldsPage';
 import RiskConstitutionPage from '@/pages/settings/RiskConstitutionPage';
 import SystemHealthPage from '@/pages/settings/SystemHealthPage';
+import WorkflowSettingsPage from '@/pages/settings/WorkflowSettingsPage';
 import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
@@ -192,6 +193,7 @@ export const AppRoutes = () => {
       <Route path="/settings/users" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
       <Route path="/settings/appearance" element={<ProtectedRoute><AppearancePage /></ProtectedRoute>} />
       <Route path="/settings/methodology" element={<ProtectedRoute><MethodologyPage /></ProtectedRoute>} />
+      <Route path="/settings/workflow" element={<ProtectedRoute><WorkflowSettingsPage /></ProtectedRoute>} />
       <Route path="/settings/cognitive-engine" element={<ProtectedRoute><CognitiveEnginePage /></ProtectedRoute>} />
       <Route path="/settings/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
       <Route path="/settings/custom-fields" element={<ProtectedRoute><CustomFieldsPage /></ProtectedRoute>} />
