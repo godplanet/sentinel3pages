@@ -1,59 +1,73 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  CheckCircle2, ArrowLeft, Save, AlertTriangle, Scale, 
-  Lock, FileText, Users, MessageSquare, History, Menu
+  Save, ArrowLeft, MessageSquare, Menu
 } from 'lucide-react';
 import clsx from 'clsx';
 
-// --- MİMARİ BAĞLANTILAR ---
+// MİMARİ BAĞLANTILAR
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 import type { ComprehensiveFinding, ActionPlan } from '@/entities/finding/model/types';
 import { useParameterStore } from '@/shared/stores/parameter-store';
 
-// --- BİLEŞENLER ---
+// BİLEŞENLER
 import { ViewSwitcher } from '@/features/finding-studio/components/ViewSwitcher';
 import { WorkflowStepper } from '@/widgets/FindingStudio/WorkflowStepper';
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
-// --- SAYFA PARÇALARI (FAZLAR) ---
-import FindingStudioPhase1Page from './FindingStudioPhase1Page'; // Taslak
-import FindingStudioPhase2Page from './FindingStudioPhase2Page'; // Gözden Geçirme
-import FindingStudioPhase3Page from './FindingStudioPhase3Page'; // Müzakere
-import FindingStudioPhase4Page from './FindingStudioPhase4Page'; // Final Onay
-import FindingStudioPhase5Page from './FindingStudioPhase5Page'; // Takip
+// SAYFA PARÇALARI
+import FindingStudioPhase1Page from './FindingStudioPhase1Page';
+import FindingStudioPhase2Page from './FindingStudioPhase2Page';
+import FindingStudioPhase3Page from './FindingStudioPhase3Page';
+import FindingStudioPhase4Page from './FindingStudioPhase4Page';
+import FindingStudioPhase5Page from './FindingStudioPhase5Page';
 
 export default function FindingStudioPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getSeverityColor } = useParameterStore();
 
-  // STATE
   const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Aktif Sekme (Fazlar)
   const [activeTab, setActiveTab] = useState<'overview' | 'review' | 'negotiation' | 'final' | 'followup'>('overview');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Sayfayı yenilemek için tetikleyici
 
   // 1. VERİ YÜKLEME
   useEffect(() => {
     const found = mockComprehensiveFindings.find(f => f.id === id) || mockComprehensiveFindings[0];
     if (found) {
         setFinding(found);
-        
-        // Akıllı Başlangıç Sekmesi
-        switch (found.state) {
-            case 'DRAFT': setActiveTab('overview'); break;
-            case 'IN_REVIEW': case 'PENDING_APPROVAL': setActiveTab('review'); break;
-            case 'NEGOTIATION': setActiveTab('negotiation'); break;
-            case 'FINAL': setActiveTab('final'); break;
-            case 'CLOSED': case 'FOLLOW_UP': setActiveTab('followup'); break;
-            default: setActiveTab('overview');
-        }
+        // İlk yüklemede veya refresh'te doğru sekmeyi bul
+        determineActiveTab(found.state);
     }
     setLoading(false);
-  }, [id]);
+  }, [id, refreshKey]);
+
+  // Duruma göre sekme belirleme mantığı
+  const determineActiveTab = (state: string) => {
+      // Eğer kullanıcı manuel sekme değiştirmediyse otomatik yönlendir
+      // (Burada basitlik adına her zaman duruma göre yönlendiriyoruz)
+      switch (state) {
+          case 'DRAFT': setActiveTab('overview'); break;
+          case 'IN_REVIEW': case 'PENDING_APPROVAL': setActiveTab('review'); break;
+          case 'NEGOTIATION': setActiveTab('negotiation'); break;
+          case 'FINAL': setActiveTab('final'); break;
+          case 'CLOSED': case 'FOLLOW_UP': setActiveTab('followup'); break;
+          default: setActiveTab('overview');
+      }
+  };
+
+  // Alt sayfalardan gelen "İşlem Tamam" sinyalini yakalar
+  const handlePhaseComplete = (nextState: string) => {
+      if (finding) {
+          // 1. Mock veriyi güncelle (Gerçekte API call olur)
+          finding.state = nextState as any; 
+          
+          // 2. Arayüzü yenile ve sekmeyi değiştir
+          setRefreshKey(old => old + 1); 
+      }
+  };
 
   if (loading || !finding) return <div className="h-screen flex items-center justify-center bg-slate-50">Yükleniyor...</div>;
 
@@ -69,19 +83,17 @@ export default function FindingStudioPage() {
             <div>
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-slate-400">{finding.code}</span>
-                    <span className={clsx("px-2 py-0.5 rounded text-[10px] font-bold border", getSeverityColor(finding.severity))}>
+                    <span={clsx("px-2 py-0.5 rounded text-[10px] font-bold border", getSeverityColor(finding.severity))}>
                         {finding.severity}
                     </span>
                 </div>
                 <h1 className="text-sm font-bold text-slate-900 truncate max-w-[400px]">{finding.title}</h1>
             </div>
         </div>
-
         <ViewSwitcher findingId={finding.id} />
-
         <div className="flex items-center gap-2">
             <button onClick={() => setIsDrawerOpen(true)} className="px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-50 flex items-center gap-2">
-                <Menu size={14}/> Araçlar
+                <MessageSquare size={14}/> Bağlam
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs hover:bg-indigo-700 shadow-sm transition-all active:scale-95">
                 <Save size={14} /> Kaydet
@@ -92,52 +104,67 @@ export default function FindingStudioPage() {
       {/* CONTENT */}
       <main className="flex-1 max-w-[1600px] mx-auto w-full p-8 pb-20">
         
-        {/* Workflow Stepper */}
+        {/* Stepper */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-             <WorkflowStepper 
-                currentStatus={finding.state} 
-                actionPlans={finding.action_plans as any} 
-             />
+             <WorkflowStepper currentStatus={finding.state} actionPlans={finding.action_plans as any} />
         </div>
 
-        {/* Phase Tabs */}
+        {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-slate-200 pb-1 overflow-x-auto">
-            <PhaseTab id="overview" label="1. Genel Bakış" icon={FileText} active={activeTab} onClick={setActiveTab} />
-            <PhaseTab id="review" label="2. Review" icon={Users} active={activeTab} onClick={setActiveTab} notification={finding.review_notes?.length} />
-            <PhaseTab id="negotiation" label="3. Müzakere" icon={Scale} active={activeTab} onClick={setActiveTab} notification={finding.action_plans?.length} />
-            <PhaseTab id="final" label="4. Kapanış" icon={Lock} active={activeTab} onClick={setActiveTab} />
-            <PhaseTab id="followup" label="5. Takip" icon={History} active={activeTab} onClick={setActiveTab} />
+            <PhaseTab id="overview" label="1. Taslak" active={activeTab} onClick={setActiveTab} />
+            <PhaseTab id="review" label="2. Gözden Geçirme" active={activeTab} onClick={setActiveTab} />
+            <PhaseTab id="negotiation" label="3. Müzakere" active={activeTab} onClick={setActiveTab} />
+            <PhaseTab id="final" label="4. Kapanış" active={activeTab} onClick={setActiveTab} />
+            <PhaseTab id="followup" label="5. Takip" active={activeTab} onClick={setActiveTab} />
         </div>
 
-        {/* DYNAMIC COMPONENT RENDERER */}
+        {/* Dynamic Pages with Connections */}
         <div className="min-h-[500px]">
-            {activeTab === 'overview' && <FindingStudioPhase1Page findingId={finding.id} onNextPhase={() => setActiveTab('review')} />}
-            {activeTab === 'review' && <FindingStudioPhase2Page />}
-            {activeTab === 'negotiation' && <FindingStudioPhase3Page />}
-            {activeTab === 'final' && <FindingStudioPhase4Page />}
-            {activeTab === 'followup' && <FindingStudioPhase5Page findingId={finding.id} />}
+            {activeTab === 'overview' && (
+                <FindingStudioPhase1Page 
+                    findingId={finding.id} 
+                    onNextPhase={() => handlePhaseComplete('IN_REVIEW')} 
+                />
+            )}
+            
+            {activeTab === 'review' && (
+                <FindingStudioPhase2Page 
+                    findingId={finding.id}
+                    onNextPhase={() => handlePhaseComplete('NEGOTIATION')}
+                    onRevision={() => handlePhaseComplete('DRAFT')}
+                />
+            )}
+            
+            {activeTab === 'negotiation' && (
+                <FindingStudioPhase3Page 
+                    findingId={finding.id}
+                    onNextPhase={() => handlePhaseComplete('FINAL')}
+                />
+            )}
+            
+            {activeTab === 'final' && (
+                <FindingStudioPhase4Page 
+                    findingId={finding.id}
+                    onNextPhase={() => handlePhaseComplete('CLOSED')}
+                />
+            )}
+            
+            {activeTab === 'followup' && (
+                <FindingStudioPhase5Page findingId={finding.id} />
+            )}
         </div>
       </main>
 
-      {/* UNIVERSAL SIDEBAR */}
-      <UniversalFindingDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        findingId={finding.id}
-        defaultTab="history"
-        currentViewMode="studio"
-      />
+      <UniversalFindingDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} findingId={finding.id} defaultTab="history" currentViewMode="studio" />
     </div>
   );
 }
 
-// Sekme Butonu
-function PhaseTab({ id, label, icon: Icon, active, onClick, notification }: any) {
+function PhaseTab({ id, label, active, onClick }: any) {
     const isActive = active === id;
     return (
-        <button onClick={() => onClick(id)} className={clsx("flex items-center gap-2 px-6 py-3 rounded-t-lg font-bold text-sm transition-all border-b-2 relative shrink-0", isActive ? "border-indigo-600 text-indigo-700 bg-indigo-50/50" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50")}>
-            <Icon size={16} /> {label}
-            {notification > 0 && <span className="ml-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full min-w-[18px] text-center font-bold shadow-sm">{notification}</span>}
+        <button onClick={() => onClick(id)} className={clsx("px-6 py-3 rounded-t-lg font-bold text-sm transition-all border-b-2", isActive ? "border-indigo-600 text-indigo-700 bg-indigo-50/50" : "border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50")}>
+            {label}
         </button>
     );
 }
