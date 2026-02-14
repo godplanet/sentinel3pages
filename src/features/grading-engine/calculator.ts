@@ -166,3 +166,67 @@ export class GradingCalculator {
       : { grade: 'F', opinion: 'GUVENCE_YOK', label: 'Güvence Yok' };
   }
 }
+
+import { KERD_CONSTITUTION, GRADING_THRESHOLDS, TAXONOMY_COLORS, VelocityType } from '@/shared/config/constitution';
+import { AuditEntity } from '@/entities/universe/api/mock-data';
+import { StrategicRisk } from '@/entities/risk/mock-data';
+
+// 1. Varlık Puanı Hesaplama Motoru (Kısıt Bazlı)
+export const calculateEntityGrade = (entity: AuditEntity) => {
+  const { SCORING, CAPPING } = KERD_CONSTITUTION;
+  
+  let rawScore = SCORING.BASE_SCORE;
+  rawScore -= (entity.findings.bordo * SCORING.DEDUCTIONS.BORDO);
+  rawScore -= (entity.findings.kizil * SCORING.DEDUCTIONS.KIZIL);
+  rawScore -= (entity.findings.turuncu * SCORING.DEDUCTIONS.TURUNCU);
+  rawScore -= (entity.findings.sari * SCORING.DEDUCTIONS.SARI);
+  rawScore += Math.min(entity.findings.gozlem * SCORING.BONUS.GOZLEM_MULTIPLIER, SCORING.BONUS.GOZLEM_MAX);
+
+  let finalScore = rawScore;
+  let vetoReason = null;
+
+  if (entity.findings.shariah_systemic > 0) {
+    finalScore = CAPPING.SHARIAH_VETO_SCORE;
+    vetoReason = "Sistemik Şer'i İhlal";
+  } else if (entity.findings.bordo >= CAPPING.CRITICAL_THRESHOLD) {
+    finalScore = Math.min(finalScore, CAPPING.CRITICAL_CAP_SCORE);
+    vetoReason = "Kritik (Bordo) Tavanı";
+  } else if (entity.findings.kizil > CAPPING.HIGH_VOLUME_THRESHOLD) {
+    finalScore = Math.min(finalScore, CAPPING.HIGH_VOLUME_CAP_SCORE);
+    vetoReason = "Yüksek Hacim (Kızıl) Tavanı";
+  }
+
+  let gradeData = GRADING_THRESHOLDS.find(g => finalScore >= g.min) || GRADING_THRESHOLDS[GRADING_THRESHOLDS.length - 1];
+  
+  let opinion = gradeData.opinion;
+  let color = gradeData.color;
+
+  if (finalScore === 0 && vetoReason?.includes("Şer'i")) {
+    opinion = 'Batıl (Geçersiz)';
+    color = TAXONOMY_COLORS.BORDO;
+  }
+
+  return { rawScore, finalScore, vetoReason, grade: gradeData.grade, opinion, color, freq: gradeData.frequency };
+};
+
+// 2. Risk Skoru Kinetik Hesaplama Motoru (Hız / Velocity)
+export const calculateDynamicRisk = (risk: StrategicRisk, selectedVelocity: VelocityType) => {
+  const baseScore = risk.impact * risk.likelihood;
+  const speedFactor = KERD_CONSTITUTION.VELOCITY_MULTIPLIERS[selectedVelocity] * risk.baseVelocity;
+  const dynamicScore = baseScore * (1 + speedFactor);
+
+  let category = 'Sarı (Düşük)';
+  let colorClass = TAXONOMY_COLORS.SARI;
+
+  if (risk.shariah_related) {
+    category = 'Bordo (Batıl)'; colorClass = TAXONOMY_COLORS.BORDO;
+  } else if (dynamicScore >= 20) {
+    category = 'Bordo (Kritik)'; colorClass = TAXONOMY_COLORS.BORDO;
+  } else if (dynamicScore >= 15) {
+    category = 'Kırmızı (Yüksek)'; colorClass = TAXONOMY_COLORS.KIZIL;
+  } else if (dynamicScore >= 8) {
+    category = 'Turuncu (Orta)'; colorClass = TAXONOMY_COLORS.TURUNCU;
+  }
+
+  return { ...risk, baseScore, dynamicScore, speedFactor, category, colorClass };
+};
