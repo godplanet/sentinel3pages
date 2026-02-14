@@ -10,7 +10,7 @@ import clsx from 'clsx';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { FindingDataGrid } from '@/widgets/tables/FindingDataGrid';
 import { FindingKanbanBoard } from '@/features/finding-hub';
-import { NewFindingModal } from '@/features/finding-hub/ui/NewFindingModal'; 
+import { NewFindingModal } from '@/features/finding-form'; 
 import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 import type { ComprehensiveFinding, FindingState } from '@/entities/finding/model/types';
 import { useParameterStore } from '@/shared/stores/parameter-store';

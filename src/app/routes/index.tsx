@@ -23,12 +23,11 @@ import CreditMonitoringPage from '@/pages/monitoring/CreditMonitoringPage';
 import MarketMonitoringPage from '@/pages/monitoring/MarketMonitoringPage';
 import SettingsConsolidatedPage from '@/pages/settings-consolidated';
 import FindingCenterPage from '@/pages/findings/FindingCenterPage';
-import FindingHubPage from '@/pages/execution/FindingHubPage';
+import FindingStudioPage from '@/pages/findings/FindingStudioPage';
+import FindingStudioPhase3Page from '@/pages/findings/FindingStudioPhase3Page';
+import FindingStudioZenPage from '@/pages/findings/FindingStudioZenPage';
+import FindingDetailPage from '@/pages/findings/FindingDetailPage';
 import { FindingDetailPage as AuditorFindingDetailPage } from '@/pages/auditor/FindingDetailPage';
-import FindingStudioPage from '@/pages/execution/FindingStudioPage';
-import FindingStudioPhase3Page from '@/pages/execution/FindingStudioPhase3Page';
-import FindingDetailPage from '@/pages/execution/FindingDetailPage';
-import FindingStudioZenPage from '@/pages/execution/FindingStudioZenPage';
 import { AuditeePortalPage } from '@/pages/auditee-portal/AuditeePortalPage';
 
 import LoginPage from '@/pages/auth/LoginPage';
@@ -146,7 +145,7 @@ export const AppRoutes = () => {
       <Route path="/execution/my-engagements/:id" element={<ProtectedRoute><ExecutionDetailPage /></ProtectedRoute>} />
       <Route path="/execution/workpapers" element={<ProtectedRoute><WorkpapersPage /></ProtectedRoute>} />
       <Route path="/execution/investigations" element={<Navigate to="/403" replace />} />
-      <Route path="/execution/findings" element={<ProtectedRoute><FindingHubPage /></ProtectedRoute>} />
+      <Route path="/execution/findings" element={<ProtectedRoute><FindingCenterPage /></ProtectedRoute>} />
       <Route path="/execution/finding-hub" element={<Navigate to="/execution/findings" replace />} />
       <Route path="/execution/findings/zen/new" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
       <Route path="/execution/findings/zen/:id" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
