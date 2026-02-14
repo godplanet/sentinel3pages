@@ -199,16 +199,16 @@ export const navigationConfig: NavigationItem[] = [
         path: '/execution/my-engagements',
         icon: Briefcase,
       },
-      // --- BULGU MERKEZİ GÜNCELLEMESİ BURADA ---
+      // --- BULGU MERKEZİ (GÜNCELLENDİ) ---
       {
         id: 'findings-hub',
         label: 'Bulgu Merkezi',
-        path: '/execution/findings', // FindingCenterPage'e gider
+        path: '/execution/findings', // <-- DOĞRU ROTA
         icon: AlertTriangle,
         badge: 'YENİ',
         badgeColor: 'red',
       },
-      // -----------------------------------------
+      // -----------------------------------
       {
         id: 'workpapers',
         label: 'Çalışma Kağıtları',
