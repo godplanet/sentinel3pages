@@ -47,22 +47,26 @@ export function GlassCard({
     none: 'transparent',
   };
 
-  const boxShadow =
-    neonGlow !== 'none'
-      ? `0 0 20px ${glowStyles[neonGlow]}, 0 0 40px ${glowStyles[neonGlow]}40`
-      : '0 4px 6px rgba(0, 0, 0, 0.1)';
+const boxShadow =
+  neonGlow !== 'none'
+    ? `0 0 15px ${glowStyles[neonGlow]}20, 0 0 30px ${glowStyles[neonGlow]}10` // Opaklık düşürüldü (Daha soft)
+    : '0 4px 20px -5px rgba(0, 0, 0, 0.05)'; // Gölge yumuşatıldı
 
-  return (
-    <div
-      className={`rounded-xl p-6 transition-all duration-${ui.ANIMATION_DURATION} ${className}`}
-      style={{
-        ...glassStyles,
-        boxShadow,
-      }}
-    >
-      {children}
-    </div>
-  );
+return (
+  <div
+    className={`rounded-2xl p-6 transition-all duration-300 ${className}`}
+    style={{
+      ...glassStyles,
+      boxShadow,
+    }}
+  >
+    {/* Parlama efekti de yumuşatıldı */}
+    {useGlass && (
+        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-2xl" />
+    )}
+    <div className="relative z-10">{children}</div>
+  </div>
+);
 }
 
 /**
