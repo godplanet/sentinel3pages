@@ -1,483 +1,289 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '@/shared/ui';
-import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
-import { NewFindingModal } from '@/features/finding-form';
-import { createFinding } from '@/entities/finding/api/mutations';
-import type { ComprehensiveFinding, FindingState, FindingSeverity } from '@/entities/finding/model/types';
-import { FindingRightSidebar } from '@/widgets/FindingRightSidebar';
-import {
-  FileSearch,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Filter,
-  Plus,
-  Eye,
-  MessageSquare,
-  TrendingUp,
-  Loader2,
-  FileText,
-  DollarSign,
-  Send,
+import { 
+  FileSearch, Plus, Filter, Shield, AlertTriangle, Eye, 
+  TrendingUp, LayoutGrid, List, Sparkles, Layers, ArrowRight 
 } from 'lucide-react';
+import clsx from 'clsx';
 
-const STATE_CONFIG: Record<FindingState, { label: string; color: string; bgColor: string; icon: any }> = {
-  DRAFT: { label: 'Draft', color: 'text-slate-600', bgColor: 'bg-slate-100', icon: Clock },
-  PUBLISHED: { label: 'Published', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Eye },
-  NEGOTIATION: { label: 'In Negotiation', color: 'text-amber-600', bgColor: 'bg-amber-100', icon: MessageSquare },
-  PENDING_APPROVAL: { label: 'Pending Approval', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Clock },
-  FOLLOW_UP: { label: 'Follow-up', color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: TrendingUp },
-  CLOSED: { label: 'Closed', color: 'text-emerald-600', bgColor: 'bg-emerald-100', icon: CheckCircle },
-  FINAL: { label: 'Final', color: 'text-emerald-700', bgColor: 'bg-emerald-200', icon: CheckCircle },
-  REMEDIATED: { label: 'Remediated', color: 'text-green-700', bgColor: 'bg-green-100', icon: CheckCircle },
-  DISPUTED: { label: 'Disputed', color: 'text-red-600', bgColor: 'bg-red-100', icon: AlertTriangle },
-  DISPUTING: { label: 'Disputing', color: 'text-red-500', bgColor: 'bg-red-50', icon: XCircle },
-};
+// MİMARİ BAĞLANTILAR
+import { PageHeader } from '@/shared/ui/PageHeader';
+import { FindingDataGrid } from '@/widgets/tables/FindingDataGrid';
+// Not: Kanban Board feature'ı silindiyse veya yeri değiştiyse burayı kontrol edin
+import { FindingKanbanBoard } from '@/features/finding-hub/ui/FindingKanbanBoard'; 
+import { NewFindingModal } from '@/features/finding-form/NewFindingModal'; // Modal konumu
+import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
+import type { ComprehensiveFinding, FindingState } from '@/entities/finding/model/types';
+import { useParameterStore } from '@/shared/stores/parameter-store';
 
-const SEVERITY_CONFIG: Record<string, { label: string; color: string; bgColor: string; borderColor: string }> = {
-  CRITICAL: { label: 'Critical', color: 'text-red-700', bgColor: 'bg-red-100', borderColor: 'border-red-300' },
-  HIGH: { label: 'High', color: 'text-orange-700', bgColor: 'bg-orange-100', borderColor: 'border-orange-300' },
-  MEDIUM: { label: 'Medium', color: 'text-yellow-700', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-300' },
-  LOW: { label: 'Low', color: 'text-blue-700', bgColor: 'bg-blue-100', borderColor: 'border-blue-300' },
-  OBSERVATION: { label: 'Observation', color: 'text-slate-600', bgColor: 'bg-slate-100', borderColor: 'border-slate-300' },
-};
+// WIDGETS (TEK DRAWER KURALI)
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
+
+// --- TİP TANIMLARI ---
+type RiskLevel = 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+type StatusFilter = 'ALL' | FindingState;
+type ViewMode = 'list' | 'kanban';
 
 export default function FindingCenterPage() {
   const navigate = useNavigate();
-  const [findings, setFindings] = useState<ComprehensiveFinding[]>([]);
-  const [filteredFindings, setFilteredFindings] = useState<ComprehensiveFinding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterState, setFilterState] = useState<FindingState | 'ALL'>('ALL');
-  const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showNewFindingModal, setShowNewFindingModal] = useState(false);
-  const [selectedFinding, setSelectedFinding] = useState<ComprehensiveFinding | null>(null);
+  const { getSeverityColor } = useParameterStore();
 
+  // STATE YÖNETİMİ
+  const [findings, setFindings] = useState<ComprehensiveFinding[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [filterRisk, setFilterRisk] = useState<RiskLevel>('ALL');
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // MODAL & DRAWER KONTROLLERİ
+  const [showNewFindingModal, setShowNewFindingModal] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+
+  // 1. VERİ YÜKLEME (Tek Gerçek Kaynak: mock-comprehensive-data)
   useEffect(() => {
     loadFindings();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [findings, filterState, filterSeverity, searchQuery]);
 
   const loadFindings = async () => {
     try {
       setLoading(true);
       const data = await comprehensiveFindingApi.getAll();
-      setFindings(data);
+      setFindings(data || []);
     } catch (error) {
       console.error('Failed to load findings:', error);
+      setFindings([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
+  // 2. FİLTRELEME MANTIĞI
+  const filteredFindings = useMemo(() => {
     let filtered = [...findings];
-
-    if (filterState !== 'ALL') {
-      filtered = filtered.filter((f) => f.state === filterState);
+    
+    if (filterRisk !== 'ALL') {
+        filtered = filtered.filter(f => f.severity === filterRisk);
     }
-
-    if (filterSeverity !== 'ALL') {
-      filtered = filtered.filter((f) => f.severity === filterSeverity);
+    
+    if (filterStatus !== 'ALL') {
+        filtered = filtered.filter(f => f.state === filterStatus);
     }
-
+    
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (f) =>
-          f.title?.toLowerCase().includes(query) ||
-          f.code?.toLowerCase().includes(query) ||
-          f.finding_code?.toLowerCase().includes(query)
+      filtered = filtered.filter(f => 
+        f.title?.toLowerCase().includes(query) || 
+        f.code?.toLowerCase().includes(query) ||
+        (f.details as any)?.code?.toLowerCase().includes(query)
       );
     }
+    return filtered;
+  }, [findings, filterRisk, filterStatus, searchQuery]);
 
-    setFilteredFindings(filtered);
-  };
-
-  const handleSaveNewFinding = async (findingData: any) => {
-    try {
-      await createFinding({
-        title: findingData.title,
-        severity: findingData.severity,
-        code: findingData.code,
-        gias_category: findingData.gias_category,
-        auditee_department: findingData.auditee_department,
-        impact_score: findingData.impact_score,
-        likelihood_score: findingData.likelihood_score,
-        financial_impact: findingData.financial_impact,
-        detection: findingData.detection,
-        impact: findingData.impact,
-        root_cause: findingData.root_cause,
-        recommendation: findingData.recommendation,
-        why_1: findingData.why_1,
-        why_2: findingData.why_2,
-        why_3: findingData.why_3,
-        why_4: findingData.why_4,
-        why_5: findingData.why_5,
-      });
-
-      await loadFindings();
-      setShowNewFindingModal(false);
-    } catch (error) {
-      console.error('Failed to create finding:', error);
-    }
-  };
-
+  // 3. İSTATİSTİKLER (Canlı Veri)
   const stats = useMemo(() => {
     return {
       total: findings.length,
-      critical: findings.filter((f) => f.severity === 'CRITICAL' || f.severity === 'HIGH').length,
-      inNegotiation: findings.filter((f) => f.state === 'NEGOTIATION').length,
-      closed: findings.filter((f) => f.state === 'CLOSED' || f.state === 'FINAL').length,
-      financialImpact: findings.reduce((sum, f) => sum + (f.financial_impact || 0), 0),
+      critical: findings.filter(f => f.severity === 'CRITICAL').length,
+      inNegotiation: findings.filter(f => f.state === 'NEGOTIATION').length,
+      closed: findings.filter(f => f.state === 'CLOSED' || f.state === 'FINAL').length,
+      avgRiskScore: findings.length > 0 ? Math.round(findings.reduce((sum, f) => sum + (f.impact_score || 0), 0) / findings.length) : 0,
     };
   }, [findings]);
 
-  const stateCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    findings.forEach((f) => {
-      counts[f.state] = (counts[f.state] || 0) + 1;
-    });
-    return counts;
-  }, [findings]);
+  // 4. NAVİGASYON (Drawer Açma)
+  const handleRowClick = (finding: ComprehensiveFinding) => {
+    setSelectedFindingId(finding.id);
+    setIsDrawerOpen(true);
+  };
+
+  const handleNavigateToDetail = (id: string, mode: 'zen' | 'studio' | 'form') => {
+      if (mode === 'zen') navigate(`/execution/findings/zen/${id}`);
+      else if (mode === 'studio') navigate(`/execution/findings/${id}/studio`);
+      else navigate(`/execution/findings/${id}`); // Varsayılan Form
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="space-y-6 p-6 min-h-screen bg-slate-50">
+      
+      {/* HEADER */}
       <PageHeader
-        title="Bulgu Merkezi"
-        subtitle="Comprehensive finding management and tracking center"
+        title="Bulgu Merkezi & Müzakere"
+        description="Denetim bulguları, aksiyon takibi ve müzakere süreç yönetimi."
         icon={FileSearch}
-        actions={
-          <button
-            onClick={() => setShowNewFindingModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all font-medium"
-          >
-            <Plus size={18} />
-            <span>Yeni Bulgu Ekle</span>
-          </button>
+        action={
+          <div className="flex items-center gap-3">
+            {/* Görünüm Değiştirici */}
+            <div className="flex bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden p-0.5">
+              <button 
+                  onClick={() => setViewMode('list')} 
+                  className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'list' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}
+                  title="Liste Görünümü"
+              >
+                  <List size={16}/>
+              </button>
+              <button 
+                  onClick={() => setViewMode('kanban')} 
+                  className={clsx('px-3 py-2 rounded-md transition-colors', viewMode === 'kanban' ? 'bg-slate-100 text-slate-900 font-medium' : 'text-slate-500 hover:bg-slate-50')}
+                  title="Kanban Görünümü"
+              >
+                  <LayoutGrid size={16}/>
+              </button>
+            </div>
+
+            {/* Zen Modu Kısayol */}
+            <button
+              onClick={() => navigate('/execution/findings/zen/new')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 shadow-sm font-bold text-xs transition-all"
+            >
+              <Sparkles size={16} /> Zen Modu
+            </button>
+
+            {/* Yeni Ekle */}
+            <button
+              onClick={() => setShowNewFindingModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all font-bold text-xs active:scale-95"
+            >
+              <Plus size={16} /> Hızlı Ekle
+            </button>
+          </div>
         }
       />
 
-      <div className="space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-5 gap-4">
-          <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
-              <div className="text-sm text-slate-600 font-medium">Toplam Bulgu</div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-red-200 p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-red-900">{stats.critical}</div>
-              <div className="text-sm text-red-700 font-medium">Kritik/Yüksek Risk</div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-amber-200 p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-amber-900">{stats.inNegotiation}</div>
-              <div className="text-sm text-amber-700 font-medium">Müzakarede</div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-emerald-200 p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-emerald-600" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-emerald-900">{stats.closed}</div>
-              <div className="text-sm text-emerald-700 font-medium">Kapanmış</div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-green-200 p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-3xl font-bold text-green-900">
-                ₺{(stats.financialImpact / 1000000).toFixed(1)}M
-              </div>
-              <div className="text-sm text-green-700 font-medium">Mali Etki</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Filters by State */}
-        <div className="grid grid-cols-5 gap-4">
-          {Object.entries(STATE_CONFIG).slice(0, 5).map(([state, config]) => {
-            const Icon = config.icon;
-            const count = stateCounts[state] || 0;
-
-            return (
-              <button
-                key={state}
-                onClick={() => setFilterState(state as FindingState)}
-                className={`
-                  p-4 rounded-lg border-2 transition-all
-                  ${filterState === state ? 'border-blue-500 shadow-md scale-105' : 'border-slate-200 hover:border-slate-300'}
-                  bg-white backdrop-blur-sm
-                `}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <Icon size={20} className={config.color} />
-                  <span className="text-2xl font-bold text-slate-900">{count}</span>
-                </div>
-                <div className="text-sm font-medium text-slate-600">{config.label}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Advanced Filters */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-slate-700">
-              <Filter size={18} />
-              <span className="font-medium">Filtreler:</span>
-            </div>
-
-            <input
-              type="text"
-              placeholder="Search by title or code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            />
-
-            <select
-              value={filterState}
-              onChange={(e) => setFilterState(e.target.value as any)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            >
-              <option value="ALL">All States</option>
-              {Object.entries(STATE_CONFIG).map(([state, config]) => (
-                <option key={state} value={state}>
-                  {config.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            >
-              <option value="ALL">All Severities</option>
-              {Object.entries(SEVERITY_CONFIG).map(([severity, config]) => (
-                <option key={severity} value={severity}>
-                  {config.label}
-                </option>
-              ))}
-            </select>
-
-            {(filterState !== 'ALL' || filterSeverity !== 'ALL' || searchQuery) && (
-              <button
-                onClick={() => {
-                  setFilterState('ALL');
-                  setFilterSeverity('ALL');
-                  setSearchQuery('');
-                }}
-                className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 font-medium"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Comprehensive Data Table */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 overflow-hidden shadow-lg">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="animate-spin text-blue-600" size={32} />
-              <span className="ml-3 text-slate-600">Loading findings...</span>
-            </div>
-          ) : filteredFindings.length === 0 ? (
-            <div className="text-center py-16">
-              <FileSearch className="mx-auto mb-4 text-slate-400" size={48} />
-              <p className="text-lg text-slate-600">No findings found</p>
-              <p className="text-sm text-slate-500 mt-1">Try adjusting your filters or create a new finding</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Code</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Title</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Severity</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">State</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Auditee</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Actions</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Comments</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Created</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredFindings.map((finding) => {
-                    const stateConfig = STATE_CONFIG[finding.state];
-                    const severityConfig = SEVERITY_CONFIG[finding.severity];
-                    const StateIcon = stateConfig?.icon || Clock;
-
-                    return (
-                      <tr
-                        key={finding.id}
-                        className="hover:bg-slate-50 transition-colors cursor-pointer"
-                        onClick={() => setSelectedFinding(finding)}
-                      >
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded">
-                            {finding.finding_code || finding.code}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-slate-900">{finding.title}</div>
-                          {finding.gias_category && (
-                            <div className="text-xs text-slate-500 mt-1">{finding.gias_category}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`
-                              inline-flex items-center px-2 py-1 rounded text-xs font-semibold
-                              ${severityConfig?.bgColor} ${severityConfig?.color}
-                            `}
-                          >
-                            {severityConfig?.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`
-                              inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium
-                              ${stateConfig?.bgColor} ${stateConfig?.color}
-                            `}
-                          >
-                            <StateIcon size={12} />
-                            {stateConfig?.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {finding.assigned_auditee_id ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-                                A
-                              </div>
-                              <span className="text-sm text-slate-600">Assigned</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm font-semibold text-slate-900">
-                            {finding.action_plans?.length || 0}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="text-sm font-semibold text-slate-900">
-                            {finding.comments?.filter((c) => !c.is_deleted).length || 0}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {new Date(finding.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/execution/findings/${finding.id}`);
-                              }}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                              title="View Details"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            {finding.state === 'DRAFT' && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                                title="Publish"
-                              >
-                                <Send size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Footer */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-slate-200 p-4">
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <div>
-              Showing <span className="font-semibold text-slate-900">{filteredFindings.length}</span> of{' '}
-              <span className="font-semibold text-slate-900">{findings.length}</span> findings
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span>
-                  {findings.filter((f) => f.severity === 'CRITICAL' || f.severity === 'HIGH').length} High Priority
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                <span>{findings.filter((f) => f.state === 'NEGOTIATION').length} In Negotiation</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* İSTATİSTİK KARTLARI */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <StatCard label="Toplam Bulgu" value={stats.total} icon={FileSearch} color="blue" />
+        <StatCard label="Kritik Risk" value={stats.critical} icon={AlertTriangle} color="red" />
+        <StatCard label="Müzakerede" value={stats.inNegotiation} icon={Eye} color="amber" />
+        <StatCard label="Kapatıldı" value={stats.closed} icon={Shield} color="emerald" />
+        <StatCard label="Ort. Risk Skoru" value={stats.avgRiskScore} icon={TrendingUp} color="slate" />
       </div>
 
-      <NewFindingModal
-        isOpen={showNewFindingModal}
-        onClose={() => setShowNewFindingModal(false)}
-        onSave={handleSaveNewFinding}
-      />
+      {/* FİLTRE VE ARAMA ÇUBUĞU */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="relative flex-1">
+              <FileSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                  type="text" 
+                  placeholder="Bulgu başlığı veya referans kodu ara..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              />
+          </div>
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+              <Filter size={16} className="text-slate-400" />
+              <select 
+                  value={filterRisk} 
+                  onChange={(e) => setFilterRisk(e.target.value as RiskLevel)}
+                  className="bg-transparent text-sm font-medium text-slate-600 focus:outline-none cursor-pointer"
+              >
+                  <option value="ALL">Tüm Riskler</option>
+                  <option value="CRITICAL">Kritik</option>
+                  <option value="HIGH">Yüksek</option>
+                  <option value="MEDIUM">Orta</option>
+                  <option value="LOW">Düşük</option>
+              </select>
+          </div>
+      </div>
 
-      <FindingRightSidebar
-        finding={selectedFinding}
-        onClose={() => setSelectedFinding(null)}
-        onNavigateToDetail={(id) => navigate(`/execution/findings/${id}`)}
+      {/* LİSTE GÖRÜNÜMÜ */}
+      {loading ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
+          <div className="animate-spin w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full mx-auto mb-3" />
+          <span className="text-sm text-slate-500 font-medium">Veriler yükleniyor...</span>
+        </div>
+      ) : filteredFindings.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
+          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileSearch size={32} className="text-slate-300" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-1">Eşleşen kayıt bulunamadı</h3>
+          <p className="text-sm text-slate-500">Arama kriterlerinizi değiştirin veya yeni bir bulgu ekleyin.</p>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="space-y-3">
+             {/* Özel Liste Kartları */}
+             {filteredFindings.map((finding) => (
+                <div 
+                    key={finding.id} 
+                    onClick={() => handleRowClick(finding)} 
+                    className="bg-white border border-slate-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+                >
+                    <div className={clsx("absolute left-0 top-0 bottom-0 w-1.5", getSeverityColor(finding.severity).split(' ')[0].replace('bg-', 'bg-'))} />
+                    <div className="flex items-center justify-between pl-4">
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-center justify-center w-12 h-12 bg-slate-50 rounded-lg border border-slate-100">
+                                <span className="text-[10px] font-black text-slate-400">SKOR</span>
+                                <span className={clsx("text-xs font-bold", finding.severity === 'CRITICAL' ? 'text-red-600' : 'text-slate-600')}>{finding.impact_score || 0}</span>
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-mono font-bold text-slate-500">{finding.code}</span>
+                                    <span className={clsx("px-2 py-0.5 rounded text-[10px] font-bold border", getSeverityColor(finding.severity))}>
+                                        {finding.severity}
+                                    </span>
+                                    {finding.state === 'NEGOTIATION' && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded border border-amber-200">Müzakerede</span>}
+                                </div>
+                                <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1">{finding.title}</h3>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                             {/* Hızlı Aksiyon Butonları */}
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); handleNavigateToDetail(finding.id, 'studio'); }}
+                                className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                             >
+                                <Layers size={14} /> Studio
+                             </button>
+                             <ArrowRight className="text-slate-300 group-hover:text-indigo-600" size={20} />
+                        </div>
+                    </div>
+                </div>
+             ))}
+        </div>
+      ) : (
+        // Eğer Kanban board bileşeni yoksa burası hata verebilir, o yüzden koşullu render
+         FindingKanbanBoard ? <FindingKanbanBoard findings={filteredFindings} onFindingUpdate={() => {}} /> : <div>Kanban Modülü Yüklenemedi</div>
+      )}
+
+      {/* YENİ MODAL VE DRAWER */}
+      <NewFindingModal isOpen={showNewFindingModal} onClose={() => setShowNewFindingModal(false)} onSave={() => loadFindings()} />
+      
+      {/* EVRENSEL DRAWER (Sidebar Bağlantısı) */}
+      <UniversalFindingDrawer 
+         isOpen={isDrawerOpen}
+         onClose={() => setIsDrawerOpen(false)}
+         findingId={selectedFindingId}
+         defaultTab="detay"
+         currentViewMode="form"
       />
+    </div>
+  );
+}
+
+// İSTATİSTİK KART BİLEŞENİ
+function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: any; color: string }) {
+  const colors: any = { 
+      blue: 'text-blue-600 bg-blue-50 border-blue-100', 
+      red: 'text-red-600 bg-red-50 border-red-100', 
+      amber: 'text-amber-600 bg-amber-50 border-amber-100', 
+      emerald: 'text-emerald-600 bg-emerald-50 border-emerald-100', 
+      slate: 'text-slate-600 bg-slate-50 border-slate-200' 
+  };
+  
+  return (
+    <div className={clsx("rounded-xl border p-4 flex items-center gap-4 transition-all hover:shadow-sm", colors[color])}>
+      <div className="p-3 bg-white/80 rounded-lg shadow-sm">
+        <Icon size={20} className="opacity-90" />
+      </div>
+      <div>
+        <div className="text-2xl font-black">{value}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">{label}</div>
+      </div>
     </div>
   );
 }
