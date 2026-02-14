@@ -453,3 +453,58 @@ export const ValidationRules = {
 };
 
 export default SENTINEL_CONSTITUTION;
+
+// KERD-2026: Bütünleşik Denetim Derecelendirme ve Varlık Güvence Esasları
+export type Grade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+export type VelocityType = 'Düşük Hız (Aylar)' | 'Normal Hız (Haftalar)' | 'Yüksek Hız (Günler)' | 'Kritik Hız (Saatler)';
+
+export const KERD_CONSTITUTION = {
+  SCORING: {
+    BASE_SCORE: 100.0,
+    DEDUCTIONS: {
+      BORDO: 25.0,
+      KIZIL: 10.0,
+      TURUNCU: 3.0,
+      SARI: 0.5,
+    },
+    BONUS: {
+      GOZLEM_MAX: 5.0,
+      GOZLEM_MULTIPLIER: 1.0,
+    },
+  },
+  CAPPING: {
+    CRITICAL_THRESHOLD: 1,
+    CRITICAL_CAP_SCORE: 59.99, // Max D
+    HIGH_VOLUME_THRESHOLD: 3,
+    HIGH_VOLUME_CAP_SCORE: 69.99, // Max C
+    SHARIAH_VETO_SCORE: 0.0, // F - Batıl
+  },
+  VELOCITY_MULTIPLIERS: {
+    'Düşük Hız (Aylar)': 0.0,
+    'Normal Hız (Haftalar)': 0.15,
+    'Yüksek Hız (Günler)': 0.35,
+    'Kritik Hız (Saatler)': 0.60,
+  }
+} as const;
+
+export const TAXONOMY_COLORS = {
+  BORDO: 'bg-fuchsia-950 text-white border-fuchsia-900', // Şer'i ve Kritik Veto
+  KIZIL: 'bg-red-600 text-white border-red-700',
+  TURUNCU: 'bg-orange-500 text-white border-orange-600',
+  SARI: 'bg-yellow-400 text-slate-900 border-yellow-500',
+  GUVENCE_YOK: 'bg-fuchsia-100 text-fuchsia-900 border-fuchsia-200',
+  TAM_GUVENCE: 'bg-blue-100 text-blue-800 border-blue-200',
+  YUKSEK_GUVENCE: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  MAKUL_GUVENCE: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  SINIRLI_GUVENCE: 'bg-orange-100 text-orange-800 border-orange-200',
+  GELISIM_GEREKIR: 'bg-red-100 text-red-800 border-red-200',
+};
+
+export const GRADING_THRESHOLDS = [
+  { min: 95, grade: 'A+', opinion: 'Tam Güvence', frequency: '48 Ay', color: TAXONOMY_COLORS.TAM_GUVENCE },
+  { min: 85, grade: 'A', opinion: 'Yüksek Güvence', frequency: '36 Ay', color: TAXONOMY_COLORS.YUKSEK_GUVENCE },
+  { min: 70, grade: 'B', opinion: 'Makul Güvence', frequency: '24 Ay', color: TAXONOMY_COLORS.MAKUL_GUVENCE },
+  { min: 60, grade: 'C', opinion: 'Sınırlı Güvence', frequency: '18 Ay', color: TAXONOMY_COLORS.SINIRLI_GUVENCE },
+  { min: 50, grade: 'D', opinion: 'Zayıf / Gelişim Gerekir', frequency: '12 Ay', color: TAXONOMY_COLORS.GELISIM_GEREKIR },
+  { min: 0, grade: 'F', opinion: 'Güvence Yok', frequency: 'Sürekli İzleme', color: TAXONOMY_COLORS.GUVENCE_YOK }
+];
