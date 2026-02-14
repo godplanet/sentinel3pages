@@ -1,247 +1,206 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft, Save, Loader2, Check, AlertTriangle,
-  BookOpen, ScrollText, Sun,
-  MessageSquare, History, Sparkles
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useFindingStore, findingApi, type FindingWithAssignment } from '@/entities/finding';
+import { 
+  AlertCircle, DollarSign, Filter, Plus, Search, 
+  Layout, ArrowRight, BookOpen 
 } from 'lucide-react';
-import clsx from 'clsx';
+import { useRiskConstitution } from '@/features/risk-constitution';
 
-// SİSTEM BİLEŞENLERİ
-import { useUIStore } from '@/shared/stores/ui-store';
-
-// DÜZELTME 1: { ZenEditor } olarak çağırıyoruz (Named Import)
-import { ZenEditor, type FindingEditorData } from '@/features/finding-studio/components/ZenEditor';
-// DÜZELTME 2: { UniversalFindingDrawer } olarak çağırıyoruz
-import { UniversalFindingDrawer, type DrawerTab } from '@/widgets/UniversalFindingDrawer';
-
-// Tip Tanımlamaları
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-const SEVERITY_OPTIONS = [
-  { value: 'CRITICAL', label: 'Kritik', color: 'bg-red-600' },
-  { value: 'HIGH', label: 'Yüksek', color: 'bg-orange-500' },
-  { value: 'MEDIUM', label: 'Orta', color: 'bg-amber-500' },
-  { value: 'LOW', label: 'Düşük', color: 'bg-blue-500' },
-  { value: 'OBSERVATION', label: 'Gözlem', color: 'bg-slate-500' },
+// --- MOCK VERİ (Kapı kapalıysa pencereden girmek için) ---
+const getMockFindings = () => [
+  {
+    id: 'mock-1',
+    code: 'AUD-2026-001',
+    title: 'Kasa İşlemlerinde Çift Anahtar Kuralı İhlali',
+    severity: 'HIGH',
+    main_status: 'ACIK',
+    financial_impact: 250000,
+    gias_category: 'Operasyonel Risk',
+    assignment: { portal_status: 'PENDING' }
+  },
+  {
+    id: 'mock-2',
+    code: 'AUD-2026-002',
+    title: 'Bilgi Güvenliği - Şifre Politikası Zafiyeti',
+    severity: 'CRITICAL',
+    main_status: 'ACIK',
+    financial_impact: 0,
+    gias_category: 'BT Güvenliği',
+    assignment: { portal_status: 'DISAGREED' }
+  }
 ];
 
-export default function FindingStudioZenPage() {
-  const { id } = useParams();
+interface FindingListProps {
+  onSelectFinding?: (finding: FindingWithAssignment) => void;
+  onCreateNew?: () => void;
+}
+
+const LEGACY_SCORE_MAP: Record<string, number> = {
+  'CRITICAL': 95,
+  'HIGH': 75,
+  'MEDIUM': 50,
+  'LOW': 25,
+};
+
+export function FindingList({ onSelectFinding, onCreateNew }: FindingListProps) {
   const navigate = useNavigate();
-  const isNew = id === 'new';
-
-  // --- UI YÖNETİMİ (GÜVENLİ MOD) ---
-  // HATA ÇÖZÜMÜ: Store'dan sadece var olan özellikleri alıyoruz
-  const { isSidebarOpen, toggleSidebar } = useUIStore();
+  const { findings, setFindings, setLoading, isLoading } = useFindingStore();
+  const { constitution } = useRiskConstitution();
   
-  const [isTwoPageMode, setIsTwoPageMode] = useState(true);
-  const [warmth, setWarmth] = useState(15);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeDrawerTab, setActiveDrawerTab] = useState<DrawerTab>('ai');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  // --- VERİ STATE'LERİ ---
-  const [loading, setLoading] = useState(true);
-  const [findingId, setFindingId] = useState(isNew ? null : id);
-  const [title, setTitle] = useState('Kasa İşlemlerinde Çift Anahtar Kuralı İhlali');
-  const [severity, setSeverity] = useState('HIGH');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  
-  const [editorData, setEditorData] = useState<FindingEditorData>({
-    criteria: '',
-    condition: '',
-    root_cause_analysis: { method: 'five_whys', five_whys: ['', '', '', '', ''] },
-    effect: '',
-    recommendation: '',
-  });
-
-  const aiSummary = "Vezne işlemlerinde çift anahtar prosedürü sistematik olarak ihlal edilmiştir. Bu durum, kurum içi suistimal riskini artırmaktadır.";
-
-  // --- SIDEBAR VE YÜKLEME EFEKTİ ---
   useEffect(() => {
-    // HATA ÇÖZÜMÜ: setSidebarOpen yerine toggleSidebar kullanıyoruz
-    // Eğer sidebar açıksa kapat (Zen modu için)
-    if (isSidebarOpen && toggleSidebar) {
-        toggleSidebar();
-    }
-
-    const timer = setTimeout(() => {
-        setLoading(false);
-        // Demo veri doldur
-        if (!isNew) {
-            setEditorData({
-                criteria: '<p>BDDK Bankaların Bilgi Sistemleri Yönetmeliği Madde 12 gereği...</p>',
-                condition: '<p>Yapılan incelemede 12.01.2026 tarihinde...</p>',
-                root_cause_analysis: { method: 'five_whys', five_whys: ['Personel eksikliği', 'Eğitim verilmedi', 'Planlama hatası', 'Bütçe kısıtı', 'Yönetim kararı'] },
-                effect: '<p>250.000 TL tutarında potansiyel operasyonel risk...</p>',
-                recommendation: '<p>Acilen çift anahtar sistemine geçilmeli...</p>'
-            });
-        }
-    }, 800);
-    
-    return () => {
-        // Çıkarken sidebar'ı geri aç
-        // Not: isSidebarOpen state'i closure içinde eski kalabilir, bu yüzden 
-        // doğrudan store'dan kontrol etmek daha iyi ama basitlik için geçiyoruz.
-        // toggleSidebar(); 
-    };
+    loadFindings();
   }, []);
 
-  const handleSave = () => {
-    setSaveState('saving');
-    setTimeout(() => {
-      setSaveState('saved');
-      setTimeout(() => setSaveState('idle'), 2000);
-    }, 1500);
-  };
-
-  const openDrawer = (tab: DrawerTab) => {
-    setActiveDrawerTab(tab);
-    setIsDrawerOpen(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
-        <Loader2 className="w-10 h-10 text-slate-400 animate-spin mb-4" />
-        <p className="text-slate-500 font-medium">Zen Modu Hazırlanıyor...</p>
-      </div>
-    );
+  async function loadFindings() {
+    setLoading(true);
+    try {
+      // 1. Önce Gerçek Veritabanını Dene
+      const data = await findingApi.getAll();
+      
+      // 2. Eğer Boşsa, MOCK Veriyi Yükle (Böylece ekran boş kalmaz)
+      if (!data || data.length === 0) {
+        console.log('Veri yok, Demo Modu aktifleşiyor...');
+        setFindings(getMockFindings() as any);
+      } else {
+        setFindings(data);
+      }
+    } catch (error) {
+      console.error('Veri hatası, Demo Modu aktifleşiyor:', error);
+      setFindings(getMockFindings() as any);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  const filteredFindings = findings.filter((f) => {
+    const matchesSearch =
+      f.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSeverity = filterSeverity === 'ALL' || f.severity === filterSeverity;
+    const matchesStatus = filterStatus === 'ALL' || f.main_status === filterStatus;
+    return matchesSearch && matchesSeverity && matchesStatus;
+  });
+
+  const getSeverityDisplay = useMemo(() => {
+    if (!constitution) return (sev: string) => ({ color: '#64748b', label: sev, bgClass: 'bg-slate-100 text-slate-800' });
+
+    return (severity: string) => {
+      const score = LEGACY_SCORE_MAP[severity] ?? 50;
+      const sorted = [...constitution.risk_ranges].sort((a, b) => b.min - a.min);
+      const zone = sorted.find(r => score >= r.min && score <= r.max) || constitution.risk_ranges[0];
+
+      return {
+        color: zone?.color || '#64748b',
+        label: zone?.label || severity,
+        bgClass: `text-white`,
+      };
+    };
+  }, [constitution]);
+
   return (
-    <div className={clsx(
-      "min-h-screen bg-slate-50 text-slate-800 transition-all duration-500 relative flex flex-col overflow-hidden", 
-      isTwoPageMode ? "h-screen" : ""
-    )}>
-      
-      {/* Warmth Overlay */}
-      <div 
-          className="absolute inset-0 pointer-events-none z-[45] transition-opacity duration-300"
-          style={{ 
-              backgroundColor: '#fcd34d', 
-              opacity: warmth * 0.003,
-              mixBlendMode: 'color-burn'
-          }} 
-      />
-
-      {/* Header */}
-      <header className="h-16 px-6 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between shrink-0 relative z-50 shadow-sm">
+    <div className="space-y-4">
+      {/* --- ÜST ARAÇ ÇUBUĞU --- */}
+      <div className="flex items-center justify-between gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
         
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/execution/findings')} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors">
-            <ArrowLeft size={20} />
+        {/* Arama Kutusu */}
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-transparent border-none focus:outline-none text-sm font-medium"
+          />
+        </div>
+
+        <div className="h-6 w-px bg-slate-200 mx-2" />
+
+        {/* --- İŞTE BU BUTON: ZEN MODUNA GİRİŞ KAPISI --- */}
+        <button
+          onClick={() => navigate('/execution/findings/zen/new')}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-bold shadow-sm"
+        >
+          <BookOpen className="w-4 h-4" />
+          Zen Modu (Demo)
+        </button>
+        {/* ----------------------------------------------- */}
+
+        {onCreateNew && (
+          <button
+            onClick={onCreateNew}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-bold shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Yeni Bulgu
           </button>
-          
-          <div className="flex items-center gap-3">
-             <div className="flex gap-1 bg-slate-100 p-1 rounded-full">
-                {SEVERITY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setSeverity(opt.value)}
-                    className={clsx(
-                        "w-4 h-4 rounded-full transition-all", 
-                        severity === opt.value ? clsx(opt.color, "ring-2 ring-offset-1 ring-slate-300 scale-110") : "bg-slate-300 hover:bg-slate-400"
-                    )}
-                    title={opt.label}
-                  />
-                ))}
-             </div>
-             
-             <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-lg font-bold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-slate-300 w-[350px] truncate"
-                placeholder="Bulgu Başlığı Giriniz..."
-             />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 border-r border-slate-200 pr-4">
-            <button onClick={() => openDrawer('chat')} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><MessageSquare size={18} /></button>
-            <button onClick={() => openDrawer('history')} className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg"><History size={18} /></button>
-            <button onClick={() => openDrawer('ai')} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><Sparkles size={18} /></button>
-          </div>
-
-          <div className="flex items-center gap-3 bg-white/80 px-4 py-1.5 rounded-full border border-slate-200 shadow-sm">
-            <Sun size={14} className="text-amber-500" />
-            <input type="range" min="0" max="100" value={warmth} onChange={(e) => setWarmth(parseInt(e.target.value))} className="w-20 h-1 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-slate-600" />
-          </div>
-
-          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <button onClick={() => setIsTwoPageMode(false)} className={clsx("p-1.5 rounded-md transition-all", !isTwoPageMode ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}><ScrollText size={18} /></button>
-            <button onClick={() => setIsTwoPageMode(true)} className={clsx("p-1.5 rounded-md transition-all", isTwoPageMode ? "bg-white shadow-sm text-blue-600" : "text-slate-400 hover:text-slate-600")}><BookOpen size={18} /></button>
-          </div>
-
-          <button onClick={handleSave} className={clsx("flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95", saveState === 'saved' ? "bg-emerald-600 text-white" : "bg-slate-900 text-white hover:bg-slate-800")}>
-             {saveState === 'saving' ? <Loader2 size={16} className="animate-spin" /> : saveState === 'saved' ? <Check size={16} /> : <Save size={16} />} 
-             {saveState === 'saving' ? '...' : saveState === 'saved' ? 'Kaydedildi' : 'Kaydet'}
-          </button>
-        </div>
-      </header>
-
-      {/* İçerik */}
-      <div className={clsx("flex-1 flex relative z-10 transition-all duration-300", isTwoPageMode ? "overflow-hidden bg-slate-200 p-6 pb-12" : "overflow-y-auto p-8")}>
-        
-        {/* Sol Sayfa */}
-        <div className={clsx("flex flex-col bg-white transition-all duration-300 relative", isTwoPageMode ? "flex-1 rounded-l-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-y border-l border-slate-200 overflow-hidden" : "max-w-4xl mx-auto w-full rounded-2xl shadow-sm border border-slate-200 p-10 mb-12")}>
-          <div className="flex-1 overflow-y-auto p-12 pb-32 custom-scrollbar">
-            <div className={clsx("max-w-3xl", isTwoPageMode ? "ml-auto" : "mx-auto")}>
-              <div className="mb-10 bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-6 relative overflow-hidden shadow-sm cursor-pointer" onClick={() => openDrawer('ai')}>
-                <h3 className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-2"><Sparkles size={14} className="inline mr-1"/> Yönetici Özeti (AI)</h3>
-                <p className="text-sm text-slate-700 font-medium leading-relaxed relative z-10">{aiSummary}</p>
-              </div>
-
-              <ZenEditor findingId={findingId || undefined} initialData={editorData} onChange={setEditorData} />
-            </div>
-          </div>
-        </div>
-
-        {/* Cilt */}
-        {isTwoPageMode && (
-          <div className="w-16 shrink-0 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 border-x border-slate-300/50 relative z-20 flex justify-center shadow-inner items-center">
-             <div className="w-px h-[95%] bg-slate-300/50" />
-          </div>
         )}
-
-        {/* Sağ Sayfa */}
-        <div className={clsx("flex flex-col bg-white transition-all duration-300 relative", isTwoPageMode ? "flex-1 rounded-r-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border-y border-r border-slate-200 overflow-hidden" : "max-w-4xl mx-auto w-full rounded-2xl shadow-sm border border-slate-200 p-10")}>
-          <div className="flex-1 overflow-y-auto p-12 pb-32 custom-scrollbar">
-            <div className={clsx("max-w-3xl", isTwoPageMode ? "mr-auto" : "mx-auto")}>
-              <div className="text-center mb-10">
-                <h2 className="text-2xl font-black text-slate-800 font-serif tracking-tight">Aksiyon Planları</h2>
-                <div className="h-1 w-12 bg-slate-200 mx-auto mt-4 rounded-full" />
-              </div>
-              <div className="space-y-6">
-                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-400 hover:shadow-md transition-all cursor-pointer">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                    <div className="flex justify-between items-start mb-4">
-                       <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-700 transition-colors">Şube Kasa Prosedürünün Güncellenmesi</h3>
-                       <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">İNCELEMEDE</span>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-4 leading-relaxed">Vezne personeline çift anahtar kuralı hakkında eğitim verilecek ve mevcut şifreler yenilenecektir.</p>
-                    <div className="flex items-center gap-4 text-xs font-medium text-slate-500 pt-4 border-t border-slate-100">
-                        <div className="flex items-center gap-1"><AlertTriangle size={12}/> Termin: 15.03.2026</div>
-                        <div className="flex items-center gap-1"><Check size={12}/> Sorumlu: Ahmet Y.</div>
-                    </div>
-                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      <UniversalFindingDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        defaultTab={activeDrawerTab}
-        findingId={findingId}
-        currentViewMode="zen"
-      />
+      {/* --- LİSTE --- */}
+      {isLoading ? (
+        <div className="text-center py-20 text-slate-400 animate-pulse">Yükleniyor...</div>
+      ) : filteredFindings.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
+          <Filter className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium text-sm">Hiç kayıt yok. Yukarıdaki "Zen Modu" butonuna basarak tasarımı görebilirsiniz.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredFindings.map((finding) => (
+            <div
+              key={finding.id}
+              onClick={() => navigate(`/execution/findings/zen/${finding.id}`)}
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+            >
+              {/* Sol Kenar Çizgisi */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 w-1" 
+                style={{ backgroundColor: getSeverityDisplay(finding.severity).color }} 
+              />
 
+              <div className="flex items-start justify-between gap-4 pl-3">
+                <div className="flex-1 space-y-2">
+                   <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                        {finding.code}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-sm ${getSeverityDisplay(finding.severity).bgClass}`}
+                        style={{ backgroundColor: getSeverityDisplay(finding.severity).color }}
+                      >
+                        {getSeverityDisplay(finding.severity).label}
+                      </span>
+                   </div>
+
+                   <h3 className="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
+                     {finding.title}
+                   </h3>
+
+                   <div className="flex items-center gap-4 text-xs text-slate-500 font-medium">
+                      <span>{finding.financial_impact > 0 ? `${finding.financial_impact.toLocaleString()} TL` : 'Finansal Etki Yok'}</span>
+                      <div className="flex items-center gap-1">
+                        <Layout className="w-3 h-3" />
+                        <span>{finding.gias_category || 'Genel'}</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex flex-col justify-center h-full">
+                   <button className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors">
+                      <ArrowRight size={20} />
+                   </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
