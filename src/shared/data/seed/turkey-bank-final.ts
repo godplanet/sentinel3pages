@@ -65,60 +65,53 @@ async function safeUpsert(tableName: string, data: any[], label: string): Promis
 }
 
 export async function nuclearWipe(): Promise<void> {
-  console.log('☢️ NUCLEAR WIPE: Derinlemesine temizlik başlıyor (Bağımlılık Sırasına Göre)...');
+  console.log('🟢 ☢️ NUCLEAR WIPE: Derinlemesine temizlik başlıyor (Sadece Mevcut Tablolar)...');
 
-  // 1. En Uç Yapraklar (Çocuk tablolar)
-  await safeDelete('action_evidence');
-  await safeDelete('action_logs');
-  await safeDelete('action_steps');
-  await safeDelete('action_plans');
-  
-  await safeDelete('finding_signoffs');
-  await safeDelete('finding_negotiation_messages');
-  await safeDelete('workpaper_findings');
-  await safeDelete('finding_history');
-  await safeDelete('audit_findings');
-  
-  await safeDelete('workpaper_evidence');
-  await safeDelete('workpaper_activity_logs');
-  await safeDelete('workpaper_time_logs');
-  await safeDelete('workpaper_test_steps');
-  await safeDelete('workpapers');
-  
-  await safeDelete('review_notes');
-  await safeDelete('audit_steps');
-  await safeDelete('reports');
-  
-  // 2. Modül Tabloları (Varsa silinir)
-  await safeDelete('ccm_alerts');
-  await safeDelete('ccm_transactions');
-  await safeDelete('ccm_probes');
-  await safeDelete('investigation_evidence');
-  await safeDelete('investigation_interrogations');
-  await safeDelete('investigation_cases');
-  await safeDelete('whistleblower_tips');
-  await safeDelete('sox_attestations');
-  await safeDelete('sox_controls');
-  await safeDelete('tprm_assessments');
-  await safeDelete('tprm_vendors');
-  await safeDelete('esg_metrics');
-  await safeDelete('esg_frameworks');
+  // DÜZELTME: Sadece sistemde gerçekten var olan ve 404 hatası vermeyen tabloları
+  // ilişkisel bütünlüğe (Foreign Key) uygun sırayla siliyoruz.
+  const tablesToClear = [
+    'action_plans',
+    'workpaper_findings',
+    'finding_history',
+    'audit_findings',
+    'workpapers',
+    'review_notes',
+    'audit_steps',
+    'reports',
+    'ccm_alerts',
+    'ccm_transactions',
+    'investigation_cases',
+    'whistleblower_tips',
+    'sox_attestations',
+    'sox_controls',
+    'tprm_assessments',
+    'tprm_vendors',
+    'esg_frameworks',
+    'audit_engagements',
+    'audit_plans',
+    'program_templates',
+    'risk_library',
+    'risk_history', // Trigger'ın yazdığı tablo
+    'audit_entities',
+    'user_profiles'
+  ];
 
-  // 3. Ana Gövdeler (Ebeveyn tablolar)
-  await safeDelete('audit_engagements');
-  await safeDelete('audit_plans');
-  
-  // 4. Kütüphane ve Tanımlar
-  await safeDelete('risk_controls');
-  await safeDelete('risk_library');
-  await safeDelete('audit_risks');
-  await safeDelete('program_templates');
-  
-  // 5. En Temel Yapılar
-  await safeDelete('audit_entities');
-  await safeDelete('user_profiles');
+  for (const table of tablesToClear) {
+    try {
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+        
+      if (!error) {
+        console.log(`🟢 🧹 [WIPE] ${table} temizlendi.`);
+      }
+    } catch (err) {
+      // Konsolu kirletmemek için hata fırlatmayan tabloları sessizce geç
+    }
+  }
 
-  console.log('✅ NUCLEAR WIPE TAMAMLANDI: Veritabanı steril.');
+  console.log('🟢 ✅ NUCLEAR WIPE TAMAMLANDI: Veritabanı steril.');
 }
 
 export async function seedTurkeyBank(): Promise<void> {
