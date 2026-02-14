@@ -1,197 +1,150 @@
-import { useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
-import Highlight from '@tiptap/extension-highlight';
-import {
-  Bold, Italic, List, ListOrdered, Highlighter,
-  Underline as UnderlineIcon, GitBranch
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RichTextEditor } from '@/shared/ui/RichTextEditor'; // <-- ORTAK BİLEŞEN
+import { GitBranch, AlertCircle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
-
-// --- TİP TANIMLARI ---
-export interface RootCauseAnalysisData {
-  method: 'five_whys' | 'fishbone' | 'bowtie';
-  five_whys?: string[];
-}
 
 export interface FindingEditorData {
   criteria: string;
   condition: string;
-  root_cause_analysis: RootCauseAnalysisData;
   effect: string;
   recommendation: string;
+  root_cause_analysis: { method: 'five_whys', five_whys: string[] };
 }
 
 interface ZenEditorProps {
-  findingId?: string;
-  initialData?: FindingEditorData;
+  initialData: FindingEditorData;
   onChange?: (data: FindingEditorData) => void;
+  readOnly?: boolean;
 }
 
-// --- EDİTÖR KONFİGÜRASYONU ---
-const SECTION_CONFIGS = [
-  { id: 'criteria', title: '1. KRİTER (Criteria)', subtitle: 'Mevzuat, Politika veya Standart', placeholder: 'İlgili kanun maddesi veya prosedür referansı...', color: 'border-blue-200 bg-blue-50/30' },
-  { id: 'condition', title: '2. TESPİT (Condition)', subtitle: 'Saha Bulgusu ve Kanıtlar', placeholder: 'Sahada gözlemlenen durum...', color: 'border-amber-200 bg-amber-50/30' },
-  { id: 'effect', title: '4. ETKİ (Effect / Risk)', subtitle: 'Finansal ve Operasyonel Risk', placeholder: 'Kurumun maruz kaldığı risk...', color: 'border-red-200 bg-red-50/30' },
-  { id: 'recommendation', title: '5. ÖNERİ (Recommendation)', subtitle: 'Düzeltici Aksiyon', placeholder: 'Kök nedeni ortadan kaldıracak öneri...', color: 'border-emerald-200 bg-emerald-50/30' },
+const SECTIONS = [
+  { id: 'criteria', title: '1. KRİTER (Ne Olmalıydı?)', placeholder: 'İlgili mevzuat, prosedür veya en iyi uygulama standardını buraya yazın...', color: 'border-blue-200 bg-blue-50/30' },
+  { id: 'condition', title: '2. TESPİT (Ne Oldu?)', placeholder: 'Sahada gözlemlenen durum, kanıtlar ve örneklem detayları...', color: 'border-amber-200 bg-amber-50/30' },
+  // Kök Neden (3. Madde) araya özel bileşen olarak girecek
+  { id: 'effect', title: '4. ETKİ & RİSK (Sonuç Nedir?)', placeholder: 'Kuruma olan finansal, operasyonel veya itibar etkisi...', color: 'border-red-200 bg-red-50/30' },
+  { id: 'recommendation', title: '5. ÖNERİ (Ne Yapılmalı?)', placeholder: 'Kök nedeni ortadan kaldıracak kalıcı çözüm önerisi...', color: 'border-emerald-200 bg-emerald-50/30' },
 ];
 
-export function ZenEditor({ findingId, initialData, onChange }: ZenEditorProps) {
-  const [activeSection, setActiveSection] = useState<string>('criteria');
-  
-  // Veri State'i (Mock data ile beslenecek)
-  const [data, setData] = useState<FindingEditorData>(initialData || {
-    criteria: '', condition: '', effect: '', recommendation: '',
-    root_cause_analysis: { method: 'five_whys', five_whys: ['', '', '', '', ''] }
-  });
+export function ZenEditor({ initialData, onChange, readOnly = false }: ZenEditorProps) {
+  const [data, setData] = useState<FindingEditorData>(initialData);
 
-  // --- TIPTAP EDİTÖR KURULUMU ---
-  const createEditor = (field: keyof FindingEditorData, placeholder: string) => useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      Highlight.configure({ multicolor: true }),
-      Placeholder.configure({ placeholder }),
-    ],
-    content: (data as any)[field], // HTML içeriği buradan alır
-    onUpdate: ({ editor }) => {
-      const val = editor.getHTML();
-      const newData = { ...data, [field]: val };
-      setData(newData);
-      onChange?.(newData);
-    },
-  });
+  // Dışarıdan gelen veri değişirse state'i güncelle (Senkronizasyon)
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
-  // Her alan için ayrı editör instance'ı
-  const editors = {
-    criteria: createEditor('criteria', SECTION_CONFIGS[0].placeholder),
-    condition: createEditor('condition', SECTION_CONFIGS[1].placeholder),
-    effect: createEditor('effect', SECTION_CONFIGS[2].placeholder),
-    recommendation: createEditor('recommendation', SECTION_CONFIGS[3].placeholder),
-  };
-
-  // Kök Neden Güncelleme
-  const updateFiveWhys = (index: number, val: string) => {
-    const newWhys = [...(data.root_cause_analysis.five_whys || [])];
-    newWhys[index] = val;
-    const newData = { ...data, root_cause_analysis: { ...data.root_cause_analysis, five_whys: newWhys } };
+  const handleChange = (field: keyof FindingEditorData, value: any) => {
+    const newData = { ...data, [field]: value };
     setData(newData);
     onChange?.(newData);
   };
 
-  // --- INLINE TOOLBAR (Sabit Toolbar) ---
-  const EditorToolbar = ({ editor }: { editor: any }) => {
-    if (!editor) return null;
-    return (
-      <div className="flex items-center gap-1 p-2 bg-slate-100 rounded-lg mb-3 border border-slate-200">
-        <button onClick={() => editor.chain().focus().toggleBold().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('bold') && "bg-white text-blue-600 shadow-sm")}><Bold size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('italic') && "bg-white text-blue-600 shadow-sm")}><Italic size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('underline') && "bg-white text-blue-600 shadow-sm")}><UnderlineIcon size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('highlight') && "bg-white text-yellow-600 shadow-sm")}><Highlighter size={14}/></button>
-        <div className="w-px h-4 bg-slate-300 mx-1" />
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('bulletList') && "bg-white text-blue-600 shadow-sm")}><List size={14}/></button>
-      </div>
-    );
+  const handleRootCauseChange = (index: number, value: string) => {
+    const newWhys = [...data.root_cause_analysis.five_whys];
+    newWhys[index] = value;
+    const newData = { 
+      ...data, 
+      root_cause_analysis: { ...data.root_cause_analysis, five_whys: newWhys } 
+    };
+    setData(newData);
+    onChange?.(newData);
   };
 
   return (
-    <div className="space-y-8 pb-20">
-      {/* 1. KRİTER */}
-      <SectionWrapper 
-        config={SECTION_CONFIGS[0]} 
-        isActive={activeSection === 'criteria'} 
-        onClick={() => setActiveSection('criteria')}
-      >
-        <EditorToolbar editor={editors.criteria} />
-        <EditorContent editor={editors.criteria} className="prose prose-sm max-w-none min-h-[80px] focus:outline-none" />
-      </SectionWrapper>
+    <div className="space-y-8 pb-20 max-w-4xl mx-auto">
+      
+      {/* 5C BÖLÜMLERİ */}
+      {SECTIONS.map((section, index) => {
+        // Kök Neden Analizini 2. ve 3. madde arasına ekle
+        if (section.id === 'effect') {
+             return (
+                 <div key="rca-wrapper">
+                     <RootCauseSection 
+                        whys={data.root_cause_analysis.five_whys} 
+                        onChange={handleRootCauseChange}
+                        readOnly={readOnly}
+                     />
+                     <div key={section.id} className={clsx("p-1 rounded-xl transition-all duration-300", section.color, "mt-8")}>
+                        <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
+                            <h3 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-widest flex items-center gap-2">
+                                <span className={clsx("w-2 h-2 rounded-full", section.color.replace('border-', 'bg-').replace('bg-', 'text-'))} />
+                                {section.title}
+                            </h3>
+                            <RichTextEditor 
+                                value={(data as any)[section.id]} 
+                                onChange={(val) => handleChange(section.id as keyof FindingEditorData, val)}
+                                placeholder={section.placeholder}
+                                readOnly={readOnly}
+                                minHeight="150px"
+                            />
+                        </div>
+                     </div>
+                 </div>
+             );
+        }
 
-      {/* 2. TESPİT */}
-      <SectionWrapper 
-        config={SECTION_CONFIGS[1]} 
-        isActive={activeSection === 'condition'} 
-        onClick={() => setActiveSection('condition')}
-      >
-        <EditorToolbar editor={editors.condition} />
-        <EditorContent editor={editors.condition} className="prose prose-sm max-w-none min-h-[120px] focus:outline-none" />
-      </SectionWrapper>
-
-      {/* 3. KÖK NEDEN (ÖZEL BİLEŞEN) */}
-      <div 
-        className={clsx(
-          "rounded-xl border-2 transition-all duration-300 p-6 cursor-pointer relative overflow-hidden group",
-          activeSection === 'root_cause' ? "border-purple-300 bg-purple-50/40 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
-        )}
-        onClick={() => setActiveSection('root_cause')}
-      >
-        <div className="flex items-center gap-3 mb-4">
-           <div className="p-2 bg-purple-100 text-purple-700 rounded-lg"><GitBranch size={20}/></div>
-           <div>
-              <h3 className="font-bold text-slate-800 text-sm">3. KÖK NEDEN (Root Cause)</h3>
-              <p className="text-xs text-slate-500">5-Neden Analizi</p>
-           </div>
-        </div>
-        
-        <div className="space-y-3 relative pl-4 border-l-2 border-purple-200 ml-3">
-           {data.root_cause_analysis.five_whys?.map((why, idx) => (
-             <div key={idx} className="relative">
-                <span className="absolute -left-[25px] top-2.5 w-5 h-5 rounded-full bg-white border border-purple-300 flex items-center justify-center text-[10px] font-bold text-purple-600 shadow-sm">{idx + 1}</span>
-                <input 
-                  type="text" 
-                  value={why} 
-                  onChange={(e) => updateFiveWhys(idx, e.target.value)}
-                  placeholder={`${idx === 0 ? 'Sorun neden oluştu?' : 'Bunun nedeni neydi?'}`}
-                  className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm"
-                />
+        return (
+          <div key={section.id} className={clsx("p-1 rounded-xl transition-all duration-300", section.color)}>
+             <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
+                 <h3 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-widest flex items-center gap-2">
+                    <span className={clsx("w-2 h-2 rounded-full", section.color.replace('border-', 'bg-').replace('bg-', 'text-'))} />
+                    {section.title}
+                 </h3>
+                 <RichTextEditor 
+                    value={(data as any)[section.id]} 
+                    onChange={(val) => handleChange(section.id as keyof FindingEditorData, val)}
+                    placeholder={section.placeholder}
+                    readOnly={readOnly}
+                    minHeight="150px"
+                 />
              </div>
-           ))}
-        </div>
-      </div>
-
-      {/* 4. ETKİ */}
-      <SectionWrapper 
-        config={SECTION_CONFIGS[2]} 
-        isActive={activeSection === 'effect'} 
-        onClick={() => setActiveSection('effect')}
-      >
-        <EditorToolbar editor={editors.effect} />
-        <EditorContent editor={editors.effect} className="prose prose-sm max-w-none min-h-[80px] focus:outline-none" />
-      </SectionWrapper>
-
-      {/* 5. ÖNERİ */}
-      <SectionWrapper 
-        config={SECTION_CONFIGS[3]} 
-        isActive={activeSection === 'recommendation'} 
-        onClick={() => setActiveSection('recommendation')}
-      >
-        <EditorToolbar editor={editors.recommendation} />
-        <EditorContent editor={editors.recommendation} className="prose prose-sm max-w-none min-h-[80px] focus:outline-none" />
-      </SectionWrapper>
+          </div>
+        );
+      })}
 
     </div>
   );
 }
 
-// Yardımcı Wrapper Bileşen
-function SectionWrapper({ config, isActive, onClick, children }: any) {
-  return (
-    <div 
-      onClick={onClick}
-      className={clsx(
-        "rounded-xl border-2 transition-all duration-300 p-6 cursor-pointer relative group",
-        isActive ? `${config.color} shadow-sm ring-1 ring-black/5` : "border-slate-200 bg-white hover:border-slate-300"
-      )}
-    >
-      <div className="flex items-center gap-3 mb-4">
-         <div className={clsx("w-1 h-8 rounded-full", isActive ? "bg-slate-800" : "bg-slate-300")} />
-         <div>
-            <h3 className="font-bold text-slate-800 text-sm tracking-tight">{config.title}</h3>
-            <p className="text-xs text-slate-500 font-medium">{config.subtitle}</p>
-         </div>
-      </div>
-      {children}
-    </div>
-  );
+// --- KÖK NEDEN ÖZEL BİLEŞENİ ---
+function RootCauseSection({ whys, onChange, readOnly }: { whys: string[], onChange: (i: number, v: string) => void, readOnly: boolean }) {
+    return (
+        <div className="p-1 rounded-xl border-purple-200 bg-purple-50/30 my-8">
+            <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
+                        <GitBranch size={14} /> 3. KÖK NEDEN ANALİZİ (5 Neden)
+                    </h3>
+                    {!readOnly && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">AI Destekli</span>}
+                </div>
+                
+                <div className="space-y-3 pl-2 relative">
+                    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-purple-200 to-transparent" />
+                    
+                    {whys.map((why, i) => (
+                        <div key={i} className="flex items-start gap-3 relative group">
+                             <div className={clsx(
+                                 "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 z-10 border-2 transition-colors mt-1.5",
+                                 why ? "bg-purple-600 border-purple-600 text-white" : "bg-white border-purple-200 text-purple-300"
+                             )}>
+                                 {i + 1}
+                             </div>
+                             <div className="flex-1">
+                                 <input 
+                                     value={why}
+                                     onChange={(e) => onChange(i, e.target.value)}
+                                     disabled={readOnly}
+                                     placeholder={`${i + 1}. Neden?`}
+                                     className={clsx(
+                                         "w-full bg-transparent border-b border-transparent py-1.5 text-sm focus:outline-none transition-all placeholder:text-slate-300 text-slate-700",
+                                         !readOnly && "focus:border-purple-300 hover:border-slate-200 border-slate-100"
+                                     )}
+                                 />
+                             </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 }
