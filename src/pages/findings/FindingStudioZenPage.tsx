@@ -19,6 +19,7 @@ import type { ComprehensiveFinding } from '@/entities/finding/model/types';
 // --- BİLEŞENLER ---
 import { ZenEditor, type FindingEditorData } from '@/features/finding-studio/components/ZenEditor';
 import { UniversalFindingDrawer, type DrawerTab } from '@/widgets/UniversalFindingDrawer';
+import { ViewSwitcher } from '@/features/finding-studio/components/ViewSwitcher';
 
 // --- YEREL YARDIMCI FONKSİYONLAR (Store'u bozmamak için) ---
 const getSeverityColor = (severity: string | undefined) => {
@@ -147,6 +148,8 @@ export default function FindingStudioZenPage() {
 
         {/* SAĞ AKSİYONLAR */}
         <div className="flex items-center gap-3">
+          <ViewSwitcher findingId={currentFinding.id} />
+          <div className="h-6 w-px bg-stone-300" />
           <div className="flex items-center gap-1 text-slate-400">
              <button onClick={() => openDrawer('chat')} className="p-2 hover:bg-stone-100 rounded-lg hover:text-blue-600 transition-colors"><MessageSquare size={18}/></button>
              <button onClick={() => openDrawer('ai')} className="p-2 hover:bg-stone-100 rounded-lg hover:text-indigo-600 transition-colors"><Sparkles size={18}/></button>

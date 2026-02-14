@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Save, ArrowLeft, ShieldAlert, FileText, Activity, 
-  GitBranch, Target, Sparkles, Layout, BookOpen, Layers 
+import {
+  Save, ArrowLeft, ShieldAlert, FileText, Activity,
+  GitBranch, Target, Sparkles
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -14,18 +14,7 @@ import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 
 // ORTAK BİLEŞENLER
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
-
-// NAVİGASYON (VIEW SWITCHER)
-function ViewSwitcher({ findingId }: { findingId: string }) {
-  const navigate = useNavigate();
-  return (
-    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-      <button className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold bg-white text-indigo-600 shadow-sm transition-all"><Layout size={14}/> Form</button>
-      <button onClick={() => navigate(`/execution/findings/zen/${findingId}`)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"><BookOpen size={14}/> Zen</button>
-      <button onClick={() => navigate(`/execution/findings/${findingId}/studio`)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"><Layers size={14}/> Studio</button>
-    </div>
-  );
-}
+import { ViewSwitcher } from '@/features/finding-studio/components/ViewSwitcher';
 
 export default function FindingDetailPage() {
   const { id } = useParams();

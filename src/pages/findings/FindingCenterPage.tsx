@@ -15,9 +15,6 @@ import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 import type { ComprehensiveFinding, FindingState } from '@/entities/finding/model/types';
 import { useParameterStore } from '@/shared/stores/parameter-store';
 
-// WIDGETS (TEK DRAWER KURALI)
-import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
-
 type RiskLevel = 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 type StatusFilter = 'ALL' | FindingState;
 type ViewMode = 'list' | 'kanban';
@@ -35,10 +32,8 @@ export default function FindingCenterPage() {
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Modal ve Drawer Kontrolleri
+  // Modal Kontrolleri
   const [showNewFindingModal, setShowNewFindingModal] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
 
   // 1. VERİ YÜKLEME (Tek Gerçek Kaynak)
   useEffect(() => {
@@ -92,10 +87,10 @@ export default function FindingCenterPage() {
     };
   }, [findings]);
 
-  // 4. NAVİGASYON (Drawer Açma)
+  // 4. NAVİGASYON (Detail Page'e Git)
   const handleRowClick = (finding: ComprehensiveFinding) => {
-    setSelectedFindingId(finding.id);
-    setIsDrawerOpen(true);
+    // Varsayılan olarak Form görünümüne git
+    navigate(`/execution/findings/${finding.id}`);
   };
 
   const handleNavigateToDetail = (id: string, mode: 'zen' | 'studio' | 'form') => {
@@ -245,15 +240,6 @@ export default function FindingCenterPage() {
       )}
 
       <NewFindingModal isOpen={showNewFindingModal} onClose={() => setShowNewFindingModal(false)} onSave={() => loadFindings()} />
-      
-      {/* EVRENSEL DRAWER (Sidebar Bağlantısı) */}
-      <UniversalFindingDrawer 
-         isOpen={isDrawerOpen}
-         onClose={() => setIsDrawerOpen(false)}
-         findingId={selectedFindingId}
-         defaultTab="detay"
-         currentViewMode="form"
-      />
     </div>
   );
 }

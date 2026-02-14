@@ -149,9 +149,9 @@ export const AppRoutes = () => {
       <Route path="/execution/finding-hub" element={<Navigate to="/execution/findings" replace />} />
       <Route path="/execution/findings/zen/new" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
       <Route path="/execution/findings/zen/:id" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
+      <Route path="/execution/findings/:id/studio" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
       <Route path="/execution/findings/new" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
       <Route path="/execution/findings/:id" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
-      <Route path="/execution/findings/:id/phase1" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
       <Route path="/execution/findings/:id/legacy" element={<ProtectedRoute><AuditorFindingDetailPage /></ProtectedRoute>} />
       <Route path="/execution/actions" element={<ProtectedRoute><ActionWorkbenchPage /></ProtectedRoute>} />
       <Route path="/execution/pbc" element={<ProtectedRoute><PBCPage /></ProtectedRoute>} />
