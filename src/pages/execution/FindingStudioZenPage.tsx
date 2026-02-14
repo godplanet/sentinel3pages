@@ -1,33 +1,54 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Save, Loader2, Check,
-  BookOpen, ScrollText, Sun,
-  MessageSquare, History, Sparkles, MoreVertical, Calendar, User, Layout, Tag
+  ArrowLeft, Save, Loader2, Check, AlertTriangle,
+  BookOpen, ScrollText, Sun, Clock,
+  MessageSquare, History, Sparkles, User, Calendar,
+  MoreVertical, Share2, Layout, Tag, Lock
 } from 'lucide-react';
 import clsx from 'clsx';
 
-// --- MİMARİ BAĞLANTILAR (Store & Hooks) ---
+// --- MİMARİ BAĞLANTILAR ---
 import { useUIStore } from '@/shared/stores/ui-store';
-import { useParameterStore } from '@/shared/stores/parameter-store'; 
+// DİKKAT: Mevcut parameter-store yapınıza sadık kalıyoruz, buradan renk çekmiyoruz.
 
-// --- GERÇEK VERİ MODELLERİ VE MOCK DATA (Entities Katmanı) ---
+// --- GERÇEK VERİ MODELLERİ (Entities Katmanı) ---
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
-import type { ComprehensiveFinding, ActionPlan } from '@/entities/finding/model/types';
+import type { ComprehensiveFinding } from '@/entities/finding/model/types';
 
 // --- BİLEŞENLER ---
 import { ZenEditor, type FindingEditorData } from '@/features/finding-studio/components/ZenEditor';
 import { UniversalFindingDrawer, type DrawerTab } from '@/widgets/UniversalFindingDrawer';
 
+// --- YEREL YARDIMCI FONKSİYONLAR (Store'u bozmamak için) ---
+const getSeverityColor = (severity: string | undefined) => {
+  switch (severity) {
+    case 'CRITICAL': return 'bg-red-600 text-white border-red-700';
+    case 'HIGH': return 'bg-orange-500 text-white border-orange-600';
+    case 'MEDIUM': return 'bg-amber-500 text-white border-amber-600';
+    case 'LOW': return 'bg-blue-500 text-white border-blue-600';
+    default: return 'bg-slate-500 text-white border-slate-600';
+  }
+};
+
+const getStatusColor = (status: string | undefined) => {
+  switch (status) {
+    case 'APPROVED': return 'bg-emerald-100 text-emerald-800';
+    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800';
+    case 'IN_REVIEW': return 'bg-purple-100 text-purple-800';
+    case 'OVERDUE': return 'bg-red-100 text-red-800';
+    default: return 'bg-slate-100 text-slate-700';
+  }
+};
+
 export default function FindingStudioZenPage() {
-  const { id } = useParams(); // URL'den ID'yi al (örn: find-001)
+  const { id } = useParams();
   const navigate = useNavigate();
   
-  // STORE ÇAĞRILARI
+  // UI STORE (Güvenli Erişim)
   const { isSidebarOpen, toggleSidebar } = useUIStore();
-  const { getSeverityColor, initParameters } = useParameterStore();
 
-  // UI STATE
+  // STATE YÖNETİMİ
   const [isBookMode, setIsBookMode] = useState(true);
   const [warmth, setWarmth] = useState(20);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -35,34 +56,29 @@ export default function FindingStudioZenPage() {
   const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  // VERİ STATE (Component içinde hardcoded veri YOK)
+  // VERİ STATE
   const [currentFinding, setCurrentFinding] = useState<ComprehensiveFinding | null>(null);
   const [editorData, setEditorData] = useState<FindingEditorData | null>(null);
 
-  // BAŞLANGIÇ AYARLARI VE VERİ ÇEKME
   useEffect(() => {
-    initParameters(); 
-    
-    // Odaklanma Modu: Sidebar açıksa kapat
-    if (isSidebarOpen) {
+    // 1. Sidebar Otomasyonu
+    if (isSidebarOpen && typeof toggleSidebar === 'function') {
         toggleSidebar(); 
     }
 
-    // VERİTABANI SİMÜLASYONU
-    // URL'deki ID'ye göre mock dosyasından veriyi buluyoruz.
-    // Eğer ID yoksa veya bulunamazsa demo amaçlı ilk kaydı (Kasa İşlemleri) getiriyoruz.
+    // 2. Veri Yükleme (Mock Data Dosyasından)
+    // URL'deki ID ile eşleşen kaydı bul, yoksa ilk kaydı getir (Demo sürekliliği için)
     const finding = mockComprehensiveFindings.find(f => f.id === id) || mockComprehensiveFindings[0];
 
     if (finding) {
         setCurrentFinding(finding);
 
-        // Veri Modeli Dönüşümü: (ComprehensiveFinding -> EditorData)
-        // Veritabanındaki 'secrets' ve 'description' alanlarını editöre mapliyoruz.
+        // Veri Mapping (ComprehensiveFinding -> EditorData)
         setEditorData({
-            criteria: '<p><strong>BDDK Yönetmeliği ve İç Prosedürler:</strong> Çift anahtar kuralı esastır.</p>', // Mock datada criteria alanı olmadığı için generic
+            criteria: '<p><strong>Referans Mevzuat:</strong> İlgili bankacılık yönetmelikleri ve iç prosedürler esas alınmıştır.</p>',
             condition: finding.description || '',
-            effect: `<p><strong>Finansal Etki:</strong> ${finding.financial_impact?.toLocaleString()} TL<br/><strong>Kategori:</strong> ${finding.gias_category}</p>`,
-            recommendation: '<p>Süreç kontrolleri artırılmalı ve personel eğitimi yenilenmelidir.</p>',
+            effect: finding.impact_html || `<p><strong>Finansal Etki:</strong> ${finding.financial_impact?.toLocaleString()} TL<br/><strong>Risk Kategorisi:</strong> ${finding.gias_category}</p>`,
+            recommendation: finding.recommendation_html || '<p>Tespit edilen eksikliklerin giderilmesi için kontrol mekanizmalarının güçlendirilmesi önerilmektedir.</p>',
             root_cause_analysis: {
                 method: 'five_whys',
                 five_whys: [
@@ -76,12 +92,12 @@ export default function FindingStudioZenPage() {
         });
     }
 
-    setTimeout(() => setLoading(false), 600);
+    setTimeout(() => setLoading(false), 500);
   }, [id]);
 
   const handleSave = () => {
     setSaveState('saving');
-    // Burada API update çağrısı yapılacak
+    // İleride API update burada olacak
     setTimeout(() => setSaveState('saved'), 1000);
     setTimeout(() => setSaveState('idle'), 2500);
   };
@@ -91,7 +107,6 @@ export default function FindingStudioZenPage() {
     setIsDrawerOpen(true);
   };
 
-  // Yükleniyor veya Veri Yoksa
   if (loading || !currentFinding || !editorData) {
       return <div className="h-screen flex items-center justify-center bg-stone-50"><Loader2 className="animate-spin text-stone-400 w-8 h-8"/></div>;
   }
@@ -99,10 +114,10 @@ export default function FindingStudioZenPage() {
   return (
     <div className={clsx("min-h-screen bg-stone-50 text-slate-800 flex flex-col overflow-hidden transition-colors duration-500", isBookMode ? "h-screen" : "")}>
       
-      {/* SARI FİLTRE (Remarkable Tablet Hissi) */}
+      {/* SARI FİLTRE (Kağıt Hissi) */}
       <div className="absolute inset-0 pointer-events-none z-[45] mix-blend-multiply transition-opacity duration-300" style={{ backgroundColor: '#fdf6e3', opacity: warmth * 0.01 }} />
 
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <header className="h-16 px-6 border-b border-stone-200 bg-white/80 backdrop-blur-md flex items-center justify-between shrink-0 z-[50] shadow-sm relative">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/execution/findings')} className="p-2 hover:bg-stone-100 rounded-full text-slate-500 transition-colors"><ArrowLeft size={20} /></button>
@@ -112,21 +127,21 @@ export default function FindingStudioZenPage() {
                 {currentFinding.severity}
              </span>
              <div>
-                <div className="text-xs text-slate-400 font-mono font-bold">{currentFinding.code}</div>
+                <div className="text-[10px] font-mono font-bold text-slate-400">{currentFinding.code}</div>
                 <div className="text-lg font-bold text-slate-900 truncate max-w-[500px] leading-tight">{currentFinding.title}</div>
              </div>
           </div>
         </div>
 
-        {/* ORTA KONTROLLER (Sıcaklık & Mod) */}
+        {/* ORTA KONTROLLER */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4 bg-stone-100/50 p-1.5 rounded-full border border-stone-200/50 backdrop-blur-sm">
             <div className="flex items-center gap-2 px-3 border-r border-stone-300/50">
                 <Sun size={14} className="text-amber-500" />
                 <input type="range" min="0" max="50" step="5" value={warmth} onChange={(e) => setWarmth(parseInt(e.target.value))} className="w-20 h-1 bg-stone-300 rounded-lg cursor-pointer accent-stone-600" />
             </div>
             <div className="flex items-center gap-1">
-                <button onClick={() => setIsBookMode(false)} className={clsx("p-1.5 rounded transition-all", !isBookMode ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}><ScrollText size={16}/></button>
-                <button onClick={() => setIsBookMode(true)} className={clsx("p-1.5 rounded transition-all", isBookMode ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")}><BookOpen size={16}/></button>
+                <button onClick={() => setIsBookMode(false)} className={clsx("p-1.5 rounded transition-all", !isBookMode ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")} title="Akış Modu"><ScrollText size={16}/></button>
+                <button onClick={() => setIsBookMode(true)} className={clsx("p-1.5 rounded transition-all", isBookMode ? "bg-white shadow text-slate-900" : "text-slate-400 hover:text-slate-600")} title="Kitap Modu"><BookOpen size={16}/></button>
             </div>
         </div>
 
@@ -144,45 +159,45 @@ export default function FindingStudioZenPage() {
         </div>
       </header>
 
-      {/* --- ANA ÇALIŞMA ALANI --- */}
+      {/* İÇERİK ALANI */}
       <div className="flex-1 flex p-6 gap-0 overflow-hidden relative z-10 items-stretch justify-center max-w-[1920px] mx-auto w-full">
         
-        {/* SOL: ZEN EDITOR (BULGU DETAYLARI) */}
+        {/* SOL: ZEN EDITOR (BULGU METNİ) */}
         <div className={clsx(
             "bg-white border-y border-l border-stone-200 overflow-hidden flex flex-col transition-all duration-500 relative shadow-sm",
             isBookMode ? "flex-1 rounded-l-2xl max-w-[800px]" : "w-full max-w-4xl mx-auto rounded-2xl border-r shadow-md mb-8"
         )}>
            <div className="flex-1 overflow-y-auto p-12 pb-32 custom-scrollbar">
               <div className="max-w-2xl mx-auto">
-                 {/* Kategori Etiketi */}
+                 {/* Kategori */}
                  <div className="mb-6 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                    <Tag size={12} /> {currentFinding.gias_category}
+                    <Tag size={12} /> {currentFinding.gias_category || 'Genel Kategori'}
                  </div>
 
-                 {/* EDİTÖR: Veritabanından gelen veriyi kullanır */}
+                 {/* Editor */}
                  <ZenEditor initialData={editorData} onChange={setEditorData} />
-                 
-                 {/* Müfettiş Özel Notları (Iron Curtain) */}
+
+                 {/* GİZLİ NOTLAR (IRON CURTAIN) */}
                  {currentFinding.secrets?.internal_notes && (
-                    <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2 text-slate-700 font-bold text-sm">
-                            <Layout size={16} /> Denetçi Özel Notları (Gizli)
+                    <div className="mt-12 p-6 bg-stone-50 border border-stone-200 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2 text-stone-700 font-bold text-sm">
+                            <Lock size={14} /> Denetçi Özel Notları (Gizli)
                         </div>
-                        <p className="text-sm text-slate-600 italic">{currentFinding.secrets.internal_notes}</p>
+                        <p className="text-sm text-stone-600 italic font-serif">"{currentFinding.secrets.internal_notes}"</p>
                     </div>
                  )}
               </div>
            </div>
         </div>
 
-        {/* CİLT (Sadece Kitap Modunda) */}
+        {/* CİLT (Sadece Kitap Modu) */}
         {isBookMode && (
            <div className="w-16 shrink-0 bg-gradient-to-r from-stone-200 via-stone-100 to-stone-200 border-x border-stone-300/40 relative z-20 shadow-inner flex items-center justify-center">
                <div className="w-px h-[95%] bg-stone-300/50" />
            </div>
         )}
 
-        {/* SAĞ: AKSİYON PLANLARI (Veritabanından) */}
+        {/* SAĞ: AKSİYONLAR (Veritabanından) */}
         <div className={clsx(
             "bg-white border-y border-r border-stone-200 overflow-hidden flex flex-col transition-all duration-500 relative shadow-sm",
             isBookMode ? "flex-1 rounded-r-2xl max-w-[800px]" : "hidden"
@@ -195,15 +210,15 @@ export default function FindingStudioZenPage() {
                  </div>
 
                  <div className="space-y-6">
-                    {/* Mock Data'dan Gelen Aksiyonlar */}
+                    {/* AKSİYON LİSTESİ */}
                     {currentFinding.action_plans && currentFinding.action_plans.length > 0 ? (
                         currentFinding.action_plans.map((action) => (
                             <div key={action.id} className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden">
-                                <div className={clsx("absolute left-0 top-0 bottom-0 w-1", action.priority === 'CRITICAL' ? 'bg-red-500' : 'bg-blue-500')} />
+                                <div className={clsx("absolute left-0 top-0 bottom-0 w-1", action.priority === 'CRITICAL' ? 'bg-red-500' : action.priority === 'HIGH' ? 'bg-orange-500' : 'bg-blue-500')} />
                                 
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className={clsx("px-2 py-1 rounded text-[10px] font-bold tracking-wide bg-stone-100 text-stone-600")}>
-                                        {action.status}
+                                    <span className={clsx("px-2 py-1 rounded text-[10px] font-bold tracking-wide", getStatusColor(action.status))}>
+                                        {action.status.replace('_', ' ')}
                                     </span>
                                     <MoreVertical size={16} className="text-stone-300 group-hover:text-slate-600" />
                                 </div>
