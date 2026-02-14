@@ -40,17 +40,19 @@ export default function FindingStudioZenPage() {
 
   // BAŞLANGIÇ AYARLARI
   useEffect(() => {
-    // Sidebar'ı kapat
-    if (isSidebarOpen && toggleSidebar) toggleSidebar();
-    
+    // Sidebar'ı kapat (sadece açıksa)
+    if (isSidebarOpen) {
+      toggleSidebar();
+    }
+
     // Veri Yükleme Simülasyonu (API çağrısı burada yapılır)
     setTimeout(() => {
       setLoading(false);
       // Demo modunda olduğumuz için dışarıdan import ettiğimiz ZEN_DEMO_DATA'yı kullanıyoruz.
       // Gerçek senaryoda: if (!isNew) loadFindingFromApi(id);
-      setEditorData(ZEN_DEMO_DATA); 
+      setEditorData(ZEN_DEMO_DATA);
     }, 600);
-  }, []);
+  }, [isSidebarOpen, toggleSidebar]);
 
   const handleSave = () => {
     setSaveState('saving');
@@ -170,7 +172,13 @@ export default function FindingStudioZenPage() {
 
       </div>
 
-      <UniversalFindingDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} defaultTab={activeDrawerTab} findingId={findingId} currentViewMode="zen" />
+      <UniversalFindingDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        defaultTab={activeDrawerTab}
+        findingId={id === 'new' ? undefined : id}
+        currentViewMode="zen"
+      />
 
     </div>
   );

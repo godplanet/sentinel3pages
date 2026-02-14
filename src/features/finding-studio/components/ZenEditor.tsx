@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
-import { 
-  Bold, Italic, List, ListOrdered, Highlighter, 
-  Underline as UnderlineIcon, GitBranch 
+import {
+  Bold, Italic, List, ListOrdered, Highlighter,
+  Underline as UnderlineIcon, GitBranch
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -81,18 +81,18 @@ export function ZenEditor({ findingId, initialData, onChange }: ZenEditorProps) 
     onChange?.(newData);
   };
 
-  // --- FLOATING TOOLBAR (Metin Seçince Çıkan Menü) ---
+  // --- INLINE TOOLBAR (Sabit Toolbar) ---
   const EditorToolbar = ({ editor }: { editor: any }) => {
     if (!editor) return null;
     return (
-      <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex items-center gap-1 p-1 bg-slate-900 text-white rounded-lg shadow-xl border border-slate-700 z-50">
-        <button onClick={() => editor.chain().focus().toggleBold().run()} className={clsx("p-1.5 rounded hover:bg-slate-700", editor.isActive('bold') && "bg-slate-700 text-blue-400")}><Bold size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={clsx("p-1.5 rounded hover:bg-slate-700", editor.isActive('italic') && "bg-slate-700 text-blue-400")}><Italic size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={clsx("p-1.5 rounded hover:bg-slate-700", editor.isActive('underline') && "bg-slate-700 text-blue-400")}><UnderlineIcon size={14}/></button>
-        <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={clsx("p-1.5 rounded hover:bg-slate-700", editor.isActive('highlight') && "bg-slate-700 text-yellow-400")}><Highlighter size={14}/></button>
-        <div className="w-px h-4 bg-slate-600 mx-1" />
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={clsx("p-1.5 rounded hover:bg-slate-700", editor.isActive('bulletList') && "bg-slate-700 text-blue-400")}><List size={14}/></button>
-      </BubbleMenu>
+      <div className="flex items-center gap-1 p-2 bg-slate-100 rounded-lg mb-3 border border-slate-200">
+        <button onClick={() => editor.chain().focus().toggleBold().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('bold') && "bg-white text-blue-600 shadow-sm")}><Bold size={14}/></button>
+        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('italic') && "bg-white text-blue-600 shadow-sm")}><Italic size={14}/></button>
+        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('underline') && "bg-white text-blue-600 shadow-sm")}><UnderlineIcon size={14}/></button>
+        <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('highlight') && "bg-white text-yellow-600 shadow-sm")}><Highlighter size={14}/></button>
+        <div className="w-px h-4 bg-slate-300 mx-1" />
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={clsx("p-1.5 rounded hover:bg-white transition-colors", editor.isActive('bulletList') && "bg-white text-blue-600 shadow-sm")}><List size={14}/></button>
+      </div>
     );
   };
 

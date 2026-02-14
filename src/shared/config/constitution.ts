@@ -507,4 +507,4 @@ export const GRADING_THRESHOLDS = [
   { min: 60, grade: 'C', opinion: 'Sınırlı Güvence', frequency: '18 Ay', color: TAXONOMY_COLORS.SINIRLI_GUVENCE },
   { min: 50, grade: 'D', opinion: 'Zayıf / Gelişim Gerekir', frequency: '12 Ay', color: TAXONOMY_COLORS.GELISIM_GEREKIR },
   { min: 0, grade: 'F', opinion: 'Güvence Yok', frequency: 'Sürekli İzleme', color: TAXONOMY_COLORS.GUVENCE_YOK }
-};
+];
