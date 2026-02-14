@@ -59,10 +59,10 @@ export default function RiskSimulationPage() {
 
       if (risk.shariah_related) {
         category = 'Bordo (Batıl)';
-        colorClass = 'bg-rose-950 text-white border-rose-900'; // Şer'i veto
+        colorClass = 'bg-fuchsia-950 text-white border-fuchsia-900'; // Şer'i veto
       } else if (dynamicScore >= 20) {
         category = 'Bordo (Kritik)';
-        colorClass = 'bg-rose-950 text-white border-rose-900';
+        colorClass = 'bg-fuchsia-950 text-white border-fuchsia-900';
       } else if (dynamicScore >= 15) {
         category = 'Kırmızı (Yüksek)';
         colorClass = 'bg-red-600 text-white border-red-700';
@@ -92,9 +92,14 @@ export default function RiskSimulationPage() {
     return matrix;
   }, [calculatedRisks]);
 
+  // --- EKSİK OLAN YARDIMCI FONKSİYON BURAYA EKLENDİ ---
+  const getRisksForCell = (impact: number, likelihood: number) => {
+    return matrixData[`${impact}-${likelihood}`] || [];
+  };
+
   // Hücre Rengini Belirleme (O hücredeki EN YÜKSEK dinamik skora göre)
   const getCellColor = (impact: number, likelihood: number) => {
-    const risks = matrixData[`${impact}-${likelihood}`];
+    const risks = getRisksForCell(impact, likelihood);
     
     // Hücre boşsa, sadece statik x*y puanına göre açık bir zemin rengi ver
     if (risks.length === 0) {
@@ -109,13 +114,13 @@ export default function RiskSimulationPage() {
     const maxScore = Math.max(...risks.map(r => r.dynamicScore));
     const hasShariah = risks.some(r => r.shariah_related);
     
-    if (hasShariah || maxScore >= 20) return 'bg-rose-100 border-rose-300';
-    if (maxScore >= 15) return 'bg-red-100 border-red-300';
-    if (maxScore >= 8) return 'bg-orange-100 border-orange-300';
-    return 'bg-emerald-100 border-emerald-300';
+    if (hasShariah || maxScore >= 20) return 'bg-fuchsia-100 border-fuchsia-300 shadow-inner';
+    if (maxScore >= 15) return 'bg-red-100 border-red-300 shadow-inner';
+    if (maxScore >= 8) return 'bg-orange-100 border-orange-300 shadow-inner';
+    return 'bg-emerald-100 border-emerald-300 shadow-inner';
   };
 
-  const activeRisks = selectedCell ? (matrixData[`${selectedCell.i}-${selectedCell.l}`] || []) : calculatedRisks;
+  const activeRisks = selectedCell ? getRisksForCell(selectedCell.i, selectedCell.l) : calculatedRisks;
 
   return (
     <div className="w-full max-w-full px-6 py-8 space-y-6 bg-slate-50 min-h-screen font-sans">
@@ -174,13 +179,13 @@ export default function RiskSimulationPage() {
               <h3 className="text-indigo-200 font-bold flex items-center gap-2 mb-2">
                 Sentinel AI Kinetik Risk Analizi
                 {selectedVelocity === 'Kritik Hız (Saatler)' && (
-                  <span className="px-2 py-0.5 bg-rose-500/20 text-rose-300 text-[10px] rounded-full border border-rose-500/30 uppercase tracking-wide animate-pulse">
+                  <span className="px-2 py-0.5 bg-fuchsia-500/20 text-fuchsia-300 text-[10px] rounded-full border border-fuchsia-500/30 uppercase tracking-wide animate-pulse">
                     Yüksek Volatilite
                   </span>
                 )}
               </h3>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Geleneksel matrisler riskin <strong>hızını (velocity)</strong> göremez. Siber güvenlik gibi risklerin gerçekleşme süresi saatler ile ölçülürken, personel devir hızı (turnover) aylara yayılır. Yandaki <em>Kriz Senaryosunu</em> "Kritik Hız"a getirdiğinizde, kinetik enerjisi çok yüksek olan <strong>RSK-001 (Siber Saldırı)</strong> riskinin, zemin puanına eklenen <strong>+{ (VELOCITY_MULTIPLIERS[selectedVelocity] * 100).toFixed(0) }% Hız Çarpanı</strong> ile aniden <span className="text-rose-400 font-bold">Bordo (Kritik)</span> bölgeye sıçradığını, "Turnover" riskinin ise hız faktörü düşük olduğu için yerinde kaldığını gözlemleyebilirsiniz.
+                Geleneksel matrisler riskin <strong>hızını (velocity)</strong> göremez. Siber güvenlik gibi risklerin gerçekleşme süresi saatler ile ölçülürken, personel devir hızı (turnover) aylara yayılır. Yandaki <em>Kriz Senaryosunu</em> "Kritik Hız"a getirdiğinizde, kinetik enerjisi çok yüksek olan <strong>RSK-001 (Siber Saldırı)</strong> riskinin, zemin puanına eklenen <strong>+{ (VELOCITY_MULTIPLIERS[selectedVelocity] * 100).toFixed(0) }% Hız Çarpanı</strong> ile aniden <span className="text-fuchsia-400 font-bold">Bordo (Kritik)</span> bölgeye sıçradığını, "Turnover" riskinin ise hız faktörü düşük olduğu için yerinde kaldığını gözlemleyebilirsiniz.
               </p>
             </div>
           </div>
@@ -301,7 +306,7 @@ export default function RiskSimulationPage() {
                             <div className="text-[11px] text-slate-500 max-w-[200px] truncate" title={risk.title}>{risk.title}</div>
                           </div>
                           {risk.shariah_related && (
-                            <Flame size={14} className="text-rose-600 ml-1 flex-shrink-0" title="Şer'i Hassasiyet (Veto)" />
+                            <Flame size={14} className="text-fuchsia-600 ml-1 flex-shrink-0" title="Şer'i Hassasiyet (Veto)" />
                           )}
                         </div>
                       </td>
