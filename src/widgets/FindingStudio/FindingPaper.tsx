@@ -1,292 +1,101 @@
-import { useState } from 'react';
-import { Sparkles, FileText, AlertCircle, Target, Lightbulb, CheckCircle2, X, BookOpen } from 'lucide-react';
+import { FileText, Calendar, User, Tag, AlertTriangle, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
-import { RegulationSelectorModal } from '@/features/finding-studio/components/RegulationSelectorModal';
+import type { ComprehensiveFinding } from '@/entities/finding/model/types';
+import { useParameterStore } from '@/shared/stores/parameter-store';
 
-interface FindingPaperProps {
-  finding: any;
-}
+export function FindingPaper({ finding }: { finding: ComprehensiveFinding }) {
+  const { getSeverityColor } = useParameterStore();
 
-export function FindingPaper({ finding }: FindingPaperProps) {
-  const [showRegulationModal, setShowRegulationModal] = useState(false);
-  const [selectedRegulations, setSelectedRegulations] = useState<string[]>([]);
-
-  const handleRegulationSelect = (regulation: any) => {
-    const regulationText = `${regulation.code} - ${regulation.title}${
-      regulation.article ? ` (${regulation.article})` : ''
-    }: ${regulation.description}`;
-
-    setSelectedRegulations((prev) => [...prev, regulationText]);
-  };
+  if (!finding) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-12 border border-slate-200">
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-sm font-mono text-slate-500">{finding.id}</span>
-              <span
-                className={clsx(
-                  'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide',
-                  finding.status === 'draft' && 'bg-slate-100 text-slate-700',
-                  finding.status === 'review' && 'bg-blue-100 text-blue-700'
-                )}
-              >
-                {finding.status === 'draft' ? 'Açık' : 'Gözden Geçirmede'}
-              </span>
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-red-600 text-white shadow-md">
-                {finding.risk_level === 'critical' ? 'KRİTİK' : 'YÜKSEK'}
-              </span>
-            </div>
-
-            <h1 className="text-3xl font-bold text-slate-900 leading-tight mb-2">
-              {finding.title}
-            </h1>
-
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <span className="font-medium">{finding.engagement.scope}</span>
-              <span className="text-slate-400">•</span>
-              <span>{finding.engagement.name}</span>
-            </div>
-          </div>
-
-          <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-            <span className="text-2xl">⋯</span>
-          </button>
-        </div>
-
-        <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-          <div className="flex items-start gap-3">
-            <Sparkles className="flex-shrink-0 mt-1" size={20} />
-            <div>
-              <h3 className="font-bold text-sm uppercase tracking-wide mb-2 opacity-90">
-                AI Yönetici Özeti / Executive Summary
-              </h3>
-              <p className="text-white/95 leading-relaxed text-sm">
-                {finding.sections.ai_summary}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="bg-white shadow-sm border border-slate-200 min-h-[297mm] p-12 relative overflow-hidden font-serif text-slate-800">
+      
+      {/* KAĞIT FİLİGRANI (Opsiyonel) */}
+      <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+         <ShieldCheck size={120} />
       </div>
 
-      <div className="space-y-8">
-        <Section
-          icon={FileText}
-          title={finding.sections.criteria.title}
-          iconColor="text-blue-600"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-500 italic">{finding.sections.criteria.content}</div>
-              <button
-                onClick={() => setShowRegulationModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm"
-              >
-                <BookOpen size={16} />
-                Mevzuat Kütüphanesinden Seç
-              </button>
-            </div>
-
-            {selectedRegulations.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <div className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
-                  Seçilen Mevzuatlar:
-                </div>
-                {selectedRegulations.map((reg, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                  >
-                    <BookOpen className="text-blue-600 shrink-0 mt-0.5" size={16} />
-                    <div className="flex-1 text-sm text-slate-700">{reg}</div>
-                    <button
-                      onClick={() =>
-                        setSelectedRegulations((prev) => prev.filter((_, i) => i !== idx))
-                      }
-                      className="text-slate-400 hover:text-red-600 transition-colors"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Section>
-
-        <RegulationSelectorModal
-          isOpen={showRegulationModal}
-          onClose={() => setShowRegulationModal(false)}
-          onSelect={handleRegulationSelect}
-        />
-
-        <Section
-          icon={AlertCircle}
-          title={finding.sections.finding.title}
-          iconColor="text-orange-600"
-        >
-          <div className="prose prose-slate max-w-none">
-            <p className="text-slate-700 leading-relaxed">
-              {finding.sections.finding.content}
-            </p>
-          </div>
-        </Section>
-
-        <Section
-          icon={Target}
-          title={finding.sections.risk.title}
-          iconColor="text-red-600"
-        >
-          <div className="space-y-4">
-            <div className="flex gap-2 mb-4">
-              <span className="px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm font-semibold border border-red-200">
-                • Risk Türü Dahi
-              </span>
-              <span className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-sm font-semibold border border-orange-200">
-                • Yüksek Uyum ×
-              </span>
-            </div>
-
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">{finding.sections.risk.impact_holder}</span>
-                <button className="text-xs text-slate-500 hover:text-slate-700">📅</button>
-              </div>
-              <div className="text-slate-900 font-medium">
-                {finding.sections.risk.description}
-              </div>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="flex items-center gap-2 mb-4">
-                <Lightbulb className="text-purple-600" size={20} />
-                <h4 className="font-semibold text-slate-900">{finding.sections.risk.root_cause_title}</h4>
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-purple-900">{finding.sections.risk.root_cause_type}</span>
-                </div>
-                <p className="text-slate-700 text-sm">
-                  {finding.sections.risk.root_cause_description}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Section>
-
-        <Section
-          icon={CheckCircle2}
-          title={finding.sections.recommendation.title}
-          iconColor="text-green-600"
-        >
-          <div className="prose prose-slate max-w-none">
-            <p className="text-slate-700 leading-relaxed">
-              {finding.sections.recommendation.content}
-            </p>
-          </div>
-          <button className="mt-4 text-green-600 hover:text-green-700 font-medium text-sm flex items-center gap-1">
-            <Sparkles size={16} /> AI İle Darızgye
-          </button>
-        </Section>
-
-        <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <Target size={18} className="text-blue-600" />
-              Aksiyon Planı & Sorümlular
-            </h3>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              + Yeni Sorumlü Ekle
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 border border-slate-200 mb-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-bold">
-                {finding.action_plan.assignee.name.split(' ').map((n: string) => n[0]).join('')}
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-slate-900">{finding.action_plan.assignee.name}</div>
-                <div className="text-sm text-slate-600">{finding.action_plan.assignee.role}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                  ✓ {finding.action_plan.assignee.status}
-                </span>
-                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">
-                  ⬇ Ingiliziz
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 rounded-lg p-3 mb-3">
-              <div className="text-xs text-slate-600 font-medium mb-1">DENETLENİN GÖRECEĞİ KÖK NEDEN</div>
-              <div className="text-sm text-slate-800">{finding.action_plan.root_cause}</div>
-            </div>
-
-            <div className="mb-3">
-              <div className="text-xs text-slate-600 font-medium mb-2">AKSİYON ÖNCELİĞİ</div>
-              <span className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold inline-flex items-center gap-1">
-                🔴 {finding.action_plan.priority}
-              </span>
-            </div>
-
-            <div className="border-t border-slate-200 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold text-slate-700">AKSİYON ADIMLARI (TERMİN PLANI)</div>
-                <div className="text-xs text-slate-500">TERMİN TARİHİ</div>
-              </div>
-
-              <div className="space-y-2">
-                {finding.action_plan.steps.map((step: any) => (
-                  <div key={step.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-slate-400">{step.id}</span>
-                      <span className="text-sm text-slate-700">{step.description}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono text-slate-600">{step.due_date}</span>
-                      <button className="text-slate-400 hover:text-red-600">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button className="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium">
-                + Yeni Adım Ekle
-              </button>
-            </div>
-          </div>
-
-          <button className="text-sm text-slate-500 hover:text-slate-700">▼ Dosya Yükle</button>
-        </div>
+      {/* BAŞLIK ALANI */}
+      <div className="border-b-2 border-slate-900 pb-6 mb-8">
+         <div className="flex justify-between items-start mb-4">
+             <span className="text-xs font-sans font-bold text-slate-400 tracking-widest">BULGU NO: {finding.code}</span>
+             <span className={clsx("font-sans text-xs px-3 py-1 rounded-full font-bold uppercase", getSeverityColor(finding.severity))}>
+                 {finding.severity}
+             </span>
+         </div>
+         <h1 className="text-3xl font-bold leading-tight">{finding.title}</h1>
       </div>
-    </div>
-  );
-}
 
-interface SectionProps {
-  icon: React.ElementType;
-  title: string;
-  iconColor: string;
-  children: React.ReactNode;
-}
-
-function Section({ icon: Icon, title, iconColor, children }: SectionProps) {
-  return (
-    <div className="pb-8 border-b border-slate-200 last:border-0">
-      <div className="flex items-center gap-2 mb-4">
-        <Icon className={clsx(iconColor)} size={20} />
-        <h2 className="text-lg font-bold text-slate-900 uppercase tracking-wide text-sm">
-          {title}
-        </h2>
+      {/* METADATA TABLOSU */}
+      <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 mb-8 font-sans">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                  <span className="text-slate-400 text-xs block mb-1">Denetlenen Birim</span>
+                  <div className="font-bold text-slate-700 flex items-center gap-2"><User size={14}/> {finding.auditee_department || 'Belirtilmemiş'}</div>
+              </div>
+              <div>
+                  <span className="text-slate-400 text-xs block mb-1">Risk Kategorisi</span>
+                  <div className="font-bold text-slate-700 flex items-center gap-2"><Tag size={14}/> {finding.gias_category}</div>
+              </div>
+              <div>
+                  <span className="text-slate-400 text-xs block mb-1">Finansal Etki</span>
+                  <div className="font-bold text-slate-700">{finding.financial_impact ? `${finding.financial_impact.toLocaleString()} TL` : '-'}</div>
+              </div>
+              <div>
+                   <span className="text-slate-400 text-xs block mb-1">Tarih</span>
+                   <div className="font-bold text-slate-700">{finding.created_at?.split('T')[0]}</div>
+              </div>
+          </div>
       </div>
-      {children}
+
+      {/* İÇERİK BLOKLARI (HTML Render) */}
+      <div className="space-y-8 prose prose-slate prose-sm max-w-none">
+          
+          <section>
+              <h3 className="text-sm font-sans font-bold text-slate-900 uppercase border-b border-slate-200 pb-1 mb-3">1. Kriter & Mevzuat</h3>
+              <div dangerouslySetInnerHTML={{ __html: finding.criteria_text || '<p class="text-slate-400 italic">Kriter belirtilmemiş.</p>' }} />
+          </section>
+
+          <section>
+              <h3 className="text-sm font-sans font-bold text-slate-900 uppercase border-b border-slate-200 pb-1 mb-3">2. Tespit</h3>
+              <div dangerouslySetInnerHTML={{ __html: finding.detection_html || finding.description || '' }} />
+          </section>
+
+          {/* KÖK NEDEN KUTUSU */}
+          <section className="bg-slate-50 p-6 rounded-xl border-l-4 border-slate-400 not-prose my-6">
+              <h3 className="text-sm font-sans font-bold text-slate-900 uppercase mb-3 flex items-center gap-2"><AlertTriangle size={14}/> Kök Neden Analizi</h3>
+              {finding.secrets?.rca_details?.five_whys ? (
+                  <ul className="space-y-2">
+                      {finding.secrets.rca_details.five_whys.map((why, i) => (
+                          <li key={i} className="text-sm flex gap-3 text-slate-700">
+                              <span className="font-bold text-slate-400">{i+1}.</span> {why}
+                          </li>
+                      ))}
+                  </ul>
+              ) : (
+                  <div dangerouslySetInnerHTML={{__html: finding.cause_text || 'Analiz yapılmamış.'}} />
+              )}
+          </section>
+
+          <section>
+              <h3 className="text-sm font-sans font-bold text-slate-900 uppercase border-b border-slate-200 pb-1 mb-3">4. Etki</h3>
+              <div dangerouslySetInnerHTML={{ __html: finding.impact_html || '' }} />
+          </section>
+
+          <section>
+              <h3 className="text-sm font-sans font-bold text-slate-900 uppercase border-b border-slate-200 pb-1 mb-3">5. Öneri</h3>
+              <div dangerouslySetInnerHTML={{ __html: finding.recommendation_html || '' }} />
+          </section>
+
+      </div>
+
+      {/* SAYFA ALT BİLGİSİ */}
+      <div className="absolute bottom-8 left-12 right-12 border-t border-slate-200 pt-4 flex justify-between text-[10px] font-sans text-slate-400 uppercase tracking-widest">
+          <span>Sentinel Audit System v3.0</span>
+          <span>Gizli ve Hizmete Özel</span>
+      </div>
+
     </div>
   );
 }
