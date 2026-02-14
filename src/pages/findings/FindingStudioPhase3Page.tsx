@@ -1,182 +1,178 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, AlertCircle, Plus } from 'lucide-react';
-import { WorkflowStepper, type ActionPlan as WorkflowActionPlan } from '@/widgets/FindingStudio/WorkflowStepper';
-import { FindingSidebar } from '@/widgets/FindingStudio/FindingSidebar';
-import { ActionPlanCard, type ActionPlan } from '@/features/finding-studio/components/ActionPlanCard';
-import { FindingSignOff } from '@/features/finding-studio/components/FindingSignOff';
-import { useSignoffs } from '@/features/finding-studio/api/useSignoffs';
+import { 
+  FileText, AlertCircle, Plus, ArrowLeft, Save, 
+  CheckCircle2, Scale, Users 
+} from 'lucide-react';
 import clsx from 'clsx';
 
-// Mock users for owner selection
-const MOCK_USERS = [
-  { id: 'user-1', name: 'Ahmet Yılmaz', role: 'Kıdemli Denetçi' },
-  { id: 'user-2', name: 'Mehmet Kara', role: 'Şube Müdürü' },
-  { id: 'user-3', name: 'Ayşe Demir', role: 'Operasyon Müdürü' },
-  { id: 'user-4', name: 'Fatma Arslan', role: 'Uyum Sorumlusu' },
-];
+// --- MİMARİ BAĞLANTILAR (Single Source of Truth) ---
+import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
+import type { ComprehensiveFinding, ActionPlan } from '@/entities/finding/model/types';
+import { useParameterStore } from '@/shared/stores/parameter-store';
 
-// Mock finding data
-const MOCK_FINDING = {
-  id: 'AUD-2025-BR-64',
-  title: 'Kasa İşlemlerinde Çift Anahtar Kuralı İhlali',
-  status: 'negotiation', // Start in negotiation phase
-  risk_level: 'critical',
-  auditor: {
-    name: 'Ahmet Aslan',
-    role: 'Kıdemli Müfettiş',
-  },
-  created_at: '12 Ocak 2025',
-  updated_at: '15 Ocak 2025',
-  engagement: {
-    name: 'İstanbul Anadolu Yakası Şubeler Denetimi 2025-Q1',
-  },
-  timeline: [
-    { date: '12.01.2025', action: 'Bulgu oluşturuldu', user: 'Ahmet Aslan' },
-    { date: '13.01.2025', action: 'Risk değerlendirmesi yapıldı', user: 'Ahmet Aslan' },
-    { date: '15.01.2025', action: 'Müzakere aşamasına geçildi', user: 'Sistem' },
-  ],
-  ai_similarity: {
-    percentage: 87,
-    description: 'Bu bulgu, 2024 yılında Ankara şubelerinde tespit edilen "Kasa Güvenlik Prosedürü İhlali" bulgusu ile %87 benzerlik göstermektedir.',
-    similar_findings: [
-      { id: 'AUD-2024-AN-23', title: 'Kasa Güvenlik Prosedürü İhlali', similarity: 0.87, branch: 'Ankara Çankaya' },
-      { id: 'AUD-2024-IZ-15', title: 'İki Kişilik Kontrol Eksikliği', similarity: 0.72, branch: 'İzmir Karşıyaka' },
-    ],
-    quality_control: 'UYARI: Bu bulgu geçmişte 3 kez raporlandı ancak aksiyon planları tamamlanmadı. Takip mekanizması güçlendirilmeli.',
-  },
-};
+// --- BİLEŞENLER ---
+import { ViewSwitcher } from '@/features/finding-studio/components/ViewSwitcher';
+import { WorkflowStepper } from '@/widgets/FindingStudio/WorkflowStepper';
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
+import { ActionPlanCard } from '@/features/finding-studio/components/ActionPlanCard';
+import { FindingSignOff } from '@/features/finding-studio/components/FindingSignOff';
+
+// Mock Kullanıcı Listesi (Burası ileride bir User Entity'den gelebilir)
+const MOCK_USERS = [
+  { id: 'u1', name: 'Ahmet Yılmaz', role: 'Kıdemli Denetçi' },
+  { id: 'u2', name: 'Mehmet Kara', role: 'Şube Müdürü' },
+  { id: 'u3', name: 'Ayşe Demir', role: 'Operasyon Yöneticisi' },
+  { id: 'u4', name: 'Fatma Arslan', role: 'Uyum Sorumlusu' },
+];
 
 export default function FindingStudioPhase3Page() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getSeverityColor } = useParameterStore();
 
-  const [finding] = useState(MOCK_FINDING);
-  const [workflowStatus, setWorkflowStatus] = useState(finding.status);
-  const [activeTab, setActiveTab] = useState<'detay' | 'tarihce' | 'ai' | 'muzakere'>('detay');
-  const [actionPlans, setActionPlans] = useState<ActionPlan[]>([
-    {
-      id: 'action-1',
-      description: 'Şube Müdürü tarafından günlük kasa kontrol formlarının imzalanması ve arşivlenmesi sağlanacaktır.',
-      agreement_status: 'PENDING',
-    },
-  ]);
+  // STATE YÖNETİMİ
+  const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionPlans, setActionPlans] = useState<ActionPlan[]>([]);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Sign-off management
-  const { hasSigned } = useSignoffs(finding.id);
-
-  // Auto-open negotiation tab when in negotiation phase
+  // 1. VERİ YÜKLEME
   useEffect(() => {
-    if (workflowStatus === 'negotiation') {
-      setActiveTab('muzakere');
+    const found = mockComprehensiveFindings.find(f => f.id === id) || mockComprehensiveFindings[0];
+    
+    if (found) {
+        setFinding(found);
+        // Tip dönüşümü yaparak aksiyon planlarını state'e alıyoruz
+        setActionPlans(found.action_plans as unknown as ActionPlan[] || []);
     }
-  }, [workflowStatus]);
+    setLoading(false);
+  }, [id]);
+
+  // --- HANDLERS ---
 
   const handleAddActionPlan = () => {
     const newPlan: ActionPlan = {
-      id: `action-${Date.now()}`,
+      id: `ap-${Date.now()}`,
+      finding_id: finding?.id || '',
+      title: 'Yeni Aksiyon Planı',
       description: '',
-      agreement_status: 'PENDING',
+      responsible_person: '',
+      target_date: new Date().toISOString().split('T')[0],
+      status: 'DRAFT',
+      current_state: 'PROPOSED', // NegotiationState
+      created_at: new Date().toISOString()
     };
-    setActionPlans((prev) => [...prev, newPlan]);
+    setActionPlans([...actionPlans, newPlan]);
   };
 
-  const handleUpdateActionPlan = (id: string, updates: Partial<ActionPlan>) => {
-    setActionPlans((prev) =>
-      prev.map((plan) => (plan.id === id ? { ...plan, ...updates } : plan))
-    );
+  const handleUpdateActionPlan = (planId: string, updates: Partial<ActionPlan>) => {
+    setActionPlans(prev => prev.map(p => p.id === planId ? { ...p, ...updates } : p));
   };
 
-  const handleDeleteActionPlan = (id: string) => {
-    setActionPlans((prev) => prev.filter((plan) => plan.id !== id));
+  const handleDeleteActionPlan = (planId: string) => {
+    setActionPlans(prev => prev.filter(p => p.id !== planId));
   };
 
-  const handleStatusChange = (newStatus: string) => {
-    setWorkflowStatus(newStatus);
-    // In real app, save to database here
-    console.log('Workflow status changed to:', newStatus);
-  };
-
-  // Convert action plans to workflow format
-  const workflowActionPlans: WorkflowActionPlan[] = actionPlans.map((plan) => ({
-    id: plan.id,
-    agreement_status: plan.agreement_status,
-    owner_user_id: plan.owner_user_id,
-    due_date: plan.due_date,
-    disagreement_reason: plan.disagreement_reason,
-    risk_acceptance_confirmed: plan.risk_acceptance_confirmed,
-  }));
+  if (loading || !finding) return <div className="h-screen flex items-center justify-center bg-slate-50">Yükleniyor...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50">
-      <div className="max-w-[1800px] mx-auto px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white">
-              <FileText size={20} />
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-purple-50 font-sans">
+      
+      {/* --- HEADER --- */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-6 h-16 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/execution/findings')} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                <ArrowLeft size={20} />
+            </button>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Finding Studio</h1>
-              <p className="text-sm text-slate-600">Phase 3: Agreement & Negotiation</p>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-slate-400">{finding.code}</span>
+                    <span className={clsx("px-2 py-0.5 rounded text-[10px] font-bold border", getSeverityColor(finding.severity))}>
+                        {finding.severity}
+                    </span>
+                </div>
+                <h1 className="text-sm font-bold text-slate-900 truncate max-w-[400px]">{finding.title}</h1>
             </div>
-          </div>
         </div>
 
-        {/* Workflow Stepper */}
-        <div className="mb-8">
+        {/* ORTAK GÖRÜNÜM DEĞİŞTİRİCİ */}
+        <ViewSwitcher findingId={finding.id} />
+
+        <div className="flex items-center gap-2">
+            <button 
+                onClick={() => setIsDrawerOpen(true)} 
+                className="px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-50"
+            >
+                Detaylar
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-xs hover:bg-indigo-700 shadow-sm transition-all active:scale-95">
+                <Save size={14} /> Değişiklikleri Kaydet
+            </button>
+        </div>
+      </header>
+
+      {/* --- MAIN CONTENT --- */}
+      <div className="max-w-[1800px] mx-auto px-8 py-8">
+        
+        {/* Sayfa Başlığı */}
+        <div className="mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <Scale size={20} />
+            </div>
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900">Müzakere Stüdyosu</h1>
+                <p className="text-sm text-slate-600">Phase 3: Mutabakat ve Aksiyon Planlama</p>
+            </div>
+        </div>
+
+        {/* Süreç Adımları (Stepper) */}
+        <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <WorkflowStepper
-            currentStatus={workflowStatus}
-            actionPlans={workflowActionPlans}
-            onStatusChange={handleStatusChange}
-            hasReviewerSignature={hasSigned('REVIEWER')}
+            currentStatus={finding.state}
+            actionPlans={actionPlans as any}
           />
         </div>
 
-        {/* Warning Banner if in Negotiation Phase */}
-        {workflowStatus === 'negotiation' && (
-          <div className="mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl px-6 py-4 shadow-lg">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
-              <div>
+        {/* Müzakere Uyarısı */}
+        <div className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl px-6 py-4 shadow-lg flex items-start gap-4">
+            <div className="p-2 bg-white/20 rounded-lg"><AlertCircle className="w-6 h-6" /></div>
+            <div>
                 <div className="font-bold text-lg mb-1">⚖️ Mutabakat Aşaması Aktif</div>
-                <div className="text-sm text-blue-100">
-                  Bu bulgu için auditee ile mutabakat sağlanması gerekmektedir. Tüm aksiyon planları için
-                  "Mutabıkım" veya "Mutabık Değilim" seçeneği işaretlenmelidir. Müzakere kaydı sağ paneldedir.
+                <div className="text-sm text-blue-100 leading-relaxed">
+                    Bu bulgu için denetlenen birim (Auditee) ile mutabakat süreci devam etmektedir. 
+                    Tüm aksiyon planları için <strong>"Kabul Edildi"</strong> veya <strong>"Reddedildi"</strong> durumu belirlenmelidir.
                 </div>
-              </div>
             </div>
-          </div>
-        )}
+        </div>
 
         <div className="grid grid-cols-12 gap-8">
-          {/* Main Content: Action Plans */}
-          <div className="col-span-8">
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <div className="flex items-center justify-between mb-6">
+          
+          {/* SOL PANEL: AKSİYON PLANLARI */}
+          <div className="col-span-12 lg:col-span-8 space-y-8">
+            
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Aksiyon Planları</h2>
-                  <p className="text-sm text-slate-600">
-                    Her aksiyon için mutabakat durumu belirleyin
-                  </p>
+                  <p className="text-sm text-slate-500">Mutabakat durumunu yönetin</p>
                 </div>
                 <button
                   onClick={handleAddActionPlan}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-bold text-xs"
                 >
-                  <Plus className="w-4 h-4" />
-                  Yeni Aksiyon Ekle
+                  <Plus className="w-4 h-4" /> Yeni Aksiyon
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="p-6 space-y-6">
                 {actionPlans.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <FileText className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                    <p>Henüz aksiyon planı eklenmemiş</p>
+                  <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/30">
+                    <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                    <p className="text-slate-500 font-medium">Henüz aksiyon planı eklenmemiş</p>
                     <button
                       onClick={handleAddActionPlan}
-                      className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                      className="mt-4 text-indigo-600 hover:text-indigo-700 font-bold text-sm underline"
                     >
                       İlk aksiyonu ekleyin
                     </button>
@@ -186,7 +182,7 @@ export default function FindingStudioPhase3Page() {
                     <ActionPlanCard
                       key={plan.id}
                       actionPlan={plan}
-                      onUpdate={(updates) => handleUpdateActionPlan(plan.id, updates)}
+                      onUpdate={(updates: any) => handleUpdateActionPlan(plan.id, updates)}
                       onDelete={() => handleDeleteActionPlan(plan.id)}
                       availableOwners={MOCK_USERS}
                     />
@@ -195,31 +191,71 @@ export default function FindingStudioPhase3Page() {
               </div>
             </div>
 
-            {/* Sign-Off Chain */}
-            <FindingSignOff
-              findingId={finding.id}
-              currentUserId="user-1"
-              currentUserName="Ahmet Yılmaz"
-              currentUserRole="MANAGER"
-              tenantId="default-tenant"
-              riskLevel={finding.risk_level}
-            />
+            {/* İMZA KUTUSU */}
+            <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6">
+                <FindingSignOff
+                    findingId={finding.id}
+                    currentUserId="u1"
+                    currentUserName="Ahmet Yılmaz"
+                    currentUserRole="MANAGER"
+                    tenantId="default-tenant"
+                    riskLevel={finding.severity}
+                />
+            </div>
+
           </div>
 
-          {/* Right Sidebar */}
-          <div className="col-span-4">
-            <FindingSidebar
-              finding={finding}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              currentUserId="user-1"
-              currentUserName="Ahmet Yılmaz"
-              currentUserRole="AUDITOR"
-              tenantId="default-tenant"
-            />
+          {/* SAĞ PANEL: ÖZET BİLGİ */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm sticky top-24">
+                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                     <Users size={18} className="text-indigo-600"/> Taraf Bilgileri
+                 </h3>
+                 
+                 <div className="space-y-4">
+                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                         <div className="text-xs text-slate-400 font-bold uppercase mb-1">Denetçi</div>
+                         <div className="flex items-center gap-2">
+                             <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs">AY</div>
+                             <div className="text-sm font-bold text-slate-700">Ahmet Yılmaz</div>
+                         </div>
+                     </div>
+
+                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                         <div className="text-xs text-slate-400 font-bold uppercase mb-1">Denetlenen Birim</div>
+                         <div className="flex items-center gap-2">
+                             <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs">MK</div>
+                             <div>
+                                 <div className="text-sm font-bold text-slate-700">Mehmet Kara</div>
+                                 <div className="text-xs text-slate-500">{finding.auditee_department}</div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+
+                 <div className="mt-6 pt-6 border-t border-slate-100">
+                     <button 
+                        onClick={() => setIsDrawerOpen(true)}
+                        className="w-full py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                     >
+                         Bulgu Detaylarını Görüntüle
+                     </button>
+                 </div>
+             </div>
           </div>
+
         </div>
       </div>
+
+      {/* --- UNIVERSAL DRAWER (SIDEBAR) --- */}
+      <UniversalFindingDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+        findingId={finding.id}
+        defaultTab="detay"
+        currentViewMode="studio"
+      />
+
     </div>
   );
 }
