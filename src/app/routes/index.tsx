@@ -31,9 +31,6 @@ import FindingDetailPage from '@/pages/execution/FindingDetailPage';
 import FindingStudioZenPage from '@/pages/execution/FindingStudioZenPage';
 import { AuditeePortalPage } from '@/pages/auditee-portal/AuditeePortalPage';
 
-// --- YENİ EKLENEN GALERİ SAYFASI ---
-import DesignGalleryPage from '@/pages/DesignGalleryPage';
-
 import LoginPage from '@/pages/auth/LoginPage';
 import NotFoundPage from '@/pages/error/NotFoundPage';
 import AccessDeniedPage from '@/pages/error/AccessDeniedPage';
@@ -122,9 +119,6 @@ export const AppRoutes = () => {
       <Route path="/404" element={<NotFoundPage />} />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-      {/* --- TASARIM GALERİSİ ROTASI (YENİ) --- */}
-      <Route path="/gallery" element={<DesignGalleryPage />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/dashboard/strategic" element={<ProtectedRoute><StrategicAnalysisPage /></ProtectedRoute>} />
