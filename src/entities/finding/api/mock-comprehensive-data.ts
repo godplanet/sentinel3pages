@@ -3,136 +3,132 @@ import { ComprehensiveFinding } from '../model/types';
 export const mockComprehensiveFindings: ComprehensiveFinding[] = [
   {
     id: 'find-001',
-    tenant_id: 'tenant-1',
-    engagement_id: 'eng-2025-Q1',
-    audit_id: 'audit-branches',
+    reference_no: '2026-IST-OP-042',
+    title: 'Kasa İşlemlerinde Çift Anahtar Prensibi İhlali',
+    status: 'NEGOTIATION', // Müzakere ekranını test etmek için
     
-    // Kimlik
-    code: 'BUL-2025-042',
-    finding_code: 'OPR-CSH-001',
-    title: 'Kasa İşlemlerinde Çift Anahtar (Dual-Control) Kuralı İhlali',
-    severity: 'CRITICAL',
-    
-    // Durum ve Süreç
-    state: 'NEGOTIATION', // Şu an müzakere aşamasında
-    main_status: 'ACIK',
-    process_stage: 'NEGOTIATION',
-    
-    // Risk Skorlama
-    impact_score: 5,
-    likelihood_score: 4,
-    financial_impact: 1250000, // 1.25M TL
-    gias_category: 'Operasyonel Risk',
-    
-    // Zengin Metin (Rich Text Editor'den gelecek HTML)
-    detection_html: `
-      <p>Şişli Şubesi nezdinde yapılan nakit operasyonları incelemesinde, <strong>12-14 Ekim 2025</strong> tarihleri arasında gerçekleştirilen toplam <strong>14.5 Milyon TL</strong> tutarındaki 8 adet ana kasa devir işleminin, sadece Operasyon Yöneticisi tarafından tek anahtarla gerçekleştirildiği tespit edilmiştir.</p>
-      <p>Banka içi "Nakit Yönetimi Yönetmeliği" Madde 4.2 uyarınca, ana kasa açılış ve kapanışlarının biri Yönetici, diğeri Yetkili olmak üzere iki personel tarafından (Dual-Control) yapılması zorunludur.</p>
+    // Risk Verileri (Yüksek Risk - Veto Sınırında)
+    risk_score: 15, 
+    impact: 5,       // Felaket (Dolandırıcılık ihtimali)
+    likelihood: 3,   // Orta (Bazen oluyor)
+    control_effectiveness: 2, // Kısmi
+    severity: 'HIGH',
+    category: 'Operasyonel Risk',
+    department: 'Merkez Şube Operasyon',
+    tags: ['Nakit Yönetimi', 'Fiziki Güvenlik', 'BDDK'],
+
+    // 5C İçerik (Zengin Metin)
+    criteria: `
+      <p><strong>Bankaların İç Sistemleri Hakkında Yönetmelik (Madde 42):</strong></p>
+      <p>Fiziki değerlerin saklandığı kasa daireleri ve ana kasalar, en az iki yetkili personel tarafından müştereken açılıp kapatılmalı (Çift Anahtar Prensibi) ve gün içi işlemlerde yetki devri yapılmamalıdır.</p>
     `,
-    impact_html: `
-      <p>Bu durum, şube kasasında yetkisiz erişim ve zimmet riskini doğurmaktadır. Tek personelin inisiyatifine bırakılan kasa işlemleri, bankayı potansiyel olarak <strong>tam kasa bakiyesi kadar</strong> zarara uğratabilir.</p>
+    condition: `
+      <p>14.02.2026 tarihinde yapılan yerinde denetimlerde, Şube Operasyon Yöneticisinin (A Anahtarı Sorumlusu) şube dışına çıkarken anahtarını Gişe Yetkilisine (B Anahtarı Sorumlusu) teslim ettiği ve kasanın tek kişi tarafından açıldığı güvenlik kamerası kayıtlarıyla tespit edilmiştir.</p>
     `,
-    recommendation_html: `
-      <ol>
-        <li>Şube personeline Çift Anahtar prensibi konusunda acil hatırlatma eğitimi verilmelidir.</li>
-        <li>Kasa dairesi kamera kayıtları geriye dönük 30 gün süreyle incelenmelidir.</li>
-        <li>Sistemsel olarak tek kullanıcının kasa açmasına izin veren yetki profili kapatılmalıdır.</li>
-      </ol>
+    cause: `
+      <p>Şube personel sayısındaki yetersizlik ve öğle arası yoğunluğunda işlemleri hızlandırma isteği. Yedek anahtar sorumlusunun o gün izinli olması.</p>
     `,
-    
-    // Denetlenen Bilgisi
-    auditee_department: 'Şişli Şube Müdürlüğü',
-    auditee_id: 'dept-sisli',
-    
-    // Tarihler
-    created_at: '2025-10-15T09:00:00Z',
-    updated_at: '2025-10-18T14:30:00Z',
-    
-    // ----------------------------------------------------------------
-    // MODÜL 5: GİZLİ KATMAN (IRON CURTAIN - Sadece Denetçi Görür)
-    // ----------------------------------------------------------------
+    consequence: `
+      <p>Banka varlıklarının zimmete geçirilmesi riski doğmuştur. Ayrıca BDDK denetimlerinde tespit edilmesi halinde idari para cezası riski bulunmaktadır.</p>
+    `,
+    corrective_action: `
+      <p>Şube anahtar sorumluluk matrisi güncellenmeli, yedekleme sistemi işler hale getirilmeli ve ilgili personele disiplin yönetmeliği hatırlatılmalıdır.</p>
+    `,
+
+    // Hassas Veriler (Blind Mode Testi için)
     secrets: {
-      finding_id: 'find-001',
-      internal_notes: 'Şube müdürü ile yapılan görüşmede, ikinci anahtarın kaybolduğu ve yedeğinin merkezden istenmediği şifahen öğrenilmiştir. Bu durum ihmal şüphesini artırmaktadır.',
-      detection_methodology: 'Kamera kayıtları ve Log analizi çapraz kontrolü.',
-      root_cause_analysis_internal: 'Personel yetkinlik eksikliği değil, prosedür ihlali ve denetim eksikliği.',
-      why_1: 'Tek personel kasa açabildi.',
-      why_2: 'İkinci anahtar personelde yoktu.',
-      why_3: 'Anahtar kaybolmuştu ve raporlanmamıştı.',
-      why_4: 'Yedek anahtar prosedürü işletilmedi.',
-      why_5: 'Şube yöneticisi inisiyatif alarak risk kabulü yaptı (Hatalı Karar).',
+      internal_notes: 'Şube müdürü bu durumu normalleştirmiş görünüyor, etik soruşturma gerekebilir.',
+      root_cause_internal: 'Bölge Müdürlüğü maliyet baskısı nedeniyle personel alımını durdurduğu için şube 1 yıldır %30 eksik kapasiteyle çalışıyor.',
+      whistleblower_id: 'WB-2026-99',
+      why_analysis: {
+        why_1: 'Kasa tek kişi tarafından açıldı.',
+        why_2: 'İkinci anahtar sahibi anahtarını diğerine verdi.',
+        why_3: 'Yedek sorumlu izinliydi ve yerine kimse atanmadı.',
+        why_4: 'Şube norm kadrosu eksik.',
+        why_5: 'Genel Müdürlük IK politikası gereği işe alım donduruldu.'
+      }
     },
 
-    // ----------------------------------------------------------------
-    // MODÜL 5: GÖZDEN GEÇİRME NOTLARI (Review Notes)
-    // ----------------------------------------------------------------
-    review_notes: [
-      {
-        id: 'rn-1',
-        finding_id: 'find-001',
-        note_text: 'Finansal etkiyi sadece o günkü işlem hacmiyle sınırlamayalım, sigorta limitlerini de kontrol et.',
-        reviewer_name: 'Mehmet Öz (Başdenetçi)',
-        reviewer_id: 'u-head',
-        status: 'CLEARED',
-        resolution_text: 'Sigorta limitleri kontrol edildi, etki tutarı revize edildi.',
-        created_at: '2025-10-16T10:00:00Z',
-        updated_at: '2025-10-16T11:00:00Z'
-      }
-    ],
-
-    // ----------------------------------------------------------------
-    // MODÜL 5: AKSİYON PLANLARI (Müzakere Sonucu)
-    // ----------------------------------------------------------------
+    // İş Akışı Verileri
+    target_date: '2026-03-01T00:00:00Z',
+    
     action_plans: [
       {
-        id: 'ap-1',
-        finding_id: 'find-001',
-        title: 'Yedek Anahtar Temini ve Zimmetleme',
-        description: 'Kaybolan anahtarın tutanağı tutulacak, merkezden yedek set istenecek ve operasyon yetkilisine zimmetlenecektir.',
-        responsible_person: 'Ali Veli (Şube Müdürü)',
-        responsible_department: 'Şişli Şube',
-        target_date: '2025-11-01',
-        status: 'IN_PROGRESS',
-        priority: 'CRITICAL',
-        current_state: 'ACCEPTED', // Denetçi kabul etti
-        created_at: '2025-10-17T09:00:00Z'
+        id: 'act-01',
+        title: 'Personel Görevlendirmesi',
+        description: 'İzinli personelin yerine geçici görevlendirme yapılması.',
+        responsible_person: { id: 'u1', name: 'Ahmet Yılmaz', title: 'Şube Müdürü' },
+        target_date: '2026-02-20',
+        status: 'ACCEPTED',
+        created_at: '2026-02-15'
       },
       {
-        id: 'ap-2',
-        finding_id: 'find-001',
-        title: 'Kasa Yetki Matrisi Güncellemesi',
-        description: 'Core bankacılık sisteminde tekil onayın engellenmesi için BT talebi açılacaktır.',
-        responsible_person: 'Ayşe Yılmaz (BT Güvenlik)',
-        responsible_department: 'Bilgi Teknolojileri',
-        target_date: '2025-12-01',
-        status: 'DRAFT',
-        priority: 'HIGH',
-        current_state: 'PROPOSED', // Henüz onaylanmadı
-        created_at: '2025-10-17T09:30:00Z'
+        id: 'act-02',
+        title: 'Biyometrik Giriş Sistemi',
+        description: 'Anahtar yerine parmak izi/retina tarama sistemine geçiş için fizibilite.',
+        responsible_person: { id: 'u3', name: 'Mehmet Öz', title: 'Güvenlik Müdürü' },
+        target_date: '2026-06-01',
+        status: 'PROPOSED',
+        created_at: '2026-02-15'
       }
     ],
 
-    // ----------------------------------------------------------------
-    // MODÜL 5: ONAY ZİNCİRİ (Sign-Off Chain)
-    // ----------------------------------------------------------------
+    review_notes: [
+      {
+        id: 'rev-01',
+        note_text: 'Kök neden analizinde personel eksikliğine daha fazla vurgu yapılmalı.',
+        reviewer_name: 'Başmüfettiş Selim',
+        created_at: '2026-02-14T10:00:00Z',
+        status: 'OPEN',
+        type: 'TECHNICAL'
+      }
+    ],
+
     sign_offs: [
       {
-        id: 'sig-1',
-        finding_id: 'find-001',
         role: 'PREPARER',
-        user_id: 'u-audit-1',
-        user_name: 'Ahmet Yılmaz',
+        user_name: 'Kıdemli Müfettiş Can',
         status: 'SIGNED',
-        signed_at: '2025-10-15T17:00:00Z'
+        signed_at: '2026-02-14T15:30:00Z'
       },
       {
-        id: 'sig-2',
-        finding_id: 'find-001',
         role: 'REVIEWER',
-        user_id: 'u-head',
-        user_name: 'Mehmet Öz',
-        status: 'PENDING', // Henüz imzalamadı
+        user_name: 'Yönetici Selim',
+        status: 'PENDING'
       }
-    ]
+    ],
+
+    created_at: '2026-02-10T09:00:00Z',
+    updated_at: '2026-02-15T11:20:00Z',
+    author_id: 'user-007'
+  },
+  
+  // "New" ID için boş şablon gerekmez, hook bunu handle ediyor. 
+  // Ancak test için ikinci bir veri eklenebilir.
+  {
+    id: 'find-002',
+    reference_no: '2026-IST-IT-105',
+    title: 'Veri Tabanı Loglarının Şifrelenmemesi',
+    status: 'DRAFT',
+    risk_score: 25, // KRİTİK VETO ÖRNEĞİ
+    impact: 5,
+    likelihood: 5,
+    control_effectiveness: 3,
+    severity: 'CRITICAL',
+    category: 'IT Security',
+    
+    criteria: '<p>ISO 27001 ve KVKK gereği...</p>',
+    condition: '<p>Log sunucusunda loglar plain-text duruyor.</p>',
+    cause: '<p>Konfigürasyon hatası.</p>',
+    consequence: '<p>Veri sızıntısı durumunda hassas veriler ifşa olabilir.</p>',
+    corrective_action: '<p>Acilen şifreleme modülü aktif edilmeli.</p>',
+    
+    action_plans: [],
+    review_notes: [],
+    sign_offs: [],
+    
+    created_at: '2026-02-15T08:00:00Z',
+    updated_at: '2026-02-15T08:00:00Z',
+    author_id: 'user-007'
   }
 ];
