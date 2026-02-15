@@ -263,8 +263,9 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
                             <AlertTriangle className="w-4 h-4" /> VETO
                         </div>
                     )}
-                    <div style={{ backgroundColor: liveRisk.color_code }} className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-md transition-colors duration-300 border border-white/20">
-                        {SEVERITY_TR[liveRisk.severity]}: {(liveRisk.calculated_score ?? 0).toFixed(1)}
+                    <div style={{ backgroundColor: liveRisk.color_code }} className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-md transition-colors duration-300 border border-white/20 flex items-center gap-2">
+                        <span>{SEVERITY_TR[liveRisk.severity] || liveRisk.severity}</span>
+                        <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs">{(liveRisk.calculated_score ?? 0).toFixed(1)}</span>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2 group">
                         <X className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
@@ -601,6 +602,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
                           <div><h3 className="text-lg font-bold text-slate-900">Kök Neden Özeti (Cause)</h3></div>
                       </div>
 
+                      {/* ÇEKMECEYİ AÇAN BUTON */}
                       <button
                           type="button"
                           onClick={() => setIsRcaDrawerOpen(true)}
@@ -706,11 +708,13 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
               setSelectedRegulation(reg);
           }}
       />
-
+      
+      {/* DRAWER BİLEŞENİ BURADA ÇAĞRILIYOR */}
       <RootCauseDrawer
         isOpen={isRcaDrawerOpen}
         onClose={() => setIsRcaDrawerOpen(false)}
         onApply={(html) => {
+            // Çekmeceden gelen HTML verisini mevcut verinin üzerine ekler
             setFormData({...formData, root_cause_html: formData.root_cause_html + html});
             setIsRcaDrawerOpen(false);
         }}
