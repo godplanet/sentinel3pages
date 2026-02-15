@@ -89,14 +89,8 @@ export default function FindingCenterPage() {
 
   // 4. NAVİGASYON (Detail Page'e Git)
   const handleRowClick = (finding: ComprehensiveFinding) => {
-    // Varsayılan olarak Form görünümüne git
+    // Yeni Finding Studio Page'e git
     navigate(`/execution/findings/${finding.id}`);
-  };
-
-  const handleNavigateToDetail = (id: string, mode: 'zen' | 'studio' | 'form') => {
-      if (mode === 'zen') navigate(`/execution/findings/zen/${id}`);
-      else if (mode === 'studio') navigate(`/execution/findings/${id}/studio`);
-      else navigate(`/execution/findings/${id}`); // Varsayılan Form
   };
 
   return (
@@ -127,9 +121,9 @@ export default function FindingCenterPage() {
               </button>
             </div>
 
-            {/* Zen Modu */}
+            {/* Zen Modu - Opens in Zen view */}
             <button
-              onClick={() => navigate('/execution/findings/zen/new')}
+              onClick={() => navigate('/execution/findings/new?mode=zen')}
               className="flex items-center gap-2 px-4 py-2.5 bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 shadow-sm font-bold text-xs transition-all"
             >
               <Sparkles size={16} /> Zen Modu

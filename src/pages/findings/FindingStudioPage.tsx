@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
-import { cn } from '@/shared/utils/cn';
+import { cn } from '@/lib/utils';
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-import { useUIStore } from '@/shared/stores/ui'; 
+import { useUIStore } from '@/shared/stores/ui-store'; 
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 

@@ -24,8 +24,6 @@ import MarketMonitoringPage from '@/pages/monitoring/MarketMonitoringPage';
 import SettingsConsolidatedPage from '@/pages/settings-consolidated';
 import FindingCenterPage from '@/pages/findings/FindingCenterPage';
 import FindingStudioPage from '@/pages/findings/FindingStudioPage';
-import FindingStudioPhase3Page from '@/pages/findings/FindingStudioPhase3Page';
-import FindingStudioZenPage from '@/pages/findings/FindingStudioZenPage';
 import FindingDetailPage from '@/pages/findings/FindingDetailPage';
 import { FindingDetailPage as AuditorFindingDetailPage } from '@/pages/auditor/FindingDetailPage';
 import { AuditeePortalPage } from '@/pages/auditee-portal/AuditeePortalPage';
@@ -148,11 +146,8 @@ export const AppRoutes = () => {
       <Route path="/execution/investigations" element={<Navigate to="/403" replace />} />
       <Route path="/execution/findings" element={<ProtectedRoute><FindingCenterPage /></ProtectedRoute>} />
       <Route path="/execution/finding-hub" element={<Navigate to="/execution/findings" replace />} />
-      <Route path="/execution/findings/zen/new" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
-      <Route path="/execution/findings/zen/:id" element={<ProtectedRoute><FindingStudioZenPage /></ProtectedRoute>} />
-      <Route path="/execution/findings/:id/studio" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
-      <Route path="/execution/findings/new" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
-      <Route path="/execution/findings/:id" element={<ProtectedRoute><FindingDetailPage /></ProtectedRoute>} />
+      <Route path="/execution/findings/new" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
+      <Route path="/execution/findings/:id" element={<ProtectedRoute><FindingStudioPage /></ProtectedRoute>} />
       <Route path="/execution/findings/:id/legacy" element={<ProtectedRoute><AuditorFindingDetailPage /></ProtectedRoute>} />
       <Route path="/execution/actions" element={<ProtectedRoute><ActionWorkbenchPage /></ProtectedRoute>} />
       <Route path="/execution/pbc" element={<ProtectedRoute><PBCPage /></ProtectedRoute>} />
@@ -236,6 +231,7 @@ export const AppRoutes = () => {
         <Route index element={<AuditeeDashboardPage />} />
         <Route path="upload" element={<AuditeeDashboardPage />} />
         <Route path="extensions" element={<AuditeeDashboardPage />} />
+        <Route path="findings/:id" element={<FindingStudioPage />} />
       </Route>
 
       <Route path="/advisory" element={<ProtectedRoute><AdvisoryHubPage /></ProtectedRoute>} />
