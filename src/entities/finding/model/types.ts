@@ -2,15 +2,39 @@
 // MODÜL 5: SENTINEL V3.0 - MASTER FINDING & ACTION TRACKING SCHEMA
 // ============================================================================
 
+// --- ENUMS & UNION TYPES ---
+
 export type FindingSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'OBSERVATION';
 export type FindingMainStatus = 'ACIK' | 'KAPALI';
 export type FindingProcessStage = 'DRAFT' | 'NEGOTIATION' | 'FOLLOWUP';
 export type AuditType = 'SUBE' | 'SUREC_BS' | 'GENEL';
 
-// YENİ: IN_REVIEW ve NEEDS_REVISION eklendi (Gözetim süreçleri için)
-export type FindingState = 'DRAFT' | 'IN_REVIEW' | 'NEEDS_REVISION' | 'PUBLISHED' | 'NEGOTIATION' | 'PENDING_APPROVAL' | 'FOLLOW_UP' | 'CLOSED' | 'FINAL' | 'REMEDIATED' | 'DISPUTED' | 'DISPUTING';
+// GIAS 2024 Uyumlu Durumlar
+export type FindingState = 
+  | 'DRAFT' 
+  | 'IN_REVIEW' 
+  | 'NEEDS_REVISION' 
+  | 'PUBLISHED' 
+  | 'NEGOTIATION' 
+  | 'PENDING_APPROVAL' 
+  | 'FOLLOW_UP' 
+  | 'CLOSED' 
+  | 'FINAL' 
+  | 'REMEDIATED' 
+  | 'DISPUTED' 
+  | 'DISPUTING';
+
 export type RiskRating = 'HIGH' | 'MEDIUM' | 'LOW';
-export type GIASCategory = 'Operasyonel Risk' | 'Uyum Riski' | 'Finansal Risk' | 'Teknolojik Risk' | 'Yönetişim' | 'İç Kontrol' | 'Risk Yönetimi' | 'BT Güvenliği';
+
+export type GIASCategory = 
+  | 'Operasyonel Risk' 
+  | 'Uyum Riski' 
+  | 'Finansal Risk' 
+  | 'Teknolojik Risk' 
+  | 'Yönetişim' 
+  | 'İç Kontrol' 
+  | 'Risk Yönetimi' 
+  | 'BT Güvenliği';
 
 // ------------------------------------------------------------------
 // 1. ANA BULGU TABLOSU (audit_findings)
@@ -31,53 +55,54 @@ export interface Finding {
 
   // Durum
   state: FindingState;
-  status?: string;
+  status?: string; // Generic Status string
   main_status?: FindingMainStatus;
   process_stage?: FindingProcessStage;
   audit_type?: AuditType;
 
   // WIF & Risk Engine
-  impact_score?: number;     
+  impact_score?: number;      
   likelihood_score?: number; 
   impact_financial?: number; 
-  impact_legal?: number;     
+  impact_legal?: number;      
   impact_reputation?: number; 
   impact_operational?: number; 
-  control_weakness?: number;   
-  
+  control_weakness?: number;    
+   
   selected_risk_categories?: string[]; 
-  
+   
+  // İslami Bankacılık & Özel Riskler
   is_shariah_risk?: boolean;
   shariah_impact?: number;
   requires_income_purification?: boolean;
   is_it_risk?: boolean;
   cvss_score?: number;
   asset_criticality?: 'Minor' | 'Major' | 'Critical';
-  
+   
   gias_category?: GIASCategory;
   financial_impact?: number;
 
-  // 5C Zengin Metin Alanları
-  detection_html?: string;       // Tespit
-  criteria_text?: string;        // Kriter
-  cause_text?: string;           // Kök Neden
-  impact_html?: string;          // Etki
-  recommendation_html?: string;  // Öneri
-  description?: string;          // Legacy
+  // 5C Zengin Metin Alanları (HTML)
+  detection_html?: string;        // Tespit
+  criteria_text?: string;         // Kriter
+  cause_text?: string;            // Kök Neden
+  impact_html?: string;           // Etki
+  recommendation_html?: string;   // Öneri
+  description?: string;           // Legacy Description
 
-  // RCA
-  root_cause_analysis?: any;     
+  // RCA (Root Cause Analysis)
+  root_cause_analysis?: any;      
   criteria_json?: any[];
-  rca_category?: string;         
+  rca_category?: string;          
 
   // Müfettişin Son Sözü
-  auditor_conclusion?: string;   
+  auditor_conclusion?: string;    
 
   // Denetlenen bilgileri
   auditee_id?: string;
   auditee_department?: string;
 
-  // Public Layer
+  // Public Layer (Denetlenen Görünümü)
   description_public?: string;
   risk_rating?: RiskRating;
   assigned_auditee_id?: string;
@@ -94,22 +119,30 @@ export interface Finding {
   updated_at: string;
 }
 
+// ------------------------------------------------------------------
+// 1.1 HASSAS VERİLER / GİZLİ KATMAN (Finding Secrets)
+// ------------------------------------------------------------------
 export interface FindingSecret {
   finding_id: string;
   auditor_notes_raw?: Record<string, any>;
   root_cause_analysis_internal?: string;
   detection_methodology?: string;
+  
+  // RCA Detayları
   rca_details?: {
     method: 'five_whys' | 'fishbone' | 'bowtie';
     five_whys?: string[];
     fishbone?: Record<string, string>;
     bowtie?: Record<string, string>;
   };
+
+  // 5 Why Alanları
   why_1?: string;
   why_2?: string;
   why_3?: string;
   why_4?: string;
   why_5?: string;
+
   root_cause_summary?: string;
   internal_notes?: string;
   technical_details?: Record<string, any>;
@@ -118,7 +151,7 @@ export interface FindingSecret {
 }
 
 // ------------------------------------------------------------------
-// YENİ 2: GÖZDEN GEÇİRME NOTLARI (review_notes) - GIAS 2024 Uyumlu
+// 2. GÖZDEN GEÇİRME NOTLARI (review_notes) - GIAS 2024 Uyumlu
 // ------------------------------------------------------------------
 export type ReviewNoteStatus = 'OPEN' | 'CLEARED' | 'CLOSED';
 
@@ -127,21 +160,21 @@ export interface ReviewNote {
   finding_id: string;
   field_reference?: string; // Hangi alan için yazıldı? (Örn: 'impact_html')
   note_text: string;        // Yöneticinin düzeltme talebi
-  
+   
   reviewer_id: string;      // Notu yazan yönetici
   reviewer_name: string;
-  
+   
   status: ReviewNoteStatus;
-  
+   
   resolution_text?: string; // Hazırlayan müfettişin "Düzelttim" açıklaması
   resolved_at?: string;     // Çözüldüğü tarih
-  
+   
   created_at: string;
   updated_at: string;
 }
 
 // ------------------------------------------------------------------
-// YENİ 3: ONAY ZİNCİRİ (finding_signoffs)
+// 3. ONAY ZİNCİRİ (finding_signoffs)
 // ------------------------------------------------------------------
 export type SignOffRole = 'PREPARER' | 'REVIEWER' | 'APPROVER';
 export type SignOffStatus = 'PENDING' | 'SIGNED' | 'REJECTED';
@@ -172,24 +205,36 @@ export interface ActionPlan {
   finding_id: string;
   title: string;
   description: string;
+  
+  // Sorumluluk
   responsible_person: string;
   responsible_person_title?: string;
   responsible_department?: string;
+  
+  // Zamanlama
   target_date: string;
   original_due_date?: string;
   completion_date?: string;
+  
+  // Durum
   status: ActionPlanStatus;
   priority?: ActionPriority;
   progress_percentage?: number; 
   extension_count?: number;
+  
+  // Detaylar
   milestones?: any[];
   plan_details?: Record<string, any>;
   current_state?: NegotiationState;
+  
+  // Müzakere
   auditor_rejection_reason?: string;
   auditee_response?: string;
   auditee_agreed?: boolean;
   auditee_agreed_at?: string;
+  
   evidence_links?: any[];
+  
   created_at: string;
   updated_at?: string;
   created_by?: string;
@@ -199,7 +244,7 @@ export interface ActionPlanExtension {
   id: string;
   action_plan_id: string;
   requested_date: string; 
-  reason: string;         
+  reason: string;          
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   auditor_response?: string; 
   created_at: string;
@@ -208,7 +253,14 @@ export interface ActionPlanExtension {
 // ------------------------------------------------------------------
 // 5. YAZIŞMA VE TARİHÇE LOGLARI
 // ------------------------------------------------------------------
-export type ChangeType = 'STATE_CHANGE' | 'CONTENT_EDIT' | 'SEVERITY_CHANGE' | 'ASSIGNMENT' | 'ACTION_PLAN_ADDED' | 'COMMENT_ADDED' | 'AI_GENERATION';
+export type ChangeType = 
+  | 'STATE_CHANGE' 
+  | 'CONTENT_EDIT' 
+  | 'SEVERITY_CHANGE' 
+  | 'ASSIGNMENT' 
+  | 'ACTION_PLAN_ADDED' 
+  | 'COMMENT_ADDED' 
+  | 'AI_GENERATION';
 
 export interface FindingHistory {
   id: string;
