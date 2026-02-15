@@ -1,150 +1,161 @@
-import { useState, useEffect } from 'react';
-import { RichTextEditor } from '@/shared/ui/RichTextEditor'; // <-- ORTAK BİLEŞEN
-import { GitBranch, AlertCircle, CheckCircle2 } from 'lucide-react';
-import clsx from 'clsx';
+import React, { useEffect, useMemo } from 'react';
+import * as Icons from 'lucide-react'; // Dinamik ikon render için
+import { cn } from '@/shared/utils/cn';
 
-export interface FindingEditorData {
-  criteria: string;
-  condition: string;
-  effect: string;
-  recommendation: string;
-  root_cause_analysis: { method: 'five_whys', five_whys: string[] };
-}
+// --- Stores & Hooks ---
+import { useMethodologyStore } from '@/features/admin/methodology/model/store';
+import { useFindingStudio, Finding } from '@/features/finding-studio/hooks/useFindingStudio';
 
+// --- Shared UI Components ---
+import { RichTextEditor } from '@/shared/ui/RichTextEditor'; // Varsayılan Editör
+import { RootCauseEngine } from '@/features/root-cause/components/RootCauseEngine'; // Özel Motor
+
+// --- Types ---
 interface ZenEditorProps {
-  initialData: FindingEditorData;
-  onChange?: (data: FindingEditorData) => void;
-  readOnly?: boolean;
+  finding: Finding;
 }
 
-const SECTIONS = [
-  { id: 'criteria', title: '1. KRİTER (Ne Olmalıydı?)', placeholder: 'İlgili mevzuat, prosedür veya en iyi uygulama standardını buraya yazın...', color: 'border-blue-200 bg-blue-50/30' },
-  { id: 'condition', title: '2. TESPİT (Ne Oldu?)', placeholder: 'Sahada gözlemlenen durum, kanıtlar ve örneklem detayları...', color: 'border-amber-200 bg-amber-50/30' },
-  // Kök Neden (3. Madde) araya özel bileşen olarak girecek
-  { id: 'effect', title: '4. ETKİ & RİSK (Sonuç Nedir?)', placeholder: 'Kuruma olan finansal, operasyonel veya itibar etkisi...', color: 'border-red-200 bg-red-50/30' },
-  { id: 'recommendation', title: '5. ÖNERİ (Ne Yapılmalı?)', placeholder: 'Kök nedeni ortadan kaldıracak kalıcı çözüm önerisi...', color: 'border-emerald-200 bg-emerald-50/30' },
-];
+// Renk Temaları (5C Metodolojisine göre görsel kodlama)
+const SECTION_THEMES: Record<string, string> = {
+  criteria: 'border-l-blue-500 bg-blue-50/30', // Standart (Mavi)
+  condition: 'border-l-amber-500 bg-amber-50/30', // Tespit (Sarı/Uyarı)
+  cause: 'border-l-rose-500 bg-rose-50/30', // Kök Neden (Kırmızı/Kritik)
+  consequence: 'border-l-orange-500 bg-orange-50/30', // Etki (Turuncu/Risk)
+  corrective_action: 'border-l-emerald-500 bg-emerald-50/30', // Çözüm (Yeşil)
+};
 
-export function ZenEditor({ initialData, onChange, readOnly = false }: ZenEditorProps) {
-  const [data, setData] = useState<FindingEditorData>(initialData);
+// Yardımcı: Lucide string isminden bileşen üretme
+const DynamicIcon = ({ name, className }: { name: string; className?: string }) => {
+  const IconComponent = (Icons as any)[name] || Icons.HelpCircle;
+  return <IconComponent className={className} size={20} />;
+};
 
-  // Dışarıdan gelen veri değişirse state'i güncelle (Senkronizasyon)
+export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
+  // 1. Store Connections
+  const { findingSections, fetchConfig, isLoading } = useMethodologyStore();
+  const { updateField } = useFindingStudio();
+
+  // 2. Initial Fetch
   useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
+    fetchConfig();
+  }, [fetchConfig]);
 
-  const handleChange = (field: keyof FindingEditorData, value: any) => {
-    const newData = { ...data, [field]: value };
-    setData(newData);
-    onChange?.(newData);
-  };
-
-  const handleRootCauseChange = (index: number, value: string) => {
-    const newWhys = [...data.root_cause_analysis.five_whys];
-    newWhys[index] = value;
-    const newData = { 
-      ...data, 
-      root_cause_analysis: { ...data.root_cause_analysis, five_whys: newWhys } 
-    };
-    setData(newData);
-    onChange?.(newData);
-  };
+  if (isLoading || findingSections.length === 0) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 bg-slate-100 rounded-lg"></div>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 pb-20 max-w-4xl mx-auto">
-      
-      {/* 5C BÖLÜMLERİ */}
-      {SECTIONS.map((section, index) => {
-        // Kök Neden Analizini 2. ve 3. madde arasına ekle
-        if (section.id === 'effect') {
-             return (
-                 <div key="rca-wrapper">
-                     <RootCauseSection 
-                        whys={data.root_cause_analysis.five_whys} 
-                        onChange={handleRootCauseChange}
-                        readOnly={readOnly}
-                     />
-                     <div key={section.id} className={clsx("p-1 rounded-xl transition-all duration-300", section.color, "mt-8")}>
-                        <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
-                            <h3 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-widest flex items-center gap-2">
-                                <span className={clsx("w-2 h-2 rounded-full", section.color.replace('border-', 'bg-').replace('bg-', 'text-'))} />
-                                {section.title}
-                            </h3>
-                            <RichTextEditor 
-                                value={(data as any)[section.id]} 
-                                onChange={(val) => handleChange(section.id as keyof FindingEditorData, val)}
-                                placeholder={section.placeholder}
-                                readOnly={readOnly}
-                                minHeight="150px"
-                            />
-                        </div>
-                     </div>
-                 </div>
-             );
-        }
+    <div className="space-y-12 pb-12 relative">
+      {/* Sol taraftaki Timeline Çizgisi */}
+      <div className="absolute left-[19px] top-4 bottom-12 w-0.5 bg-slate-200 -z-10" />
 
-        return (
-          <div key={section.id} className={clsx("p-1 rounded-xl transition-all duration-300", section.color)}>
-             <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
-                 <h3 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-widest flex items-center gap-2">
-                    <span className={clsx("w-2 h-2 rounded-full", section.color.replace('border-', 'bg-').replace('bg-', 'text-'))} />
-                    {section.title}
-                 </h3>
-                 <RichTextEditor 
-                    value={(data as any)[section.id]} 
-                    onChange={(val) => handleChange(section.id as keyof FindingEditorData, val)}
-                    placeholder={section.placeholder}
-                    readOnly={readOnly}
-                    minHeight="150px"
-                 />
-             </div>
-          </div>
-        );
-      })}
+      {findingSections
+        .filter((section) => section.is_active) // Sadece aktif bölümleri göster
+        .sort((a, b) => a.order - b.order) // Sıralama garantisi
+        .map((section, index) => {
+          
+          // Theme Determination
+          const themeClass = SECTION_THEMES[section.key] || 'border-l-slate-300 bg-slate-50';
+          const isRootCauseSection = section.key === 'cause';
+          
+          // Current Value (Dynamic Access)
+          const currentValue = finding[section.key as keyof Finding] || '';
 
+          return (
+            <div 
+              key={section.id} 
+              className={cn(
+                "group relative pl-4 transition-all duration-300",
+                "hover:translate-x-1"
+              )}
+            >
+              {/* --- Section Header --- */}
+              <div className="flex items-center gap-3 mb-3">
+                {/* Icon Bubble */}
+                <div 
+                  className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-full border bg-white shadow-sm z-10 transition-colors",
+                    isRootCauseSection ? "border-rose-200 text-rose-600" : "border-slate-200 text-slate-500 group-hover:border-primary-300 group-hover:text-primary-600"
+                  )}
+                >
+                  <DynamicIcon name={section.icon} />
+                </div>
+
+                {/* Title & Metadata */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      {section.label.tr}
+                    </h3>
+                    {section.required && (
+                      <span className="text-rose-500 text-lg leading-none" title="Zorunlu Alan">*</span>
+                    )}
+                    {section.is_ai_supported && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center gap-1">
+                        <Icons.Sparkles size={8} /> AI
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-400 font-light">
+                    {index + 1}. Adım
+                  </span>
+                </div>
+              </div>
+
+              {/* --- Editor Area --- */}
+              <div 
+                className={cn(
+                  "ml-5 p-4 rounded-xl border-l-4 transition-all shadow-sm group-hover:shadow-md",
+                  themeClass,
+                  "bg-white border-slate-200 border-l-slate-300" // Override theme background for cleaner look, keep border color
+                )}
+                // Dinamik border rengi için style override veya yukarıdaki class mapping kullanılır.
+                // Burada temiz görünüm için arka planı beyaz yapıp sol border'ı renkli bırakıyoruz.
+                style={{ borderLeftColor: isRootCauseSection ? '#f43f5e' : undefined }}
+              >
+                {/* 4. Root Cause Integration Check */}
+                {isRootCauseSection ? (
+                  <RootCauseEngine
+                    initialValue={currentValue}
+                    onChange={(val) => updateField(section.key as keyof Finding, val)}
+                    placeholder={section.placeholder.tr}
+                    findingId={finding.id}
+                  />
+                ) : (
+                  <RichTextEditor
+                    value={currentValue}
+                    onChange={(val) => updateField(section.key as keyof Finding, val)}
+                    placeholder={section.placeholder.tr}
+                    minHeight="120px"
+                    className="prose-sm focus:outline-none"
+                  />
+                )}
+
+                {/* Helper Text (Placeholder as hint if empty) */}
+                {!currentValue && (
+                   <p className="mt-2 text-xs text-slate-400 italic flex items-center gap-1">
+                     <Icons.Info size={12} />
+                     İpucu: {section.placeholder.tr}
+                   </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        
+        {/* End of Flow Indicator */}
+        <div className="flex items-center gap-3 pl-4 opacity-50">
+           <div className="w-10 h-10 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
+             <div className="w-3 h-3 bg-slate-300 rounded-full" />
+           </div>
+           <span className="text-sm text-slate-400 font-medium">Akış Sonu</span>
+        </div>
     </div>
   );
-}
-
-// --- KÖK NEDEN ÖZEL BİLEŞENİ ---
-function RootCauseSection({ whys, onChange, readOnly }: { whys: string[], onChange: (i: number, v: string) => void, readOnly: boolean }) {
-    return (
-        <div className="p-1 rounded-xl border-purple-200 bg-purple-50/30 my-8">
-            <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-black text-purple-600 uppercase tracking-widest flex items-center gap-2">
-                        <GitBranch size={14} /> 3. KÖK NEDEN ANALİZİ (5 Neden)
-                    </h3>
-                    {!readOnly && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">AI Destekli</span>}
-                </div>
-                
-                <div className="space-y-3 pl-2 relative">
-                    <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-gradient-to-b from-purple-200 to-transparent" />
-                    
-                    {whys.map((why, i) => (
-                        <div key={i} className="flex items-start gap-3 relative group">
-                             <div className={clsx(
-                                 "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 z-10 border-2 transition-colors mt-1.5",
-                                 why ? "bg-purple-600 border-purple-600 text-white" : "bg-white border-purple-200 text-purple-300"
-                             )}>
-                                 {i + 1}
-                             </div>
-                             <div className="flex-1">
-                                 <input 
-                                     value={why}
-                                     onChange={(e) => onChange(i, e.target.value)}
-                                     disabled={readOnly}
-                                     placeholder={`${i + 1}. Neden?`}
-                                     className={clsx(
-                                         "w-full bg-transparent border-b border-transparent py-1.5 text-sm focus:outline-none transition-all placeholder:text-slate-300 text-slate-700",
-                                         !readOnly && "focus:border-purple-300 hover:border-slate-200 border-slate-100"
-                                     )}
-                                 />
-                             </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
+};
