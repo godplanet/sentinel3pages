@@ -1,5 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { createPortal } from 'react-dom'; // PORTAL EKLENDİ (Z-Index Çözümü)
+import { useState, useMemo } from 'react';
 import {
   X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2,
   Banknote, Scale, Building, HeartPulse, ChevronsRight, ShieldCheck, Clock,
@@ -15,8 +14,8 @@ import { RegulationSelectorModal } from '../finding-studio/components/Regulation
 
 import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 
-// DRAWER BİLEŞENİ
-import { RootCauseDrawer } from './RootCauseDrawer';
+// UNIVERSAL DRAWER (SINGLE SOURCE OF TRUTH)
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // STORE BAĞLANTILARI
 import { useParameterStore } from '@/shared/stores/parameter-store';
@@ -105,12 +104,12 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
   const [isRegulationModalOpen, setIsRegulationModalOpen] = useState(false);
   const [selectedRegulation, setSelectedRegulation] = useState<any>(null);
 
-  // DRAWER STATE
-  const [isRcaDrawerOpen, setIsRcaDrawerOpen] = useState(false);
+  // UNIVERSAL DRAWER STATE
+  const [isUniversalDrawerOpen, setIsUniversalDrawerOpen] = useState(false);
 
   // STORE BAĞLANTILARI
   const { giasCategories, rcaCategories, riskTypes } = useParameterStore();
-  const { isSidebarExpanded, sidebarColor } = useUIStore(); // Sidebar Durumu
+  const { sidebarColor } = useUIStore();
 
   // Risk Konfigürasyonu
   const riskConfigStore = useRiskConfigStore();
@@ -233,27 +232,12 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
 
   if (!isOpen) return null;
 
-  // LAYOUT HESAPLAMASI (SIDEBAR FARKINDALIĞI)
-  const modalLeftPosition = isSidebarExpanded ? 'left-[280px]' : 'left-[80px]';
+  return (
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative min-h-screen flex items-center justify-center p-4">
 
-  // MODAL İÇERİĞİ (PORTAL İÇİN)
-  const modalContent = (
-    <div className="relative z-[9999]">
-      {/* Backdrop */}
-      <div 
-         className={clsx(
-             "fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-all duration-300",
-             modalLeftPosition // Sidebar'a saygı duyan backdrop
-         )} 
-         onClick={onClose} 
-      />
-
-      <div 
-         className={clsx(
-             "fixed top-3 bottom-3 right-3 z-[100] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in fade-in slide-in-from-right-10 duration-300",
-             modalLeftPosition // Dinamik Sol Boşluk
-         )}
-      >
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden">
 
           {/* HEADER - APPLE GLASS DOKUNUŞU VE SİDEBAR RENGİ */}
           <div
@@ -624,10 +608,10 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
                           <div><h3 className="text-lg font-bold text-slate-900">Kök Neden Özeti (Cause)</h3></div>
                       </div>
 
-                      {/* ÇEKMECEYİ AÇAN BUTON */}
+                      {/* UNIVERSAL DRAWER BUTON */}
                       <button
                           type="button"
-                          onClick={() => setIsRcaDrawerOpen(true)}
+                          onClick={() => setIsUniversalDrawerOpen(true)}
                           className="px-5 py-2.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 shadow-sm ring-1 ring-inset ring-red-100"
                       >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
@@ -719,6 +703,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
             </div>
           </div>
         </div>
+
       </div>
 
       <RegulationSelectorModal
@@ -730,18 +715,24 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
               setSelectedRegulation(reg);
           }}
       />
-      
-      {/* DRAWER BİLEŞENİ BURADA ÇAĞRILIYOR */}
-      <RootCauseDrawer
-        isOpen={isRcaDrawerOpen}
-        onClose={() => setIsRcaDrawerOpen(false)}
-        onApply={(html) => {
-            // Çekmeceden gelen HTML verisini mevcut verinin üzerine ekler
-            setFormData({...formData, root_cause_html: formData.root_cause_html + html});
-            setIsRcaDrawerOpen(false);
+
+      {/* UNIVERSAL DRAWER (SINGLE SOURCE OF TRUTH) */}
+      <UniversalFindingDrawer
+        findingId={null} // Yeni bulgu için ID yok
+        isOpen={isUniversalDrawerOpen}
+        defaultTab="rca" // RCA sekmesinde başlat
+        onClose={() => setIsUniversalDrawerOpen(false)}
+        onApplyRCA={(html, rawData) => {
+            // Çekmeceden gelen RCA verisini forma aktar
+            console.log('RCA Applied from Universal Drawer:', { html, rawData });
+            setFormData(prev => ({
+                ...prev,
+                root_cause_html: html,
+                rca_category: rawData?.category || prev.rca_category
+            }));
+            setIsUniversalDrawerOpen(false);
         }}
       />
-    </div>,
-    document.body // PORTAL TARGET
+    </div>
   );
 };

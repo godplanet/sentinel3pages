@@ -15,7 +15,7 @@ import { useParameterStore } from '@/shared/stores/parameter-store'; // Faz 3 St
 import { RichTextEditor } from '@/shared/ui/RichTextEditor'; 
 
 // --- BAĞIMLI BİLEŞENLER ---
-import { RootCauseDrawer } from './RootCauseDrawer';
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 interface FindingFormWidgetProps {
   workpaperId?: string;
@@ -162,7 +162,7 @@ export function FindingFormWidget({ workpaperId, onClose, onSave }: FindingFormW
   // STATE
   const [activeSection, setActiveSection] = useState<FormSection>('tespit');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRcaDrawerOpen, setIsRcaDrawerOpen] = useState(false);
+  const [isUniversalDrawerOpen, setIsUniversalDrawerOpen] = useState(false);
 
   // PARAMETRİK VERİLER
   const { giasCategories, rcaCategories, riskTypes } = useParameterStore();
@@ -541,8 +541,8 @@ export function FindingFormWidget({ workpaperId, onClose, onSave }: FindingFormW
                     <h3 className="text-sm font-bold text-slate-700 uppercase flex items-center gap-2">
                         <AlertTriangle size={16} className="text-red-600"/> Kök Neden Analizi
                     </h3>
-                    <button 
-                        onClick={() => setIsRcaDrawerOpen(true)} 
+                    <button
+                        onClick={() => setIsUniversalDrawerOpen(true)}
                         className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-xs font-bold flex items-center gap-2 shadow-sm"
                     >
                         <Wand2 size={14}/> RCA Laboratuvarı
@@ -612,14 +612,21 @@ export function FindingFormWidget({ workpaperId, onClose, onSave }: FindingFormW
           </div>
       </div>
 
-      {/* RCA DRAWER BAĞLANTISI */}
-      <RootCauseDrawer 
-        isOpen={isRcaDrawerOpen} 
-        onClose={() => setIsRcaDrawerOpen(false)} 
-        onApply={(html) => { 
-            setFormData({...formData, root_cause_html: formData.root_cause_html + html}); 
-            setIsRcaDrawerOpen(false); 
-        }} 
+      {/* UNIVERSAL DRAWER (SINGLE SOURCE OF TRUTH) */}
+      <UniversalFindingDrawer
+        findingId={null}
+        isOpen={isUniversalDrawerOpen}
+        defaultTab="rca"
+        onClose={() => setIsUniversalDrawerOpen(false)}
+        onApplyRCA={(html, rawData) => {
+            console.log('RCA Applied from Universal Drawer:', { html, rawData });
+            setFormData(prev => ({
+                ...prev,
+                root_cause_html: html,
+                rca_category: rawData?.category || prev.rca_category
+            }));
+            setIsUniversalDrawerOpen(false);
+        }}
       />
 
     </div>
