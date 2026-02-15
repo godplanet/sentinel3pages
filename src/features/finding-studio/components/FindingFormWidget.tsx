@@ -7,7 +7,10 @@ import {
   Layers, 
   X, 
   GitPullRequestArrow,
-  HelpCircle
+  HelpCircle,
+  Gavel,    // YENİ: BDDK İkonu
+  Globe,    // YENİ: Global İkonu
+  Info      // YENİ: Gözlem İkonu
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
@@ -16,6 +19,22 @@ interface FindingFormWidgetProps {
   finding: any; // ComprehensiveFinding
   onUpdate: (field: string, value: any) => void;
 }
+
+// --- Constants & Mappings (BDDK & GIAS 2024) ---
+
+const BDDK_MAPPING = {
+  'OK': { label: 'Önemli Kontrol Eksikliği (ÖK)', impact: 5, likelihood: 5, severity: 'CRITICAL', color: 'bg-rose-600' },
+  'KD': { label: 'Kayda Değer Kontrol Eksikliği (KD)', impact: 4, likelihood: 4, severity: 'HIGH', color: 'bg-orange-500' },
+  'KZ': { label: 'Kontrol Zayıflığı (KZ)', impact: 3, likelihood: 3, severity: 'MEDIUM', color: 'bg-amber-500' }
+};
+
+const SEVERITY_COLORS = {
+  'CRITICAL': 'text-rose-600 bg-rose-50 border-rose-200 ring-rose-100',
+  'HIGH': 'text-orange-600 bg-orange-50 border-orange-200 ring-orange-100',
+  'MEDIUM': 'text-amber-600 bg-amber-50 border-amber-200 ring-amber-100',
+  'LOW': 'text-emerald-600 bg-emerald-50 border-emerald-200 ring-emerald-100',
+  'OBSERVATION': 'text-slate-600 bg-slate-100 border-slate-200 ring-slate-100' // Nötr
+};
 
 // --- Mock Data ---
 const CATEGORIES = [
@@ -35,35 +54,81 @@ const DEPARTMENTS = [
   'Şube Operasyonları'
 ];
 
-// --- Helpers ---
-const getRiskColor = (score: number) => {
-  if (score >= 20) return 'text-rose-600 bg-rose-50 border-rose-200 ring-rose-100'; // Critical (Veto)
-  if (score >= 12) return 'text-orange-600 bg-orange-50 border-orange-200 ring-orange-100'; // High
-  if (score >= 6) return 'text-amber-600 bg-amber-50 border-amber-200 ring-amber-100'; // Medium
-  return 'text-emerald-600 bg-emerald-50 border-emerald-200 ring-emerald-100'; // Low
-};
-
-const getRiskLabel = (score: number) => {
-  if (score >= 20) return 'KRİTİK (VETO)';
-  if (score >= 12) return 'YÜKSEK';
-  if (score >= 6) return 'ORTA';
-  return 'DÜŞÜK';
-};
-
 export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, onUpdate }) => {
   // Local state for Tag Input
   const [tagInput, setTagInput] = useState('');
 
+  // --- Logic Extraction ---
+  
+  // Framework Detection (Default to Standard if missing)
+  const auditFramework = finding.audit_framework || 'STANDARD';
+
   // Derived Values
   const impact = finding.impact || 1;
   const likelihood = finding.likelihood || 1;
-  const controlEffectiveness = finding.control_effectiveness || 1; // 1: Güçlü, 3: Zayıf
+  const controlEffectiveness = finding.control_effectiveness || 1;
   const riskScore = impact * likelihood;
-  const isVetoed = riskScore > 20;
+  const isVetoed = riskScore >= 20;
 
-  const riskColorClass = getRiskColor(riskScore);
+  // Helper: Get Label based on Mode
+  const getSeverityLabel = () => {
+    if (finding.severity === 'OBSERVATION') return 'GÖZLEM (OBS)';
+    
+    if (auditFramework === 'BDDK' && finding.bddk_deficiency_type) {
+      return finding.bddk_deficiency_type; // ÖK, KD, KZ
+    }
+    
+    // Standard Labels
+    if (riskScore >= 20) return 'KRİTİK (VETO)';
+    if (riskScore >= 12) return 'YÜKSEK';
+    if (riskScore >= 6) return 'ORTA';
+    return 'DÜŞÜK';
+  };
 
-  // Handlers
+  // Helper: Get Color based on Mode
+  const getRiskColorClass = () => {
+    if (finding.severity === 'OBSERVATION') return SEVERITY_COLORS['OBSERVATION'];
+    // Use pre-calculated severity or calculate on fly
+    const currentSeverity = finding.severity || (riskScore >= 20 ? 'CRITICAL' : riskScore >= 12 ? 'HIGH' : riskScore >= 6 ? 'MEDIUM' : 'LOW');
+    return SEVERITY_COLORS[currentSeverity as keyof typeof SEVERITY_COLORS] || SEVERITY_COLORS['LOW'];
+  };
+
+  // --- Handlers ---
+
+  const handleFrameworkChange = (fw: 'STANDARD' | 'BDDK') => {
+    onUpdate('audit_framework', fw);
+    // Reset BDDK type if switching to standard, or handle conversions if needed
+    if (fw === 'STANDARD') {
+      onUpdate('bddk_deficiency_type', null);
+    }
+  };
+
+  const handleBDDKSelection = (code: string) => {
+    const mapping = BDDK_MAPPING[code as keyof typeof BDDK_MAPPING];
+    if (mapping) {
+      // Auto-set the underlying math so the "Engine" keeps working
+      onUpdate('bddk_deficiency_type', code);
+      onUpdate('impact', mapping.impact);
+      onUpdate('likelihood', mapping.likelihood);
+      onUpdate('severity', mapping.severity);
+    }
+  };
+
+  const handleSetObservation = () => {
+    if (finding.severity === 'OBSERVATION') {
+      // Toggle OFF -> Reset to Low defaults
+      onUpdate('severity', 'LOW');
+      onUpdate('impact', 1);
+      onUpdate('likelihood', 1);
+    } else {
+      // Toggle ON
+      onUpdate('impact', 0);
+      onUpdate('likelihood', 0);
+      onUpdate('severity', 'OBSERVATION');
+      onUpdate('bddk_deficiency_type', null);
+    }
+  };
+
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       const currentTags = finding.tags || [];
@@ -82,15 +147,58 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
   return (
     <div className="h-full flex flex-col bg-slate-50 border-r border-slate-200 w-full lg:max-w-xs overflow-y-auto">
       
+      {/* --- 0. AUDIT FRAMEWORK TOGGLE (NEW) --- */}
+      <div className="p-4 border-b border-slate-200 bg-white">
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+          Denetim Çerçevesi
+        </label>
+        <div className="flex bg-slate-100 p-1 rounded-lg">
+          <button
+            onClick={() => handleFrameworkChange('STANDARD')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+              auditFramework === 'STANDARD' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Globe size={12} /> Global
+          </button>
+          <button
+            onClick={() => handleFrameworkChange('BDDK')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all",
+              auditFramework === 'BDDK' ? "bg-white text-rose-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <Gavel size={12} /> BDDK
+          </button>
+        </div>
+      </div>
+
       {/* --- 1. RISK ENGINE COCKPIT --- */}
       <div className="p-6 border-b border-slate-200 bg-white relative overflow-hidden group">
         
         {/* Header */}
-        <div className="flex items-center gap-2 mb-6">
-          <Activity size={18} className="text-slate-400" />
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-            Risk Motoru
-          </h3>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Activity size={18} className="text-slate-400" />
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              Risk Motoru
+            </h3>
+          </div>
+          
+          {/* Observation Toggle */}
+          <button 
+            onClick={handleSetObservation}
+            className={cn(
+              "text-[10px] px-2 py-1 rounded border flex items-center gap-1 transition-colors",
+              finding.severity === 'OBSERVATION' 
+                ? "bg-slate-800 text-white border-slate-800" 
+                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+            )}
+            title={finding.severity === 'OBSERVATION' ? "Puanlamayı Aç" : "Gözlem Olarak İşaretle"}
+          >
+            <Info size={10} /> {finding.severity === 'OBSERVATION' ? 'Gözlem' : 'OBS'}
+          </button>
         </div>
 
         {/* Dynamic Gauge */}
@@ -98,93 +206,127 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
           <div 
             className={cn(
               "w-32 h-32 rounded-full border-[6px] flex flex-col items-center justify-center transition-all duration-500",
-              riskColorClass,
-              isVetoed ? "animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.4)]" : "shadow-sm"
+              getRiskColorClass(),
+              isVetoed && auditFramework === 'BDDK' ? "animate-pulse shadow-[0_0_20px_rgba(225,29,72,0.4)]" : "shadow-sm"
             )}
           >
-            <span className="text-4xl font-black tracking-tighter transition-all">
-              {riskScore}
+            <span className="text-3xl font-black tracking-tighter transition-all text-center">
+               {finding.severity === 'OBSERVATION' ? 'OBS' : (auditFramework === 'BDDK' ? getSeverityLabel() : riskScore)}
             </span>
-            <span className="text-[10px] font-bold uppercase mt-1 tracking-wider opacity-80">
-              {getRiskLabel(riskScore)}
+            <span className="text-[10px] font-bold uppercase mt-1 tracking-wider opacity-80 text-center px-2">
+               {finding.severity === 'OBSERVATION' ? 'Risk Yok' : (auditFramework === 'BDDK' ? 'Mevzuat Sınıfı' : getSeverityLabel(riskScore))}
             </span>
           </div>
 
           {/* Shockwave Effect for Veto */}
-          {isVetoed && (
+          {isVetoed && finding.severity !== 'OBSERVATION' && (
              <div className="absolute inset-0 rounded-full border-4 border-rose-500/30 animate-ping pointer-events-none" />
           )}
         </div>
 
-        {/* Sliders */}
-        <div className="space-y-6">
-          
-          {/* Impact Slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium text-slate-600">
-              <span>Etki (Impact)</span>
-              <span className="text-slate-900 font-bold">{impact}</span>
+        {/* --- DYNAMIC CONTROLS --- */}
+        
+        {/* SCENARIO A: BDDK MODE (Buttons) */}
+        {auditFramework === 'BDDK' && finding.severity !== 'OBSERVATION' && (
+          <div className="space-y-3 animate-in slide-in-from-right-4 duration-300">
+             <div className="p-2 bg-rose-50/50 rounded border border-rose-100 text-[10px] text-rose-800 mb-2 leading-tight">
+               <strong>BDDK Modu:</strong> Risk puanı, seçilen mevzuat tanımına göre otomatik atanır.
             </div>
-            <input 
-              type="range" 
-              min="1" 
-              max="5" 
-              step="1"
-              value={impact}
-              onChange={(e) => onUpdate('impact', parseInt(e.target.value))}
-              className={cn(
-                "w-full h-2 rounded-lg appearance-none cursor-pointer transition-colors accent-indigo-600 bg-slate-200",
-              )}
-            />
-            <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
-              <span>Önemsiz</span>
-              <span>Felaket</span>
-            </div>
+            
+            {Object.entries(BDDK_MAPPING).map(([code, def]) => (
+              <button
+                key={code}
+                onClick={() => handleBDDKSelection(code)}
+                className={cn(
+                  "w-full p-2.5 rounded-lg border text-left transition-all flex items-center gap-3",
+                  finding.bddk_deficiency_type === code 
+                    ? "border-rose-500 bg-rose-50 shadow-sm ring-1 ring-rose-200" 
+                    : "border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/50"
+                )}
+              >
+                <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", def.color)} />
+                <div className="flex flex-col">
+                  <span className={cn("text-xs font-bold", finding.bddk_deficiency_type === code ? "text-rose-900" : "text-slate-700")}>
+                    [{code}] {def.label.split('(')[0]}
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
+        )}
 
-          {/* Likelihood Slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium text-slate-600">
-              <span>Olasılık (Likelihood)</span>
-              <span className="text-slate-900 font-bold">{likelihood}</span>
+        {/* SCENARIO B: STANDARD MODE (Sliders) */}
+        {auditFramework === 'STANDARD' && finding.severity !== 'OBSERVATION' && (
+          <div className="space-y-6 animate-in slide-in-from-left-4 duration-300">
+            {/* Impact Slider */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-medium text-slate-600">
+                <span>Etki (Impact)</span>
+                <span className="text-slate-900 font-bold">{impact}</span>
+              </div>
+              <input 
+                type="range" min="1" max="5" step="1"
+                value={impact}
+                onChange={(e) => onUpdate('impact', parseInt(e.target.value))}
+                className={cn(
+                  "w-full h-2 rounded-lg appearance-none cursor-pointer transition-colors accent-indigo-600 bg-slate-200",
+                )}
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
+                <span>Önemsiz</span>
+                <span>Felaket</span>
+              </div>
             </div>
-            <input 
-              type="range" 
-              min="1" 
-              max="5" 
-              step="1"
-              value={likelihood}
-              onChange={(e) => onUpdate('likelihood', parseInt(e.target.value))}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-200 accent-indigo-600"
-            />
-            <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
-              <span>Nadir</span>
-              <span>Kesin</span>
-            </div>
-          </div>
-          
-           {/* Control Effectiveness (Optional Metadata) */}
-           <div className="space-y-2 pt-2 border-t border-slate-100">
-            <div className="flex justify-between text-xs font-medium text-slate-500">
-              <span className="flex items-center gap-1">Kontrol Etkinliği <HelpCircle size={10} /></span>
-              <span className="text-slate-700 font-bold">{controlEffectiveness}/3</span>
-            </div>
-            <input 
-              type="range" 
-              min="1" 
-              max="3" 
-              step="1"
-              value={controlEffectiveness}
-              onChange={(e) => onUpdate('control_effectiveness', parseInt(e.target.value))}
-              className="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-200 accent-slate-500"
-            />
-             <div className="flex justify-between text-[10px] text-slate-400 px-1">
-              <span>Güçlü</span>
-              <span>Zayıf</span>
-            </div>
-          </div>
 
-        </div>
+            {/* Likelihood Slider */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-medium text-slate-600">
+                <span>Olasılık (Likelihood)</span>
+                <span className="text-slate-900 font-bold">{likelihood}</span>
+              </div>
+              <input 
+                type="range" min="1" max="5" step="1"
+                value={likelihood}
+                onChange={(e) => onUpdate('likelihood', parseInt(e.target.value))}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-slate-200 accent-indigo-600"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
+                <span>Nadir</span>
+                <span>Kesin</span>
+              </div>
+            </div>
+            
+             {/* Control Effectiveness */}
+             <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-between text-xs font-medium text-slate-500">
+                <span className="flex items-center gap-1">Kontrol Etkinliği <HelpCircle size={10} /></span>
+                <span className="text-slate-700 font-bold">{controlEffectiveness}/3</span>
+              </div>
+              <input 
+                type="range" min="1" max="3" step="1"
+                value={controlEffectiveness}
+                onChange={(e) => onUpdate('control_effectiveness', parseInt(e.target.value))}
+                className="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-200 accent-slate-500"
+              />
+               <div className="flex justify-between text-[10px] text-slate-400 px-1">
+                <span>Güçlü</span>
+                <span>Zayıf</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SCENARIO C: OBSERVATION MODE */}
+        {finding.severity === 'OBSERVATION' && (
+          <div className="p-4 bg-slate-100 rounded-lg text-center animate-in fade-in duration-300 border border-slate-200 border-dashed">
+            <Info size={24} className="mx-auto text-slate-400 mb-2" />
+            <h4 className="text-sm font-bold text-slate-600">Gözlem Kaydı</h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Bu bulgu bir risk teşkil etmemekte olup, süreç iyileştirme önerisi niteliğindedir. 
+              <br/>Puanlama devre dışı bırakıldı.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* --- 2. METADATA FORM --- */}
@@ -259,7 +401,7 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
           Kök Neden Analizi Başlat
         </button>
 
-        {isVetoed && (
+        {isVetoed && finding.severity !== 'OBSERVATION' && (
           <div className="mt-3 p-2 bg-rose-50 border border-rose-100 rounded text-[10px] text-rose-600 flex items-start gap-2 leading-tight">
             <AlertTriangle size={12} className="shrink-0 mt-0.5" />
             <span>
