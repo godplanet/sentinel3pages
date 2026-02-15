@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // PORTAL EKLENDİ (Z-Index Çözümü)
 import {
   X, Save, Sparkles, AlertTriangle, TrendingUp, Lightbulb, FileSearch, Loader2,
   Banknote, Scale, Building, HeartPulse, ChevronsRight, ShieldCheck, Clock,
-  ToggleRight, ToggleLeft, CheckSquare, Square, BookOpen, AlertCircle, ChevronDown
+  ToggleRight, ToggleLeft, CheckSquare, Square, BookOpen, AlertCircle, ChevronDown, Wand2, Calculator,
+  Activity
 } from 'lucide-react';
 import clsx from 'clsx';
 import { toast } from 'react-hot-toast';
@@ -18,7 +20,7 @@ import { RootCauseDrawer } from './RootCauseDrawer';
 
 // STORE BAĞLANTILARI
 import { useParameterStore } from '@/shared/stores/parameter-store';
-import { useUIStore } from '@/shared/stores/ui-store';
+import { useUIStore } from '@/shared/stores/ui-store'; // Sidebar durumu için
 
 // PARAMETRİK RİSK MOTORU
 import { calculateFindingRisk } from '@/features/risk-engine/calculator';
@@ -108,7 +110,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
 
   // STORE BAĞLANTILARI
   const { giasCategories, rcaCategories, riskTypes } = useParameterStore();
-  const { sidebarColor } = useUIStore();
+  const { isSidebarExpanded, sidebarColor } = useUIStore(); // Sidebar Durumu
 
   // Risk Konfigürasyonu
   const riskConfigStore = useRiskConfigStore();
@@ -231,12 +233,27 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative min-h-screen flex items-center justify-center p-4">
+  // LAYOUT HESAPLAMASI (SIDEBAR FARKINDALIĞI)
+  const modalLeftPosition = isSidebarExpanded ? 'left-[280px]' : 'left-[80px]';
 
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden">
+  // MODAL İÇERİĞİ (PORTAL İÇİN)
+  const modalContent = (
+    <div className="relative z-[9999]">
+      {/* Backdrop */}
+      <div 
+         className={clsx(
+             "fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-all duration-300",
+             modalLeftPosition // Sidebar'a saygı duyan backdrop
+         )} 
+         onClick={onClose} 
+      />
+
+      <div 
+         className={clsx(
+             "fixed top-3 bottom-3 right-3 z-[100] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in fade-in slide-in-from-right-10 duration-300",
+             modalLeftPosition // Dinamik Sol Boşluk
+         )}
+      >
 
           {/* HEADER - APPLE GLASS DOKUNUŞU VE SİDEBAR RENGİ */}
           <div
@@ -263,10 +280,15 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
                             <AlertTriangle className="w-4 h-4" /> VETO
                         </div>
                     )}
+                    
+                    {/* RISK SKORU VE ETİKETİ (BURASI GÜNCELLENDİ) */}
                     <div style={{ backgroundColor: liveRisk.color_code }} className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-md transition-colors duration-300 border border-white/20 flex items-center gap-2">
+                        {/* 1. Risk Sınıfı (Örn: Kritik, Yüksek) */}
                         <span>{SEVERITY_TR[liveRisk.severity] || liveRisk.severity}</span>
+                        {/* 2. Puan */}
                         <span className="bg-black/20 px-1.5 py-0.5 rounded text-xs">{(liveRisk.calculated_score ?? 0).toFixed(1)}</span>
                     </div>
+
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2 group">
                         <X className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
                     </button>
@@ -396,7 +418,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
                           <RichTextEditor
                               value={formData.criteria_html}
                               onChange={(val) => setFormData({...formData, criteria_html: val})}
-                              placeholder="İhlal edilen kanun, mevzuat veya standardı yazın..."
+                              placeholder="İlgili mevzuat maddesi veya prosedür referansı..."
                               minHeight="min-h-full"
                           />
                       </div>
@@ -719,6 +741,7 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
             setIsRcaDrawerOpen(false);
         }}
       />
-    </div>
+    </div>,
+    document.body // PORTAL TARGET
   );
 };
