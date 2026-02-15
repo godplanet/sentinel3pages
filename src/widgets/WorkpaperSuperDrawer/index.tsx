@@ -33,8 +33,8 @@ import { SamplingCalculatorModal } from './SamplingCalculatorModal';
 import { ProcedureLibraryPanel } from './ProcedureLibraryPanel';
 import { OfficeOrchestrator } from '@/widgets/SentinelOffice';
 
-// YENİ: Bulgu Formu Modalı Import Edildi
-import { FindingComposerModal } from '@/features/finding-studio/components/FindingComposerModal';
+// YENİ: Sizin istediğiniz, siyah başlıklı Bulgu Formu Modalı
+import { NewFindingModal } from '@/features/finding-form/NewFindingModal';
 
 interface WorkpaperSuperDrawerProps {
   row: ControlRow | null;
@@ -75,7 +75,9 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const [samplingOpen, setSamplingOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
-  const [isFindingModalOpen, setIsFindingModalOpen] = useState(false); // YENİ: Bulgu Formu State'i
+  
+  // YENİ: Bulgu Modalı State'i (Sizin istediğiniz isimle)
+  const [isFindingModalOpen, setIsFindingModalOpen] = useState(false); 
 
   const [sampleSize, setSampleSize] = useState<number | null>(null);
   const [currentUserId] = useState('11111111-1111-1111-1111-111111111111');
@@ -247,16 +249,11 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
     } catch { /* silent */ }
   };
 
-  // Bu eski fonksiyon, yeni sistemde Modal üzerinden yapılacak. Ancak geriye uyumluluk için koruyoruz.
-  const handleAddFinding = async (title: string, description: string, severity: FindingSeverity, sourceRef: string) => {
-    if (!workpaperId) return;
-    try {
-      const finding = await addWorkpaperFinding(workpaperId, title, description, severity, sourceRef);
-      if (finding) {
-        setFindings(prev => [finding, ...prev]);
-        logActivity('FINDING_ADDED', `"${title}" bulgusu eklendi (${severity})`, 'Denetçi');
-      }
-    } catch { /* silent */ }
+  // Bu eski fonksiyon. Modal'ı tetiklemek için kullanacağız.
+  // const handleAddFinding = async ... (ESKİ KOD)
+  // YENİ: Sadece Modal'ı açar.
+  const handleOpenFindingModal = () => {
+      setIsFindingModalOpen(true);
   };
 
   const handleSignOffPrepared = async () => {
@@ -359,13 +356,30 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
     } catch { /* silent */ }
   };
 
-  // Yeni Bulgu Kaydedilince
+  // Yeni Bulgu Kaydedilince (Modal'dan gelen)
   const handleFindingCreated = async (newFinding: any) => {
-    // Burada API'ye kayıt yapılır
-    console.log('Yeni Bulgu Kaydedildi (Modal):', newFinding);
-    // Bulgular listesini yenile
-    loadFindings();
-    logActivity('FINDING_ADDED', `"${newFinding.title}" bulgusu eklendi (${newFinding.severity})`, 'Denetçi');
+    // Burada API'ye kayıt yapılır.
+    // Not: newFinding verisi Modal'dan {title, description, severity...} formatında gelir.
+    if (!workpaperId) return;
+    
+    try {
+       // Gerçek API Çağrısı (Existing addWorkpaperFinding fonksiyonunu kullanıyoruz)
+       const finding = await addWorkpaperFinding(
+           workpaperId, 
+           newFinding.title, 
+           newFinding.description || newFinding.detection_html, // Modal yapısına göre
+           newFinding.severity, 
+           'Manuel'
+       );
+       
+       if (finding) {
+           setFindings(prev => [finding, ...prev]);
+           logActivity('FINDING_ADDED', `"${newFinding.title}" bulgusu eklendi (${newFinding.severity})`, 'Denetçi');
+       }
+    } catch (err) {
+       console.error("Bulgu eklenirken hata:", err);
+    }
+    
     setIsFindingModalOpen(false); // Modalı kapat
   };
 
@@ -561,7 +575,8 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                   workpaperId={workpaperId || ''}
                   controlId={row?.control_id}
                   failedSteps={failedSteps}
-                  onAddFinding={() => setIsFindingModalOpen(true)} // YENİ: Modal Tetikleyici
+                  // DEĞİŞİKLİK: Burada eski handleAddFinding yerine Modalı tetikliyoruz
+                  onAddFinding={handleOpenFindingModal}
                 />
               )}
               {activeTab === 'notes' && (
@@ -600,7 +615,6 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
             </div>
           </motion.div>
 
-          {/* DİĞER MODALLAR VE DRAWERLAR */}
           <OfficeOrchestrator
             workpaperId={workpaperId}
             isOpen={officeOpen}
@@ -620,10 +634,10 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
           />
 
           {/* YENİ: Bulgu Oluşturma Modalı (Drawer'ın Dışında) */}
-          <FindingComposerModal 
+          <NewFindingModal 
             isOpen={isFindingModalOpen}
             onClose={() => setIsFindingModalOpen(false)}
-            workpaperId={workpaperId || ''}
+            // workpaperId prop'u Modal'a eklenecek, sizin kodda yoksa eklemeniz gerekecek
             onSave={handleFindingCreated}
           />
         </>
