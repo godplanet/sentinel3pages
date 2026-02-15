@@ -1,60 +1,116 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Save, 
-  CheckCircle, 
-  Flame, 
+  CheckCircle2, 
   MoreVertical,
-  Maximize2,
-  Minimize2
+  Calendar,
+  AlertTriangle,
+  LayoutTemplate, 
+  BookOpen,
+  ScrollText,
+  Clock,
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Classname birleştirici (clsx/tailwind-merge)
 
-// --- Hooks & Stores ---
+// --- Utils & Hooks ---
+import { cn } from '@/shared/utils/cn';
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-import { useUIStore } from '@/shared/stores/ui-store'; // Global UI state
+import { useUIStore } from '@/shared/stores/ui'; 
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
-// --- Sub-Components (Lazy/Mock Imports) ---
-import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
-import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
-import { NegotiationBoard } from '@/features/finding-studio/components/NegotiationBoard';
-import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
+// --- PLACEHOLDER WIDGETS (Light Theme Adapted) ---
+const FindingEditorWidget = ({ data, onUpdate }: any) => (
+  <div className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-[600px] p-8">
+    <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
+        <MoreVertical size={24} />
+      </div>
+      <p>Editör Alanı (Rich Text & Inputs)</p>
+    </div>
+  </div>
+);
+
+const ZenReaderWidget = ({ data, layout }: { data: any, layout: 'flow' | 'book' }) => {
+  if (layout === 'book') {
+    return (
+      <div className="grid grid-cols-2 gap-8 h-full">
+        <div className="bg-[#FDFBF7] border border-stone-200 rounded-l-xl p-10 shadow-sm overflow-y-auto font-serif text-slate-800 leading-relaxed">
+          <h2 className="text-2xl font-bold mb-4">{data?.title}</h2>
+          <p>Sol Sayfa: Bulgu Detayları (Kağıt Hissi)...</p>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-r-xl p-8 shadow-sm overflow-y-auto">
+          <h3 className="font-sans font-semibold text-slate-900 mb-4">Aksiyon Planı & Notlar</h3>
+          <p className="text-slate-500">Sağ Sayfa: Çalışma Alanı...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Flow Layout
+  return (
+    <div className="bg-[#FDFBF7] border border-stone-200 max-w-3xl mx-auto rounded-xl shadow-sm min-h-[80vh] p-12 font-serif text-slate-800 leading-relaxed relative">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-300/50 via-red-300/50 to-indigo-300/50 opacity-50" />
+      <h1 className="text-3xl font-bold mb-6 text-slate-900">{data?.title || 'Başlıksız Bulgu'}</h1>
+      <p>Zen Modu (Akış): Tüm içerik tek sütunda, dikkat dağıtıcı unsurlar olmadan okunur.</p>
+    </div>
+  );
+};
+
+const NegotiationBoardWidget = ({ id }: any) => (
+  <div className="grid grid-cols-12 gap-6 h-[600px]">
+    <div className="col-span-4 bg-slate-50 rounded-xl border border-slate-200 p-6">
+      <h3 className="font-bold text-slate-700">Özet Bilgi</h3>
+    </div>
+    <div className="col-span-8 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <h3 className="font-bold text-indigo-700">Mutabakat Paneli</h3>
+    </div>
+  </div>
+);
+
+const UniversalFindingDrawer = () => (
+  <div className="fixed bottom-0 left-0 right-0 h-10 bg-white border-t border-slate-200 flex items-center justify-between px-6 text-xs text-slate-500 z-50">
+    <span>Universal Drawer</span>
+    <span>Comments (3) • Files (1)</span>
+  </div>
+);
+
+// ============================================================================
+// THE ORCHESTRATOR (Light & Liquid)
+// ============================================================================
 
 export const FindingStudioPage: React.FC = () => {
-  // 1. Logic Integration
+  // 1. The Brain (Logic)
   const { 
     finding, 
     mode, 
-    liveRiskScore, 
-    saveFinding, 
-    advanceWorkflow, 
+    setMode, 
+    isVetoed, 
+    riskScore, 
     isLoading, 
-    isSaving,
-    hasUnsavedChanges 
+    isSaving, 
+    saveFinding,
+    updateField 
   } = useFindingStudio();
 
+  // 2. Local State (Zen Layout Engine)
+  const [zenLayout, setZenLayout] = useState<'flow' | 'book'>('flow');
+
+  // 3. Global UI
   const { isSidebarOpen } = useUIStore();
   const navigate = useNavigate();
 
-  // 2. Local UI State
-  const [scrolled, setScrolled] = useState(false);
-
-  // Scroll Detection for Glassmorphism Header
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Loading State
+  // --- Loading Screen ---
   if (isLoading || !finding) {
     return (
-      <div className="flex items-center justify-center h-screen w-full bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+        <div className="bg-white p-4 rounded-full shadow-lg mb-4">
+           <Loader2 className="animate-spin text-indigo-600" size={32} />
+        </div>
+        <p className="text-sm font-medium text-slate-400">Stüdyo hazırlanıyor...</p>
       </div>
     );
   }
@@ -62,194 +118,171 @@ export const FindingStudioPage: React.FC = () => {
   return (
     <div 
       className={cn(
-        "min-h-screen bg-slate-50 transition-[padding] duration-300 ease-in-out font-sans",
-        isSidebarOpen ? "pl-[280px]" : "pl-[80px]" // Smart Layout Rule #1
+        "min-h-screen bg-slate-50 transition-[padding] duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] font-sans selection:bg-indigo-100 selection:text-indigo-900",
+        // Smart Layout Rule: Sidebar Width
+        isSidebarOpen ? "pl-[280px]" : "pl-[80px]"
       )}
     >
       
-      {/* --- DYNAMIC HEADER --- */}
+      {/* --- LIQUID GLASS HEADER --- */}
       <header 
         className={cn(
-          "sticky top-0 z-40 px-8 py-4 transition-all duration-300 border-b border-transparent",
-          scrolled 
-            ? "bg-white/80 backdrop-blur-md border-slate-200 shadow-sm" // Glass Effect
-            : "bg-transparent"
+          "fixed top-0 right-0 z-40 h-16 flex items-center justify-between px-6 transition-[left] duration-300",
+          "bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm supports-[backdrop-filter]:bg-white/60",
+          isSidebarOpen ? "left-[280px]" : "left-[80px]"
         )}
       >
-        <div className="flex items-center justify-between">
-          
-          {/* Left: Navigation & Ref Info */}
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-2 rounded-full hover:bg-slate-200 text-slate-600 transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </button>
+        {/* LEFT: Identity & Context */}
+        <div className="flex items-center gap-4 min-w-0">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 -ml-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Reference No
+          <div className="h-6 w-px bg-slate-200 mx-1" />
+
+          <div className="flex flex-col min-w-0">
+             {/* Metadata Row */}
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-slate-400 font-bold tracking-wider uppercase">
+                #{finding.id === 'new' ? 'DRAFT' : finding.id}
+              </span>
+              
+              {isVetoed && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+                  <AlertTriangle size={10} />
+                  KRİTİK VETO
                 </span>
-                {/* Critical Veto Badge */}
-                {liveRiskScore > 20 && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 border border-red-200 text-red-700 text-[10px] font-bold animate-pulse">
-                    <Flame size={10} />
-                    KRİTİK VETO
-                  </span>
-                )}
-              </div>
-              <h1 className="text-lg font-semibold text-slate-800 leading-tight">
-                {finding.id === 'new' ? 'Yeni Bulgu Taslağı' : `#${finding.id.toUpperCase()}`}
-              </h1>
+              )}
+
+              {/* Advanced Header Info (Visible in Zen Mode) */}
+              {mode === 'zen' && (
+                <>
+                  <span className="text-[10px] text-slate-300">•</span>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                    <Clock size={10} />
+                    {finding.target_date 
+                      ? format(new Date(finding.target_date), 'dd MMM yyyy', { locale: tr }) 
+                      : 'Vade Yok'}
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Title */}
+            <h1 className="text-sm font-semibold text-slate-800 truncate max-w-md leading-tight">
+              {finding.title || 'Adsız Taslak'}
+            </h1>
+          </div>
+        </div>
+
+        {/* RIGHT: Layout Engine & Actions */}
+        <div className="flex items-center gap-3">
+          
+          {/* A. Zen Layout Toggles (Flow vs Book) */}
+          {mode === 'zen' && (
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 mr-2">
+              <button
+                onClick={() => setZenLayout('flow')}
+                className={cn(
+                  "p-1.5 rounded-md transition-all",
+                  zenLayout === 'flow' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Akış Modu (Tek Sayfa)"
+              >
+                <ScrollText size={16} />
+              </button>
+              <button
+                onClick={() => setZenLayout('book')}
+                className={cn(
+                  "p-1.5 rounded-md transition-all",
+                  zenLayout === 'book' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Kitap Modu (Çift Sayfa)"
+              >
+                <BookOpen size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* B. Mode Switcher (Tab Style) */}
+          <div className="hidden lg:flex bg-slate-100/80 p-1 rounded-lg border border-slate-200/60">
+            {(['edit', 'zen', 'negotiation'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-all",
+                  mode === m 
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-100" 
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                )}
+              >
+                {m}
+              </button>
+            ))}
           </div>
 
-          {/* Center: Mode Indicator (Optional Visual Queue) */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-1 bg-slate-100 rounded-full text-xs font-medium text-slate-500">
-            Current Mode: <span className="text-slate-800 capitalize">{mode}</span>
-          </div>
-
-          {/* Right: Context Actions */}
-          <div className="flex items-center gap-3">
-            {hasUnsavedChanges && (
-              <span className="text-xs text-amber-600 italic mr-2">Kaydedilmemiş değişiklikler...</span>
-            )}
-
-            {/* Mode-Specific Buttons */}
-            {mode === 'edit' && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={saveFinding}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-sm"
-              >
-                <Save size={16} />
-                {isSaving ? 'Kaydediliyor...' : 'Taslağı Kaydet'}
-              </motion.button>
-            )}
-
-            {mode === 'zen' && (
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1 px-3 shadow-sm">
-                <Flame size={16} className="text-orange-500" />
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                  title="Odak Sıcaklığı"
-                />
-              </div>
-            )}
-
-            {mode === 'negotiation' && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => advanceWorkflow('approved')}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200"
-              >
-                <CheckCircle size={16} />
-                Mutabık Kal
-              </motion.button>
-            )}
-
-            <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
-              <MoreVertical size={20} />
+          {/* C. Primary Action Button */}
+          {mode === 'edit' && (
+            <button
+              onClick={saveFinding}
+              disabled={isSaving}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-slate-200 active:scale-95 disabled:opacity-70",
+                isSaving && "cursor-wait"
+              )}
+            >
+              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
-          </div>
+          )}
+
+          {mode === 'negotiation' && (
+            <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-emerald-100 active:scale-95">
+              <CheckCircle2 size={16} />
+              Mutabık Kal
+            </button>
+          )}
+
+          <div className="h-6 w-px bg-slate-200 mx-1" />
+
+          <button className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <MoreVertical size={18} />
+          </button>
         </div>
       </header>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="px-8 py-6 pb-32">
-        <AnimatePresence mode="wait">
+      <main 
+        className={cn(
+          "pt-24 pb-20 px-6 md:px-8 mx-auto min-h-[calc(100vh-40px)]",
+          // Layout Constraints based on Mode & ZenLayout
+          mode === 'zen' && zenLayout === 'book' ? "max-w-full h-screen overflow-hidden pb-0" : "max-w-[1600px]"
+        )}
+      >
+        {/* Render Logic */}
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full">
           
-          {/* SCENARIO 1: EDIT MODE (Split View) */}
           {mode === 'edit' && (
-            <motion.div 
-              key="edit-mode"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="grid grid-cols-12 gap-8"
-            >
-              {/* Left Column: Properties & Metadata */}
-              <div className="col-span-12 lg:col-span-4 xl:col-span-3">
-                <FindingFormWidget finding={finding} />
-              </div>
-
-              {/* Center Column: The Editor */}
-              <div className="col-span-12 lg:col-span-8 xl:col-span-9">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[600px] p-6">
-                  <ZenEditor finding={finding} />
-                </div>
-              </div>
-            </motion.div>
+             <FindingEditorWidget data={finding} onUpdate={updateField} />
           )}
 
-          {/* SCENARIO 2: ZEN MODE (Focused View) */}
           {mode === 'zen' && (
-            <motion.div 
-              key="zen-mode"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="max-w-4xl mx-auto"
-            >
-              <div className="relative">
-                <button 
-                  onClick={() => navigate(`?mode=edit`)}
-                  className="absolute -right-12 top-0 p-2 text-slate-300 hover:text-slate-500 tooltip"
-                  title="Exit Zen Mode"
-                >
-                  <Minimize2 size={24} />
-                </button>
-                <div className="p-6 bg-white rounded-xl">
-                  <p className="text-slate-500 text-sm">Zen Reader Widget - Coming Soon</p>
-                </div>
-              </div>
-            </motion.div>
+            <ZenReaderWidget data={finding} layout={zenLayout} />
           )}
 
-          {/* SCENARIO 3: NEGOTIATION MODE (Comparison View) */}
           {mode === 'negotiation' && (
-            <motion.div 
-              key="negotiation-mode"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]"
-            >
-              {/* Left: Original Finding (Read Only) */}
-              <div className="bg-slate-100 rounded-xl p-6 border border-slate-200 overflow-y-auto">
-                <div className="mb-4 text-xs font-bold text-slate-400 uppercase">Orijinal Bulgu</div>
-                <div className="p-4 bg-white rounded-lg">
-                  <p className="text-slate-500 text-sm">Read-Only Finding Detail - Coming Soon</p>
-                </div>
-              </div>
-
-              {/* Right: Negotiation Board (Chat & Actions) */}
-              <div className="bg-white rounded-xl shadow-lg border border-indigo-100 overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-slate-100 bg-indigo-50/30 flex justify-between items-center">
-                  <span className="font-semibold text-indigo-900">Müzakere Panosu</span>
-                  <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded">Canlı Oturum</span>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                   <NegotiationBoard findingId={finding.id} />
-                </div>
-              </div>
-            </motion.div>
+            <NegotiationBoardWidget id={finding.id} />
           )}
 
-        </AnimatePresence>
+        </div>
       </main>
 
-      {/* --- UNIVERSAL DRAWER (Bottom Action Sheet) --- */}
-      <UniversalFindingDrawer 
-        finding={finding} 
-        isOpen={true} // Default açık veya bir state ile yönetilebilir
-      />
+      {/* --- UNIVERSAL DRAWER (Sticky Bottom) --- */}
+      <UniversalFindingDrawer />
 
     </div>
   );
