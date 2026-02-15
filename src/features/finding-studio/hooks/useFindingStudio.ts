@@ -1,144 +1,186 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner'; // Varsayılan toast kütüphanesi
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { toast } from 'sonner';
+import { differenceInDays, parseISO, isValid } from 'date-fns';
 
-// --- Imports (Mock & Utils) ---
-import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
+// --- Imports (External Modules) ---
+import { useMethodologyStore } from '@/features/admin/methodology/model/store';
+import { useRiskConfigurationStore } from '@/features/risk-engine/store';
 import { calculateRiskScore } from '@/features/risk-engine/calculator';
-import { useRiskConfigurationStore } from '@/features/risk-engine/store'; // Risk ağırlıkları için
-import { useAuthStore } from '@/shared/stores/auth'; // Kullanıcı rolü için (Varsayım)
+import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 
 // --- Types ---
-// Bu tipler normalde shared/types altında olur, hook bütünlüğü için burada tanımlıyoruz.
-export type FindingStatus = 'draft' | 'review' | 'negotiation' | 'approved' | 'closed';
+
+// UI Modları
 export type FindingMode = 'zen' | 'edit' | 'negotiation';
 
-export interface Finding {
+// SLA Durumu
+export interface SLAStatus {
+  daysRemaining: number | null;
+  isOverdue: boolean;
+  label: string;
+  statusColor: 'green' | 'amber' | 'red';
+}
+
+// Genişletilmiş Bulgu Tipi (Dinamik alanları destekler)
+export interface ComprehensiveFinding {
   id: string;
   title: string;
-  status: FindingStatus;
-  criteria?: string;
-  condition?: string;
-  cause?: string; // Kök neden
-  consequence?: string;
-  corrective_action?: string;
-  impact: number;
-  likelihood: number;
+  status: 'draft' | 'review' | 'negotiation' | 'approved' | 'closed';
+  impact: number; // 1-5
+  likelihood: number; // 1-5
   target_date?: string; // ISO String
-  internal_notes?: string; // Sadece Auditor görür
-  secrets?: string; // Hassas veri
+  
+  // Güvenlik / Yetki Alanları
+  internal_notes?: string;
+  secrets?: string;
+
+  // Dinamik Metodoloji Alanları (criteria, condition, cause vb.)
   [key: string]: any;
 }
 
+// --- Constants ---
+// TEST İÇİN: Bu rolü 'auditee' yaparsan internal_notes verisi silinir.
+const CURRENT_ROLE: 'auditor' | 'auditee' | 'viewer' = 'auditor'; 
+
 export const useFindingStudio = () => {
-  // 1. Router & Params
+  // 1. Router Integration
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // URL'den modu oku, yoksa varsayılan 'edit'
   const mode = (searchParams.get('mode') as FindingMode) || 'edit';
 
   // 2. Global Stores
-  const { user } = useAuthStore(); // { role: 'auditor' | 'auditee' } varsayıyoruz
-  const riskConfig = useRiskConfigurationStore((state) => state.config); // Ağırlıklar
+  const { findingSections, fetchConfig } = useMethodologyStore();
+  const { config: riskConfig } = useRiskConfigurationStore();
 
   // 3. Local State
-  const [finding, setFinding] = useState<Finding | null>(null);
+  const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   // --- Helper: Data Sanitization (Blind Mode) ---
-  const sanitizeFinding = useCallback((data: Finding): Finding => {
-    // Eğer kullanıcı Auditor değilse, hassas alanları temizle
-    if (user?.role !== 'auditor') {
+  const sanitizeData = useCallback((data: ComprehensiveFinding): ComprehensiveFinding => {
+    // Eğer kullanıcı Auditor değilse hassas veriyi temizle
+    if (CURRENT_ROLE !== 'auditor') {
       const sanitized = { ...data };
       delete sanitized.internal_notes;
       delete sanitized.secrets;
       return sanitized;
     }
     return data;
-  }, [user?.role]);
+  }, []);
 
-  // 4. Data Fetching
+  // --- Effect: Initialize & Fetch Data ---
   useEffect(() => {
-    const fetchData = async () => {
+    const initStudio = async () => {
       setIsLoading(true);
-      setError(null);
-
+      
       try {
+        // Önce metodoloji konfigürasyonunu yükle (Dinamik alanları bilmemiz lazım)
+        // Eğer store zaten doluysa fetchConfig optimize çalışır (zustand yapısına bağlı)
+        await fetchConfig(); 
+
         // Network gecikmesi simülasyonu
         await new Promise((resolve) => setTimeout(resolve, 600));
 
         if (id === 'new') {
-          // Boş Şablon Başlat
-          const newTemplate: Finding = {
+          // --- SENARYO A: YENİ KAYIT ---
+          // Methodology Store'daki "key"leri kullanarak boş bir şablon oluştur.
+          // Örn: { criteria: '', condition: '', cause: '' ... }
+          const dynamicFields = findingSections.reduce((acc, section) => {
+            acc[section.key] = ''; 
+            return acc;
+          }, {} as Record<string, any>);
+
+          const newTemplate: ComprehensiveFinding = {
             id: 'new',
             title: '',
             status: 'draft',
             impact: 1,
             likelihood: 1,
-            criteria: '',
-            condition: '',
-            cause: '',
-            consequence: '',
-            corrective_action: '',
+            ...dynamicFields, // Dinamik alanları inject et
           };
+          
           setFinding(newTemplate);
+
         } else {
-          // Mock Veriden Çek
-          const found = mockComprehensiveFindings.find((f: Finding) => f.id === id);
+          // --- SENARYO B: MEVCUT KAYIT ---
+          const found = mockComprehensiveFindings.find((f: any) => f.id === id);
           
           if (!found) {
-            throw new Error('Bulgu bulunamadı.');
+            toast.error('Bulgu bulunamadı!');
+            navigate('/findings'); // Geri at
+            return;
           }
 
-          // Güvenlik: Veriyi temizle
-          setFinding(sanitizeFinding(found));
+          // Güvenlik temizliği yap ve set et
+          setFinding(sanitizeData(found as ComprehensiveFinding));
         }
-      } catch (err: any) {
-        setError(err.message || 'Veri yüklenirken hata oluştu.');
-        toast.error('Bulgu yüklenemedi');
+
+      } catch (error) {
+        console.error("Finding Studio Init Error:", error);
+        toast.error('Veri yüklenirken bir hata oluştu.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [id, sanitizeFinding]);
+    initStudio();
+  }, [id, fetchConfig, navigate, sanitizeData, findingSections]); // findingSections dependency önemli, config değişirse yeniden init olabilir.
 
-  // 5. Risk Engine Integration (Real-time Calculation)
-  const liveRiskScore = useMemo(() => {
-    if (!finding || !riskConfig) return 0;
-    
-    // Calculator.ts fonksiyonunu kullan
-    return calculateRiskScore({
+
+  // --- Logic: Risk Engine Calculation ---
+  const riskCalculation = useMemo(() => {
+    if (!finding) return { score: 0, level: 'Low', color: 'gray', isVetoed: false };
+
+    // Calculator servisini kullan
+    const result = calculateRiskScore({
       impact: finding.impact,
       likelihood: finding.likelihood,
-      weights: riskConfig.weights // { impactWeight: 0.6, likelihoodWeight: 0.4 } vb.
+      weights: riskConfig?.weights || { impact: 0.5, likelihood: 0.5 } // Fallback
     });
+
+    return {
+      score: result.totalScore,
+      level: result.riskLevel,     // 'Critical', 'High', 'Medium', 'Low'
+      color: result.colorCode,     // UI için renk kodu (hex veya tailwind class)
+      isVetoed: result.totalScore > 20 // 20 üzeri puan VETO sebebidir
+    };
   }, [finding?.impact, finding?.likelihood, riskConfig]);
 
-  // 6. SLA Calculation (Extra Feature)
-  const slaStatus = useMemo(() => {
-    if (!finding?.target_date) return { isOverdue: false, daysRemaining: null };
+
+  // --- Logic: SLA Calculator ---
+  const slaStatus = useMemo((): SLAStatus => {
+    if (!finding?.target_date || !isValid(parseISO(finding.target_date))) {
+      return { daysRemaining: null, isOverdue: false, label: 'Termin Yok', statusColor: 'gray' };
+    }
 
     const today = new Date();
     const target = parseISO(finding.target_date);
-    const daysDiff = differenceInDays(target, today);
+    const diff = differenceInDays(target, today);
+    const isOverdue = diff < 0;
+
+    let color: SLAStatus['statusColor'] = 'green';
+    if (isOverdue) color = 'red';
+    else if (diff <= 3) color = 'amber'; // 3 günden az kaldıysa uyarı
 
     return {
-      isOverdue: daysDiff < 0,
-      daysRemaining: daysDiff,
-      label: daysDiff < 0 ? `${Math.abs(daysDiff)} gün gecikti` : `${daysDiff} gün kaldı`
+      daysRemaining: diff,
+      isOverdue,
+      label: isOverdue ? `${Math.abs(diff)} Gün Gecikmeli` : `${diff} Gün Kaldı`,
+      statusColor: color
     };
   }, [finding?.target_date]);
 
-  // 7. Actions & Handlers
 
-  // Field Update Handler
-  const updateField = useCallback((field: keyof Finding, value: any) => {
+  // --- Actions ---
+
+  // Alan güncelleme (Generic)
+  const updateField = useCallback((field: string, value: any) => {
     setFinding((prev) => {
       if (!prev) return null;
       return { ...prev, [field]: value };
@@ -146,86 +188,68 @@ export const useFindingStudio = () => {
     setHasUnsavedChanges(true);
   }, []);
 
-  // Save Action
+  // Mod Değiştirme (URL Sync)
+  const setMode = useCallback((newMode: FindingMode) => {
+    setSearchParams({ mode: newMode });
+  }, [setSearchParams]);
+
+  // Kaydetme
   const saveFinding = useCallback(async () => {
     if (!finding) return;
     setIsSaving(true);
 
     try {
-      // Mock API Call
+      // Mock API Save
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // TODO: Gerçek API isteği burada yapılacak
-      // await api.post('/findings', finding);
+      // TODO: Supabase update logic here
+      // const { error } = await supabase.from('findings').upsert(finding);
 
       setHasUnsavedChanges(false);
-      toast.success('Bulgu başarıyla kaydedildi.');
-      
-      // Eğer yeni oluşturulduysa ID ile URL güncelle
+      toast.success(
+        finding.id === 'new' 
+          ? 'Yeni bulgu taslağı oluşturuldu.' 
+          : 'Değişiklikler başarıyla kaydedildi.'
+      );
+
+      // Eğer yeni oluşturulduysa URL'i güncelle (örn: /findings/new -> /findings/gen_123)
       if (id === 'new') {
-        navigate(`/findings/${finding.id || 'gen_123'}?mode=${mode}`, { replace: true });
+        // Mock ID generation
+        const newId = `gen_${Math.floor(Math.random() * 10000)}`;
+        navigate(`/findings/${newId}?mode=${mode}`, { replace: true });
       }
 
     } catch (err) {
-      toast.error('Kaydetme sırasında hata oluştu.');
+      toast.error('Kaydetme başarısız oldu.');
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
   }, [finding, id, mode, navigate]);
 
-  // Workflow Action (Advance State)
-  const advanceWorkflow = useCallback(async (nextStatus: FindingStatus) => {
-    if (!finding) return;
-
-    // --- Validation Logic ---
-    if (nextStatus === 'review') {
-      if (!finding.cause || finding.cause.length < 10) {
-        toast.error('Onaya göndermek için "Kök Neden" (Cause) alanı doldurulmalıdır.');
-        return;
-      }
-      if (finding.impact === 0 || finding.likelihood === 0) {
-        toast.error('Risk değerleri (Etki/Olasılık) belirlenmelidir.');
-        return;
-      }
-    }
-
-    // --- State Transition ---
-    setIsSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      
-      updateField('status', nextStatus);
-      setHasUnsavedChanges(false); // Status değişimi de bir save işlemidir
-      
-      toast.success(`Durum güncellendi: ${nextStatus.toUpperCase()}`);
-    } catch (err) {
-      toast.error('İş akışı ilerletilemedi.');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [finding, updateField]);
-
   return {
-    // Data & State
+    // Data
     finding,
     mode,
+    
+    // Derived State (Calculated)
+    riskScore: riskCalculation.score,
+    riskLevel: riskCalculation.level,
+    isVetoed: riskCalculation.isVetoed,
+    slaStatus,
+    
+    // UI State
     isLoading,
     isSaving,
     hasUnsavedChanges,
-    error,
-    
-    // Computed Values
-    liveRiskScore,
-    slaStatus,
-    userRole: user?.role, // UI'da koşullu render için
+    userRole: CURRENT_ROLE, // UI'da yetki kontrolü için
 
     // Actions
     updateField,
+    setMode,
     saveFinding,
-    advanceWorkflow,
     
-    // Utilities
-    isEditable: mode === 'edit' || mode === 'new',
-    isBlindMode: user?.role !== 'auditor' // Yardımcı flag
+    // Helpers
+    isEditable: mode === 'edit' || id === 'new',
   };
 };
