@@ -158,7 +158,16 @@ export class RiskEngine {
 export function calculateFindingRisk(
   formData: any,
   riskConfig: any
-): { score: number; severity: string; color: string } {
+): {
+  calculated_score: number;
+  severity: string;
+  color_code: string;
+  is_veto_triggered: boolean;
+  veto_reason: string | null;
+  due_date: string | null;
+  target_sprints: number;
+  breakdown: any;
+} {
   // Default config if not provided
   const defaultConfig: MethodologyConfig = {
     risk_weights: {
@@ -195,9 +204,22 @@ export function calculateFindingRisk(
   const engine = new RiskEngine(defaultConfig);
   const result = engine.calculate(input);
 
+  // Calculate due_date from SLA calendar_days
+  let due_date: string | null = null;
+  if (result.sla?.calendar_days) {
+    const dueDateTime = new Date();
+    dueDateTime.setDate(dueDateTime.getDate() + result.sla.calendar_days);
+    due_date = dueDateTime.toISOString().split('T')[0];
+  }
+
   return {
-    score: result.score,
+    calculated_score: result.score,
     severity: result.severity,
-    color: result.color,
+    color_code: result.color,
+    is_veto_triggered: result.vetoTriggered,
+    veto_reason: result.vetoReason,
+    due_date,
+    target_sprints: result.sla?.sprint_count ?? 1,
+    breakdown: result.breakdown,
   };
 }

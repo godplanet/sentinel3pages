@@ -95,7 +95,7 @@ const RiskSlider = ({ label, value, onChange, icon: Icon }: { label: string, val
                 value >= 3 ? "bg-orange-50 text-orange-700 border-orange-200" :
                 "bg-slate-50 text-slate-600 border-slate-200"
             )}>
-                {value.toFixed(1)} / 5.0
+                {(value ?? 0).toFixed(1)} / 5.0
             </span>
         </div>
         <div className="flex items-center gap-4">
@@ -302,13 +302,13 @@ export function NewFindingModal({ isOpen, onClose, onSave, workpaperId }: NewFin
               <div className="flex items-center gap-4">
                   {/* Risk Score Badge */}
                   <div className="flex flex-col items-end">
-                      <div 
+                      <div
                         className="px-4 py-1.5 rounded-lg text-white font-black text-sm tracking-wider shadow-lg flex items-center gap-2 border border-white/20 transition-colors duration-300"
                         style={{ backgroundColor: liveRisk.color_code }}
                       >
                           {liveRisk.is_veto_triggered && <AlertTriangle size={16} className="animate-pulse text-white"/>}
-                          {SEVERITY_TR[liveRisk.severity] || liveRisk.severity} 
-                          <span className="bg-black/20 px-1.5 py-0.5 rounded text-[10px] ml-1">{liveRisk.calculated_score.toFixed(0)}</span>
+                          {SEVERITY_TR[liveRisk.severity] || liveRisk.severity}
+                          <span className="bg-black/20 px-1.5 py-0.5 rounded text-[10px] ml-1">{(liveRisk.calculated_score ?? 0).toFixed(0)}</span>
                       </div>
                   </div>
                   <div className="h-8 w-px bg-white/20"></div>
