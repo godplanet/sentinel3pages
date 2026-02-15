@@ -150,3 +150,54 @@ export class RiskEngine {
     return sorted[sorted.length - 1] ?? null;
   }
 }
+
+/**
+ * Helper function for calculating finding risk
+ * Used by NewFindingModal and other components
+ */
+export function calculateFindingRisk(
+  formData: any,
+  riskConfig: any
+): { score: number; severity: string; color: string } {
+  // Default config if not provided
+  const defaultConfig: MethodologyConfig = {
+    risk_weights: {
+      financial: riskConfig?.weights?.financial ?? 0.3,
+      legal: riskConfig?.weights?.legal ?? 0.25,
+      reputation: riskConfig?.weights?.reputation ?? 0.25,
+      operational: riskConfig?.weights?.operational ?? 0.2,
+    },
+    scoring_matrix: {
+      impact_max: 5,
+      likelihood_max: 5,
+      control_effectiveness_max: 5,
+    },
+    severity_thresholds: [
+      { label: 'Kritik', min: riskConfig?.thresholds?.critical ?? 80, max: 100, color: '#dc2626' },
+      { label: 'Yüksek', min: riskConfig?.thresholds?.high ?? 60, max: (riskConfig?.thresholds?.critical ?? 80) - 1, color: '#f97316' },
+      { label: 'Orta', min: riskConfig?.thresholds?.medium ?? 30, max: (riskConfig?.thresholds?.high ?? 60) - 1, color: '#fbbf24' },
+      { label: 'Düşük', min: 0, max: (riskConfig?.thresholds?.medium ?? 30) - 1, color: '#10b981' },
+    ],
+    veto_rules: [],
+  };
+
+  const input: FindingRiskInput = {
+    impact_financial: formData.impact_financial ?? 1,
+    impact_legal: formData.impact_legal ?? 1,
+    impact_reputation: formData.impact_reputation ?? 1,
+    impact_operational: formData.impact_operational ?? 1,
+    likelihood_score: formData.likelihood_score ?? 3,
+    control_effectiveness: formData.control_weakness ?? 3,
+    asset_criticality: formData.asset_criticality ?? 'Minor',
+    cvss_score: formData.cvss_score ?? 0,
+  };
+
+  const engine = new RiskEngine(defaultConfig);
+  const result = engine.calculate(input);
+
+  return {
+    score: result.score,
+    severity: result.severity,
+    color: result.color,
+  };
+}

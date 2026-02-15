@@ -22,7 +22,7 @@ import { RootCauseDrawer } from './RootCauseDrawer';
 // STORE VE MOTOR BAĞLANTILARI (ANAYASA MADDE 3 & 5)
 import { useParameterStore } from '@/shared/stores/parameter-store';
 import { useUIStore } from '@/shared/stores/ui-store'; // Sidebar durumu için
-import { useRiskConfigurationStore } from '@/features/admin/risk-configuration/model/store'; // Parametrik Ayarlar
+import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store'; // Parametrik Ayarlar
 import { calculateFindingRisk } from '@/features/risk-engine/calculator'; // Merkezi Motor
 
 interface NewFindingModalProps {
@@ -126,9 +126,15 @@ export function NewFindingModal({ isOpen, onClose, onSave, workpaperId }: NewFin
   const { giasCategories = [], riskTypes = [], rcaCategories = [] } = useParameterStore();
   
   // Risk Konfigürasyonunu Store'dan al (Yoksa varsayılanı kullan)
-  const riskConfig = useRiskConfigurationStore((state) => state.config) || {
-      weights: { financial: 0.30, legal: 0.25, reputation: 0.25, operational: 0.20 },
-      thresholds: { critical: 80, high: 60, medium: 30, low: 10 }
+  const riskConfigStore = useRiskConfigStore();
+  const riskConfig = {
+      weights: {
+        financial: 0.30,
+        legal: 0.25,
+        reputation: 0.25,
+        operational: 0.20
+      },
+      thresholds: riskConfigStore.thresholds
   };
 
   // 2. LOCAL STATE
