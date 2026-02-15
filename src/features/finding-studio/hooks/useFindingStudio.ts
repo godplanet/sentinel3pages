@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 
 // --- Imports (External Modules) ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
-import { useRiskConfigurationStore } from '@/features/risk-engine/store';
-import { calculateRiskScore } from '@/features/risk-engine/calculator';
+import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store';
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 
 // --- Types ---
@@ -54,7 +53,7 @@ export const useFindingStudio = () => {
 
   // 2. Global Stores
   const { findingSections, fetchConfig } = useMethodologyStore();
-  const { config: riskConfig } = useRiskConfigurationStore();
+  const { config: riskConfig } = useRiskConfigStore();
 
   // 3. Local State
   const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
@@ -135,22 +134,35 @@ export const useFindingStudio = () => {
 
   // --- Logic: Risk Engine Calculation ---
   const riskCalculation = useMemo(() => {
-    if (!finding) return { score: 0, level: 'Low', color: 'gray', isVetoed: false };
+    if (!finding) return { score: 0, level: 'Low', color: '#10b981', isVetoed: false };
 
-    // Calculator servisini kullan
-    const result = calculateRiskScore({
-      impact: finding.impact,
-      likelihood: finding.likelihood,
-      weights: riskConfig?.weights || { impact: 0.5, likelihood: 0.5 } // Fallback
-    });
+    // Simple inline risk calculation
+    const impact = finding.impact || 1;
+    const likelihood = finding.likelihood || 1;
+    const score = (impact * likelihood * 4); // Simple formula: score out of 100
+
+    // Determine level and color based on score
+    let level = 'Low';
+    let color = '#10b981'; // green
+
+    if (score >= 60) {
+      level = 'Critical';
+      color = '#dc2626'; // red
+    } else if (score >= 40) {
+      level = 'High';
+      color = '#f97316'; // orange
+    } else if (score >= 20) {
+      level = 'Medium';
+      color = '#fbbf24'; // yellow
+    }
 
     return {
-      score: result.totalScore,
-      level: result.riskLevel,     // 'Critical', 'High', 'Medium', 'Low'
-      color: result.colorCode,     // UI için renk kodu (hex veya tailwind class)
-      isVetoed: result.totalScore > 20 // 20 üzeri puan VETO sebebidir
+      score,
+      level,
+      color,
+      isVetoed: score >= 80
     };
-  }, [finding?.impact, finding?.likelihood, riskConfig]);
+  }, [finding?.impact, finding?.likelihood]);
 
 
   // --- Logic: SLA Calculator ---

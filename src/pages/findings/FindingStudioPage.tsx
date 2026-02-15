@@ -10,19 +10,17 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { cn } from '@/shared/utils/cn'; // Classname birleştirici (clsx/tailwind-merge)
+import { cn } from '@/lib/utils'; // Classname birleştirici (clsx/tailwind-merge)
 
 // --- Hooks & Stores ---
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-import { useUIStore } from '@/shared/stores/ui'; // Global UI state
+import { useUIStore } from '@/shared/stores/ui-store'; // Global UI state
 
 // --- Sub-Components (Lazy/Mock Imports) ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
 import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
-import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
 import { NegotiationBoard } from '@/features/finding-studio/components/NegotiationBoard';
-import { ReadOnlyFindingDetail } from '@/features/finding-studio/components/ReadOnlyFindingDetail';
-import { UniversalFindingDrawer } from '@/features/finding-studio/components/UniversalFindingDrawer';
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 export const FindingStudioPage: React.FC = () => {
   // 1. Logic Integration
@@ -207,7 +205,9 @@ export const FindingStudioPage: React.FC = () => {
                 >
                   <Minimize2 size={24} />
                 </button>
-                <ZenReaderWidget finding={finding} />
+                <div className="p-6 bg-white rounded-xl">
+                  <p className="text-slate-500 text-sm">Zen Reader Widget - Coming Soon</p>
+                </div>
               </div>
             </motion.div>
           )}
@@ -224,7 +224,9 @@ export const FindingStudioPage: React.FC = () => {
               {/* Left: Original Finding (Read Only) */}
               <div className="bg-slate-100 rounded-xl p-6 border border-slate-200 overflow-y-auto">
                 <div className="mb-4 text-xs font-bold text-slate-400 uppercase">Orijinal Bulgu</div>
-                <ReadOnlyFindingDetail finding={finding} />
+                <div className="p-4 bg-white rounded-lg">
+                  <p className="text-slate-500 text-sm">Read-Only Finding Detail - Coming Soon</p>
+                </div>
               </div>
 
               {/* Right: Negotiation Board (Chat & Actions) */}

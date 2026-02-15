@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import * as Icons from 'lucide-react'; // Dinamik ikon render için
-import { cn } from '@/shared/utils/cn';
+import { cn } from '@/lib/utils';
 
 // --- Stores & Hooks ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
@@ -8,7 +8,6 @@ import { useFindingStudio, Finding } from '@/features/finding-studio/hooks/useFi
 
 // --- Shared UI Components ---
 import { RichTextEditor } from '@/shared/ui/RichTextEditor'; // Varsayılan Editör
-import { RootCauseEngine } from '@/features/root-cause/components/RootCauseEngine'; // Özel Motor
 
 // --- Types ---
 interface ZenEditorProps {
@@ -119,23 +118,14 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
                 // Burada temiz görünüm için arka planı beyaz yapıp sol border'ı renkli bırakıyoruz.
                 style={{ borderLeftColor: isRootCauseSection ? '#f43f5e' : undefined }}
               >
-                {/* 4. Root Cause Integration Check */}
-                {isRootCauseSection ? (
-                  <RootCauseEngine
-                    initialValue={currentValue}
-                    onChange={(val) => updateField(section.key as keyof Finding, val)}
-                    placeholder={section.placeholder.tr}
-                    findingId={finding.id}
-                  />
-                ) : (
-                  <RichTextEditor
-                    value={currentValue}
-                    onChange={(val) => updateField(section.key as keyof Finding, val)}
-                    placeholder={section.placeholder.tr}
-                    minHeight="120px"
-                    className="prose-sm focus:outline-none"
-                  />
-                )}
+                {/* 4. Root Cause Integration - Using RichTextEditor for all sections */}
+                <RichTextEditor
+                  value={currentValue}
+                  onChange={(val) => updateField(section.key as keyof Finding, val)}
+                  placeholder={section.placeholder.tr}
+                  minHeight="120px"
+                  className="prose-sm focus:outline-none"
+                />
 
                 {/* Helper Text (Placeholder as hint if empty) */}
                 {!currentValue && (

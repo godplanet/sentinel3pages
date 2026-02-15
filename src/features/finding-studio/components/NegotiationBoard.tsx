@@ -13,8 +13,8 @@ import {
   Save,
   History
 } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
-import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 // --- Types ---
 interface NegotiationBoardProps {
