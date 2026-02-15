@@ -344,3 +344,28 @@ export interface FindingWithAssignment extends Finding {
   assignment?: Assignment;
   action_steps?: ActionStep[];
 }
+
+// --- MEVCUT DOSYAYA EKLENECEK / GÜNCELLENECEK KISIMLAR ---
+
+// 1. Severity Genişletmesi (GIAS 2024 'Observation' eklendi)
+export type FindingSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'OBSERVATION';
+
+// 2. BDDK Özel Tanımları
+export type BDDKDeficiencyType = 
+  | 'OK'  // Önemli Kontrol Eksikliği (Kritik)
+  | 'KD'  // Kayda Değer Kontrol Eksikliği (Yüksek)
+  | 'KZ'  // Kontrol Zayıflığı (Orta)
+  | null; // Standart modda null olabilir
+
+// 3. Finding Interface Güncellemesi
+export interface Finding {
+  // ... mevcut alanlar ...
+  
+  // Denetim Çerçevesi Ayarı
+  audit_framework: 'STANDARD' | 'BDDK'; 
+  
+  // BDDK Özel Alanı
+  bddk_deficiency_type?: BDDKDeficiencyType;
+  
+  // ... diğer alanlar ...
+}
