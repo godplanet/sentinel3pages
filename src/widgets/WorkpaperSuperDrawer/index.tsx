@@ -33,6 +33,9 @@ import { SamplingCalculatorModal } from './SamplingCalculatorModal';
 import { ProcedureLibraryPanel } from './ProcedureLibraryPanel';
 import { OfficeOrchestrator } from '@/widgets/SentinelOffice';
 
+// YENİ: Bulgu Formu Modalı Import Edildi
+import { FindingComposerModal } from '@/features/finding-studio/components/FindingComposerModal';
+
 interface WorkpaperSuperDrawerProps {
   row: ControlRow | null;
   workpaperId: string | null;
@@ -43,11 +46,11 @@ interface WorkpaperSuperDrawerProps {
 type TabKey = 'steps' | 'evidence' | 'findings' | 'notes' | 'signoff' | 'docs';
 
 const TABS: { key: TabKey; label: string; icon: typeof ClipboardList }[] = [
-  { key: 'steps', label: 'Test Adimlari', icon: ClipboardList },
-  { key: 'evidence', label: 'Kanitlar', icon: FileCheck },
+  { key: 'steps', label: 'Test Adımları', icon: ClipboardList },
+  { key: 'evidence', label: 'Kanıtlar', icon: FileCheck },
   { key: 'findings', label: 'Bulgular', icon: AlertTriangle },
   { key: 'notes', label: 'Notlar', icon: MessageSquare },
-  { key: 'signoff', label: 'Imza', icon: FileSignature },
+  { key: 'signoff', label: 'İmza', icon: FileSignature },
   { key: 'docs', label: 'Belgelerim', icon: FolderOpen },
 ];
 
@@ -66,10 +69,14 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const [notesLoading, setNotesLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(false);
   const [questionnairesLoading, setQuestionnairesLoading] = useState(false);
+  
+  // MODAL STATES
   const [activityOpen, setActivityOpen] = useState(false);
   const [samplingOpen, setSamplingOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
+  const [isFindingModalOpen, setIsFindingModalOpen] = useState(false); // YENİ: Bulgu Formu State'i
+
   const [sampleSize, setSampleSize] = useState<number | null>(null);
   const [currentUserId] = useState('11111111-1111-1111-1111-111111111111');
 
@@ -199,7 +206,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
       await toggleTestStep(stepId, completed);
       const step = testSteps.find(s => s.id === stepId);
       if (completed && step) {
-        logActivity('STEP_COMPLETED', `"${step.description}" adimi tamamlandi`, 'Denetci');
+        logActivity('STEP_COMPLETED', `"${step.description}" adımı tamamlandı`, 'Denetçi');
       }
     } catch {
       setTestSteps(prev => prev.map(s => s.id === stepId ? { ...s, is_completed: !completed } : s));
@@ -226,7 +233,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
     setEvidenceRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
     try {
       await updateEvidenceStatus(requestId, status);
-      logActivity('EVIDENCE_UPDATE', `Kanit durumu "${status}" olarak guncellendi`, 'Denetci');
+      logActivity('EVIDENCE_UPDATE', `Kanıt durumu "${status}" olarak güncellendi`, 'Denetçi');
     } catch {
       loadEvidence();
     }
@@ -240,13 +247,14 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
     } catch { /* silent */ }
   };
 
+  // Bu eski fonksiyon, yeni sistemde Modal üzerinden yapılacak. Ancak geriye uyumluluk için koruyoruz.
   const handleAddFinding = async (title: string, description: string, severity: FindingSeverity, sourceRef: string) => {
     if (!workpaperId) return;
     try {
       const finding = await addWorkpaperFinding(workpaperId, title, description, severity, sourceRef);
       if (finding) {
         setFindings(prev => [finding, ...prev]);
-        logActivity('FINDING_ADDED', `"${title}" bulgusu eklendi (${severity})`, 'Denetci');
+        logActivity('FINDING_ADDED', `"${title}" bulgusu eklendi (${severity})`, 'Denetçi');
       }
     } catch { /* silent */ }
   };
@@ -254,10 +262,10 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const handleSignOffPrepared = async () => {
     if (!workpaperId) return;
     try {
-      await signOffWorkpaperAsPrepared(workpaperId, currentUserId, row?.auditor?.name || 'Denetci');
+      await signOffWorkpaperAsPrepared(workpaperId, currentUserId, row?.auditor?.name || 'Denetçi');
       await loadWorkpaper();
       onStatusChange?.(workpaperId, 'prepared');
-      logActivity('SIGN_OFF', 'Hazirlayan olarak imzalandi', row?.auditor?.name || 'Denetci');
+      logActivity('SIGN_OFF', 'Hazırlayan olarak imzalandı', row?.auditor?.name || 'Denetçi');
     } catch (err) {
       console.error('Failed to sign off as prepared:', err);
       throw err;
@@ -267,10 +275,10 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const handleSignOffReviewed = async () => {
     if (!workpaperId) return;
     try {
-      await signOffWorkpaperAsReviewed(workpaperId, currentUserId, 'Supervizor Celik');
+      await signOffWorkpaperAsReviewed(workpaperId, currentUserId, 'Süpervizör Çelik');
       await loadWorkpaper();
       onStatusChange?.(workpaperId, 'reviewed');
-      logActivity('SIGN_OFF', 'Gozden geciren olarak onaylandi', 'Supervizor Celik');
+      logActivity('SIGN_OFF', 'Gözden geçiren olarak onaylandı', 'Süpervizör Çelik');
     } catch (err) {
       console.error('Failed to sign off as reviewed:', err);
       throw err;
@@ -287,7 +295,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
       if (error) throw error;
       await loadWorkpaper();
       onStatusChange?.(workpaperId, 'in_progress');
-      logActivity('UNSIGN', 'Hazirlayan imzasi geri alindi', 'Denetci');
+      logActivity('UNSIGN', 'Hazırlayan imzası geri alındı', 'Denetçi');
     } catch (err) {
       console.error('Failed to unsign:', err);
       throw err;
@@ -297,10 +305,10 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const handleAddNote = async (text: string) => {
     if (!workpaperId) return;
     try {
-      const note = await addReviewNote(workpaperId, text, 'Supervizor');
+      const note = await addReviewNote(workpaperId, text, 'Süpervizör');
       if (note) {
         setReviewNotes(prev => [...prev, note]);
-        logActivity('NOTE_ADDED', `Gozden gecirme notu eklendi: "${text.slice(0, 60)}..."`, 'Supervizor');
+        logActivity('NOTE_ADDED', `Gözden geçirme notu eklendi: "${text.slice(0, 60)}..."`, 'Süpervizör');
       }
     } catch { /* silent */ }
   };
@@ -311,13 +319,13 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
       setReviewNotes(prev => prev.map(n =>
         n.id === noteId ? { ...n, status: 'Resolved' as const, resolved_at: new Date().toISOString() } : n
       ));
-      logActivity('NOTE_RESOLVED', 'Gozden gecirme notu cozuldu olarak isaretlendi', 'Denetci');
+      logActivity('NOTE_RESOLVED', 'Gözden geçirme notu çözüldü olarak işaretlendi', 'Denetçi');
     } catch { /* silent */ }
   };
 
   const handleSamplingApply = (result: SamplingResult) => {
     setSampleSize(result.sampleSize);
-    logActivity('SAMPLE_CALCULATED', `Orneklem hesaplandi: ${result.sampleSize} (${result.riskLevel} risk, %${result.confidenceLevel})`, 'Denetci');
+    logActivity('SAMPLE_CALCULATED', `Örneklem hesaplandı: ${result.sampleSize} (${result.riskLevel} risk, %${result.confidenceLevel})`, 'Denetçi');
   };
 
   const handleCreateQuestionnaire = async (title: string, questions: QuestionnaireQuestion[], sentTo: string) => {
@@ -326,7 +334,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
       const q = await createQuestionnaire(workpaperId, title, questions, sentTo);
       if (q) {
         setQuestionnaires(prev => [q, ...prev]);
-        logActivity('QUESTIONNAIRE_SENT', `"${title}" anketi "${sentTo}" birimine gonderildi`, 'Denetci');
+        logActivity('QUESTIONNAIRE_SENT', `"${title}" anketi "${sentTo}" birimine gönderildi`, 'Denetçi');
       }
     } catch { /* silent */ }
   };
@@ -351,12 +359,22 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
     } catch { /* silent */ }
   };
 
+  // Yeni Bulgu Kaydedilince
+  const handleFindingCreated = async (newFinding: any) => {
+    // Burada API'ye kayıt yapılır
+    console.log('Yeni Bulgu Kaydedildi (Modal):', newFinding);
+    // Bulgular listesini yenile
+    loadFindings();
+    logActivity('FINDING_ADDED', `"${newFinding.title}" bulgusu eklendi (${newFinding.severity})`, 'Denetçi');
+    setIsFindingModalOpen(false); // Modalı kapat
+  };
+
   if (!row) return null;
 
   const riskConfig = {
-    HIGH: { icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-300', label: 'Yuksek Risk' },
+    HIGH: { icon: ShieldAlert, color: 'text-red-600', bg: 'bg-red-100', border: 'border-red-300', label: 'Yüksek Risk' },
     MEDIUM: { icon: Shield, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-300', label: 'Orta Risk' },
-    LOW: { icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-300', label: 'Dusuk Risk' },
+    LOW: { icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-300', label: 'Düşük Risk' },
   };
   const risk = riskConfig[row.risk_level];
   const RiskIcon = risk.icon;
@@ -417,7 +435,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                           'p-2 rounded-lg transition-colors',
                           activityOpen ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-100 text-slate-400'
                         )}
-                        title="Aktivite Gecmisi"
+                        title="Aktivite Geçmişi"
                       >
                         <Clock size={18} />
                       </button>
@@ -543,7 +561,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                   workpaperId={workpaperId || ''}
                   controlId={row?.control_id}
                   failedSteps={failedSteps}
-                  onAddFinding={handleAddFinding}
+                  onAddFinding={() => setIsFindingModalOpen(true)} // YENİ: Modal Tetikleyici
                 />
               )}
               {activeTab === 'notes' && (
@@ -567,7 +585,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h3 className="text-sm font-bold text-blue-800 mb-1">Sentinel Office</h3>
                     <p className="text-xs text-blue-600">
-                      Tablo ve belgelerinizi Cryo-Chamber ile korunmali olarak duzenleyin.
+                      Tablo ve belgelerinizi Cryo-Chamber ile korumalı olarak düzenleyin.
                     </p>
                   </div>
                   <button
@@ -575,13 +593,14 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-bold"
                   >
                     <FolderOpen size={16} />
-                    Belgelerimi Ac (Focus Mode)
+                    Belgelerimi Aç (Focus Mode)
                   </button>
                 </div>
               )}
             </div>
           </motion.div>
 
+          {/* DİĞER MODALLAR VE DRAWERLAR */}
           <OfficeOrchestrator
             workpaperId={workpaperId}
             isOpen={officeOpen}
@@ -598,6 +617,14 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
             open={libraryOpen}
             onClose={() => setLibraryOpen(false)}
             onAddStep={handleAddStep}
+          />
+
+          {/* YENİ: Bulgu Oluşturma Modalı (Drawer'ın Dışında) */}
+          <FindingComposerModal 
+            isOpen={isFindingModalOpen}
+            onClose={() => setIsFindingModalOpen(false)}
+            workpaperId={workpaperId || ''}
+            onSave={handleFindingCreated}
           />
         </>
       )}
