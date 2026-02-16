@@ -54,6 +54,35 @@ const DEPARTMENTS = [
   'Şube Operasyonları'
 ];
 
+// --- GIS 2024 Expansion: Risk Universe ---
+const RISK_TYPES = [
+  { id: 'credit', label: 'Kredi Riski', icon: '💳' },
+  { id: 'market', label: 'Piyasa Riski', icon: '📊' },
+  { id: 'operational', label: 'Operasyonel Risk', icon: '⚙️' },
+  { id: 'liquidity', label: 'Likidite Riski', icon: '💧' },
+  { id: 'compliance', label: 'Uyum Riski', icon: '⚖️' },
+  { id: 'strategic', label: 'Stratejik Risk', icon: '🎯' },
+  { id: 'reputation', label: 'İtibar Riski', icon: '🛡️' }
+];
+
+// --- Process Map (Simplified) ---
+const PROCESSES = [
+  { id: 'lending', label: 'Kredi Süreçleri', subprocesses: ['Bireysel Kredi', 'Ticari Kredi', 'Kredi Tahsis'] },
+  { id: 'treasury', label: 'Hazine İşlemleri', subprocesses: ['FX İşlemleri', 'Türev Ürünler', 'Likidite Yönetimi'] },
+  { id: 'operations', label: 'Operasyon', subprocesses: ['Ödeme Sistemleri', 'Mutabakat', 'Hesap İşlemleri'] },
+  { id: 'it', label: 'Bilgi Teknolojileri', subprocesses: ['Yazılım Geliştirme', 'Siber Güvenlik', 'IT Operasyon'] },
+  { id: 'compliance', label: 'Uyum', subprocesses: ['AML/CFT', 'KYC', 'Mevzuat Takibi'] }
+];
+
+// --- Control Library (Mock) ---
+const CONTROLS = [
+  { id: 'C001', title: '4-Göz Prensibi (Maker-Checker)', category: 'Preventive' },
+  { id: 'C002', title: 'Sistem Otomasyon Kontrolleri', category: 'Detective' },
+  { id: 'C003', title: 'Günlük Log İzleme', category: 'Detective' },
+  { id: 'C004', title: 'Erişim Yetkilendirme Matrisi', category: 'Preventive' },
+  { id: 'C005', title: 'Üst Limit Onayı', category: 'Preventive' }
+];
+
 export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, onUpdate }) => {
   // Local state for Tag Input
   const [tagInput, setTagInput] = useState('');
@@ -362,8 +391,78 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
           </select>
         </div>
 
-        {/* Tags (Interactive) */}
+        {/* === GIS 2024 EXPANSION: METADATA SEKMELER === */}
+
+        {/* Risk Universe */}
+        <div className="space-y-1.5 pt-4 border-t border-slate-100">
+          <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <AlertTriangle size={14} /> Risk Türü
+          </label>
+          <select
+            value={finding.risk_category || ''}
+            onChange={(e) => onUpdate('risk_category', e.target.value)}
+            className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
+          >
+            <option value="">Seçiniz...</option>
+            {RISK_TYPES.map(rt => (
+              <option key={rt.id} value={rt.id}>{rt.icon} {rt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Process Map */}
         <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <GitPullRequestArrow size={14} /> Süreç
+          </label>
+          <select
+            value={finding.process_id || ''}
+            onChange={(e) => onUpdate('process_id', e.target.value)}
+            className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
+          >
+            <option value="">Seçiniz...</option>
+            {PROCESSES.map(p => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Subprocess (Conditional) */}
+        {finding.process_id && (
+          <div className="space-y-1.5 pl-4 border-l-2 border-indigo-200">
+            <label className="text-xs font-semibold text-slate-400">Alt Süreç</label>
+            <select
+              value={finding.subprocess_id || ''}
+              onChange={(e) => onUpdate('subprocess_id', e.target.value)}
+              className="w-full text-sm p-2 rounded-lg border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
+            >
+              <option value="">Seçiniz...</option>
+              {PROCESSES.find(p => p.id === finding.process_id)?.subprocesses.map(sp => (
+                <option key={sp} value={sp}>{sp}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Control Library */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <HelpCircle size={14} /> İlgili Kontrol
+          </label>
+          <select
+            value={finding.control_id || ''}
+            onChange={(e) => onUpdate('control_id', e.target.value)}
+            className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
+          >
+            <option value="">Seçiniz...</option>
+            {CONTROLS.map(c => (
+              <option key={c.id} value={c.id}>[{c.id}] {c.title}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tags (Interactive) */}
+        <div className="space-y-1.5 pt-4 border-t border-slate-100">
           <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
              <Tags size={14} /> Etiketler
           </label>
@@ -378,8 +477,8 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
                 </span>
               ))}
             </div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}

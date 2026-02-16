@@ -7,13 +7,15 @@ import { useMethodologyStore } from '@/features/admin/methodology/model/store';
 import { useFindingStudio, ComprehensiveFinding } from '@/features/finding-studio/hooks/useFindingStudio';
 
 // --- Shared UI Components ---
-import { RichTextEditor } from '@/shared/ui/RichTextEditor'; 
+import { RichTextEditor } from '@/shared/ui/RichTextEditor';
+import { FileUploader } from '@/shared/ui/FileUploader';
 // Root Cause Engine (Varsa import et, yoksa RichTextEditor fallback yap)
 import { RootCauseEngine } from '@/features/finding-studio/components/RootCauseEngine';
 
 // --- Types ---
 interface ZenEditorProps {
   finding: ComprehensiveFinding;
+  readOnly?: boolean; // GÖREV 4: Review modunda editör readonly olacak
 }
 
 // Renk Temaları (5C Metodolojisine göre görsel kodlama)
@@ -31,7 +33,7 @@ const DynamicIcon = ({ name, className }: { name: string; className?: string }) 
   return <IconComponent className={className} size={20} />;
 };
 
-export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
+export const ZenEditor: React.FC<ZenEditorProps> = ({ finding, readOnly = false }) => {
   // 1. Store Connections
   const { findingSections, fetchConfig, isLoading } = useMethodologyStore();
   const { updateField } = useFindingStudio();
@@ -131,10 +133,11 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
                 ) : (
                   <RichTextEditor
                     value={currentValue}
-                    onChange={(val) => updateField(section.key, val)}
+                    onChange={(val) => !readOnly && updateField(section.key, val)}
                     placeholder={section.placeholder.tr}
                     minHeight="120px"
                     className="prose-sm focus:outline-none"
+                    readOnly={readOnly}
                   />
                 )}
 
@@ -150,6 +153,71 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
           );
         })}
        
+       {/* === GÖREV 3: EVIDENCE SECTION (Kanıtlar) === */}
+       <div className="group relative pl-4 transition-all duration-300 hover:translate-x-1">
+          {/* --- Section Header --- */}
+          <div className="flex items-center gap-3 mb-3">
+            {/* Icon Bubble */}
+            <div className="flex items-center justify-center w-10 h-10 rounded-full border bg-white shadow-sm z-10 transition-colors border-slate-200 text-slate-500 group-hover:border-indigo-300 group-hover:text-indigo-600">
+              <Icons.Paperclip size={20} />
+            </div>
+
+            {/* Title & Metadata */}
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                  Kanıtlar (Evidence)
+                </h3>
+                <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  Opsiyonel
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 font-light">
+                Ek Dosyalar ve Belgeler
+              </span>
+            </div>
+          </div>
+
+          {/* --- Evidence Area --- */}
+          <div className="ml-5 p-4 rounded-xl border-l-4 transition-all shadow-sm group-hover:shadow-md bg-white border-slate-200 border-l-slate-300">
+            {!readOnly && (
+              <FileUploader
+                onUpload={(files) => {
+                  // Store evidence files in finding
+                  const currentEvidence = finding.evidence_files || [];
+                  const newEvidence = [...currentEvidence, ...files.map(f => f.name)];
+                  updateField('evidence_files', newEvidence);
+                }}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                maxSize={10 * 1024 * 1024}
+              />
+            )}
+
+            {/* Evidence List */}
+            {finding.evidence_files && finding.evidence_files.length > 0 && (
+              <div className={cn("space-y-2", !readOnly && "mt-4")}>
+                {finding.evidence_files.map((file: string, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
+                    <Icons.FileText size={16} className="text-slate-400" />
+                    <span className="text-xs font-medium text-slate-700 flex-1">{file}</span>
+                    {!readOnly && (
+                      <button
+                        onClick={() => {
+                          const newEvidence = finding.evidence_files.filter((_: string, i: number) => i !== idx);
+                          updateField('evidence_files', newEvidence);
+                        }}
+                        className="text-rose-500 hover:text-rose-700 transition-colors"
+                      >
+                        <Icons.X size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+       </div>
+
        {/* Akış Sonu İndikatörü */}
        <div className="flex items-center gap-3 pl-4 opacity-50 mt-8">
           <div className="w-10 h-10 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">

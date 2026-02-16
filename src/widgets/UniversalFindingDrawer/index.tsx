@@ -28,17 +28,21 @@ interface UniversalFindingDrawerProps {
   // Callbackler (Opsiyonel - Parent bileşene veri aktarmak için)
   onApplyAIDraft?: (draft: any) => void;
   onApplyRCA?: (html: string, rawData: any) => void;
+
+  // GÖREV 2: RCA'dan Editöre İçerik Aktarımı (The Bridge)
+  onApplyContent?: (section: string, content: string) => void;
 }
 
-export function UniversalFindingDrawer({ 
-  findingId, 
-  isOpen, 
+export function UniversalFindingDrawer({
+  findingId,
+  isOpen,
   defaultTab = 'ai',
   onClose,
   currentViewMode,
   onViewModeChange,
   onApplyAIDraft,
-  onApplyRCA
+  onApplyRCA,
+  onApplyContent
 }: UniversalFindingDrawerProps) {
   
   const [activeTab, setActiveTab] = useState<DrawerTab>(defaultTab);
@@ -143,10 +147,14 @@ export function UniversalFindingDrawer({
 
               {/* 3. KÖK NEDEN PANELİ */}
               {activeTab === 'rca' && (
-                <RCAPanel 
-                  findingId={findingId} 
+                <RCAPanel
+                  findingId={findingId}
                   onApplyAnalysis={(html, raw) => {
                     console.log('RCA Applied:', raw);
+                    // GÖREV 2: Kök Neden Analizini Editörün "Neden" Sekmesine Aktar
+                    if (onApplyContent) {
+                      onApplyContent('cause', html);
+                    }
                     if (onApplyRCA) onApplyRCA(html, raw);
                   }} 
                 />

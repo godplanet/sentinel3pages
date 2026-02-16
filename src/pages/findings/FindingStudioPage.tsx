@@ -362,7 +362,70 @@ export const FindingStudioPage: React.FC = () => {
             {/* RIGHT: Control Center */}
             <div className="w-[340px] shrink-0 flex flex-col gap-6 h-full overflow-hidden">
               <div className="flex-1 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 shadow-sm overflow-hidden flex flex-col">
-                <FindingFormWidget finding={finding} onUpdate={updateField} />
+                {/* GÖREV 4: Conditional Rendering - Review Mode vs Edit Mode */}
+                {finding?.status === 'review' ? (
+                  // REVIEW MODE - Gözden Geçirme Paneli
+                  <div className="w-full bg-slate-50 flex flex-col h-full">
+                    <div className="p-6 border-b border-slate-200 bg-amber-50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle size={18} className="text-amber-600" />
+                        <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wide">
+                          Gözden Geçirme
+                        </h3>
+                      </div>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Bu bulgu şu anda onay bekliyor. İçeriği inceleyip onaylayabilir veya reddedebilirsiniz.
+                      </p>
+                    </div>
+
+                    <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                      {/* Approve Button */}
+                      <button
+                        onClick={() => {
+                          updateField('status', 'approved');
+                          saveFinding();
+                        }}
+                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                      >
+                        <CheckCircle2 size={16} /> Onayla
+                      </button>
+
+                      {/* Return for Revision Button */}
+                      <button
+                        onClick={() => {
+                          updateField('status', 'draft');
+                          saveFinding();
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                      >
+                        <ArrowLeft size={16} /> Revizyona İade
+                      </button>
+
+                      {/* Reject Button */}
+                      <button
+                        onClick={() => {
+                          const reason = prompt('Red gerekçenizi giriniz:');
+                          if (reason) {
+                            updateField('rejection_reason', reason);
+                            updateField('status', 'rejected');
+                            saveFinding();
+                          }
+                        }}
+                        className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                      >
+                        <X size={16} /> Reddet
+                      </button>
+                    </div>
+
+                    <div className="p-4 border-t border-slate-200 bg-white">
+                      <p className="text-xs text-slate-500 italic">
+                        <strong>Not:</strong> Onay işlemi geri alınamaz. Lütfen tüm alanları dikkatlice inceleyin.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <FindingFormWidget finding={finding} onUpdate={updateField} />
+                )}
               </div>
             </div>
           </main>
@@ -442,11 +505,16 @@ export const FindingStudioPage: React.FC = () => {
 
       </div>
 
-      <UniversalFindingDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        activeTab={drawerTab}
-        finding={finding}
+      <UniversalFindingDrawer
+        findingId={finding?.id || null}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        defaultTab={drawerTab}
+        currentViewMode="zen"
+        onApplyContent={(section, content) => {
+          // GÖREV 2: Drawer'dan gelen içeriği editöre aktar
+          updateField(section, content);
+        }}
       />
 
     </div>

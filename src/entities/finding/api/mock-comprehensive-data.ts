@@ -17,6 +17,15 @@ export const mockComprehensiveFindings: ComprehensiveFinding[] = [
     department: 'Merkez Şube Operasyon',
     tags: ['Nakit Yönetimi', 'Fiziki Güvenlik', 'BDDK'],
 
+    // GÖREV 1: GIS 2024 Metadata Expansion
+    risk_category: 'operational', // Risk Universe
+    process_id: 'operations', // Process Map
+    subprocess_id: 'Hesap İşlemleri', // Subprocess
+    control_id: 'C001', // Control Library (4-Göz Prensibi)
+
+    // GÖREV 3: Evidence Management
+    evidence_files: ['kasa_kamera_kaydi_14022026.mp4', 'anahtar_zimmet_defteri.pdf'],
+
     // 5C İçerik (Zengin Metin)
     criteria: `
       <p><strong>Bankaların İç Sistemleri Hakkında Yönetmelik (Madde 42):</strong></p>

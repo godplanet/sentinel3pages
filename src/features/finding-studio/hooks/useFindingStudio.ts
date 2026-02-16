@@ -23,7 +23,7 @@ export interface SLAStatus {
 export interface ComprehensiveFinding {
   id: string;
   title: string;
-  status: 'draft' | 'review' | 'negotiation' | 'approved' | 'closed' | string; // string eklendi çünkü DB'den farklı gelebilir
+  status: 'draft' | 'review' | 'negotiation' | 'approved' | 'closed' | 'rejected' | string; // GÖREV 4: rejected eklendi
   impact: number;
   likelihood: number;
   target_date?: string;
@@ -36,6 +36,19 @@ export interface ComprehensiveFinding {
   audit_framework?: 'STANDARD' | 'BDDK';
   bddk_deficiency_type?: string | null;
   control_effectiveness?: number;
+
+  // GÖREV 1: GIS 2024 Metadata Expansion
+  risk_category?: string; // Risk Universe (credit, market, operational...)
+  process_id?: string; // Process Map
+  subprocess_id?: string; // Subprocess
+  control_id?: string; // Control Library reference
+
+  // GÖREV 3: Evidence Management
+  evidence_files?: string[]; // Array of file names/paths
+
+  // GÖREV 4: Workflow
+  rejection_reason?: string; // Rejection reason from reviewer
+
   [key: string]: any; // Dinamik alanlar için
 }
 
