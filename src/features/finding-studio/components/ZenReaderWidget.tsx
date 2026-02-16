@@ -33,6 +33,30 @@ const getPaperStyle = (warmth: number = 0) => {
   };
 };
 
+// --- Helper: Risk Badge Calculation ---
+const getRiskBadge = (data: any) => {
+  const score = data.risk_score || (data.impact * data.likelihood) || 0;
+  let severity = data.severity || 'LOW';
+  
+  // Eğer severity string olarak gelmemişse skordan hesapla
+  if (!data.severity) {
+      if (score >= 20) severity = 'CRITICAL';
+      else if (score >= 12) severity = 'HIGH';
+      else if (score >= 6) severity = 'MEDIUM';
+      else severity = 'LOW';
+  }
+
+  const badges: Record<string, { label: string, classes: string, icon: any }> = {
+    'CRITICAL': { label: 'KRİTİK', classes: 'bg-rose-100 text-rose-700 border-rose-200', icon: AlertTriangle },
+    'HIGH': { label: 'YÜKSEK', classes: 'bg-orange-100 text-orange-700 border-orange-200', icon: AlertTriangle },
+    'MEDIUM': { label: 'ORTA', classes: 'bg-amber-100 text-amber-700 border-amber-200', icon: AlertTriangle },
+    'LOW': { label: 'DÜŞÜK', classes: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
+    'OBSERVATION': { label: 'GÖZLEM', classes: 'bg-slate-100 text-slate-700 border-slate-200', icon: Search },
+  };
+
+  return badges[severity] || badges['LOW'];
+};
+
 // --- Helper Components ---
 const SectionBlock = ({ title, icon: Icon, content, colorClass }: any) => {
   if (!content || content === '<p><br></p>') return null;
@@ -58,6 +82,8 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   warmth = 0 
 }) => {
   const paperStyle = getPaperStyle(warmth);
+  const riskInfo = getRiskBadge(data);
+  const RiskIcon = riskInfo.icon;
 
   // --- SOL SAYFA: BULGU DETAYI ---
   const LeftPage = () => (
@@ -73,24 +99,30 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
       )}
       style={paperStyle}
     >
-      {/* Kitap Modu İçin Orta Gölge (Spine - Sağ Kenar) */}
-      {layout === 'book' && (
-        <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
-      )}
-
       {/* Header */}
       <header className="mb-12 border-b-2 border-black/10 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-40">
-            REF: {data.id?.toUpperCase()}
-          </span>
-          <Bookmark size={18} className="opacity-20" />
+        {/* Top Row: Ref & Risk Badge */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex flex-col gap-2">
+            <span className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border w-fit",
+              riskInfo.classes
+            )}>
+              <RiskIcon size={12} />
+              {riskInfo.label} RİSK
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-40 ml-1">
+              REF: {data.id?.toUpperCase()}
+            </span>
+          </div>
+          <Bookmark size={24} className="opacity-10 text-slate-900" />
         </div>
         
         <h1 className="font-serif text-4xl md:text-5xl font-bold leading-[1.1] mb-6 text-slate-900">
           {data.title || 'Başlıksız Bulgu'}
         </h1>
         
+        {/* Risk Scores */}
         <div className="flex flex-wrap gap-3 text-xs font-medium opacity-60">
            <span className="flex items-center gap-1 px-2 py-1 bg-black/5 rounded">
              <AlertTriangle size={12} /> Etki: {data.impact}/5
@@ -122,20 +154,13 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
     <aside 
       className={cn(
         "relative p-10 transition-all duration-500 flex flex-col",
-        // MOD AYRIMI:
-        // Book: Sabit yükseklik, scroll içeride, sol köşe düz (cilt), border yok
-        // Flow: Otomatik yükseklik, scroll yok, tam yuvarlak köşe, derin gölge
+        // MOD AYRIMI
         layout === 'book' 
           ? "h-full overflow-y-auto custom-scrollbar rounded-r-2xl" 
           : "h-auto rounded-xl shadow-xl border border-stone-100/50 hover:shadow-2xl transition-shadow mt-8"
       )}
       style={layout === 'book' ? paperStyle : { backgroundColor: '#fff' }}
     >
-      {/* Kitap Modu İçin Orta Gölge (Spine - Sol Kenar) */}
-      {layout === 'book' && (
-        <div className="absolute top-0 left-0 bottom-0 w-16 bg-gradient-to-r from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
-      )}
-
       <div className="mb-8 pb-4 border-b border-black/5">
         <h3 className="font-sans font-bold text-sm uppercase tracking-widest opacity-50 flex items-center gap-2">
           <Target size={16} /> Yönetim Aksiyon Planı
@@ -179,15 +204,23 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   
   if (layout === 'book') {
     return (
-      // Gap-0 ile sayfaları birleştirdik
-      // shadow-[...] ile çok derin, yumuşak "levitation" gölgesi verildi
-      <div className="flex w-full h-[calc(100vh-140px)] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden gap-0 border border-stone-200/50 my-4 transform transition-transform hover:-translate-y-1 duration-500">
+      // Fix: Gölgeler artık scrollable alanın (Page) dışında, sabit container içinde.
+      <div className="flex w-full h-[calc(100vh-140px)] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden gap-0 border border-stone-200/50 my-4 transform transition-transform hover:-translate-y-1 duration-500 bg-transparent relative">
+        
+        {/* LEFT PANE CONTAINER */}
         <div className="w-1/2 h-full relative z-10">
+           {/* SOL GÖLGE (Spine - Content scroll edince kaybolmasın diye burada) */}
+           <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
            <LeftPage />
         </div>
+
+        {/* RIGHT PANE CONTAINER */}
         <div className="w-1/2 h-full relative z-0">
+           {/* SAĞ GÖLGE (Spine) */}
+           <div className="absolute top-0 left-0 bottom-0 w-16 bg-gradient-to-r from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
            <RightPage />
         </div>
+
       </div>
     );
   }
