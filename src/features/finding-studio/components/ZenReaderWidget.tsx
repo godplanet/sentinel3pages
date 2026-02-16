@@ -64,9 +64,8 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
     <article 
       className={cn(
         "relative p-12 md:p-16 transition-colors duration-500",
-        // MOD AYRIMI: 
-        // Book: Sabit yükseklik, scroll içeride, sağ köşe düz (cilt)
-        // Flow: Otomatik yükseklik, scroll yok, tam yuvarlak köşe
+        // Kitap modu: Sabit yükseklik, scroll, sağ kenar düz (cilt)
+        // Akış modu: Yükseklik serbest (h-auto), tam yuvarlak
         layout === 'book' 
           ? "h-full overflow-y-auto custom-scrollbar rounded-l-2xl border-r-0 border-y border-l border-stone-200/50" 
           : "h-auto rounded-xl shadow-sm border border-stone-200"
@@ -122,9 +121,8 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
     <aside 
       className={cn(
         "relative p-10 transition-colors duration-500 flex flex-col",
-        // MOD AYRIMI:
-        // Book: Sabit yükseklik, scroll içeride, sol köşe düz (cilt)
-        // Flow: Otomatik yükseklik, scroll yok, tam yuvarlak köşe
+        // Kitap modu: Sabit yükseklik, scroll, sol kenar düz (cilt)
+        // Akış modu: Yükseklik serbest (h-auto), mt-8 ile boşluk
         layout === 'book' 
           ? "h-full overflow-y-auto custom-scrollbar rounded-r-2xl border-l-0 border-y border-r border-stone-200/50" 
           : "h-auto rounded-xl mt-8 border border-stone-200"
@@ -179,7 +177,7 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   
   if (layout === 'book') {
     return (
-      // Gap-0 ile sayfaları birleştirdik, shadow ile derinlik verdik
+      // Gap-0 ile sayfaları birleştirdik
       <div className="flex w-full h-[calc(100vh-140px)] shadow-2xl rounded-2xl overflow-hidden gap-0">
         <div className="w-1/2 h-full relative z-10">
            <LeftPage />
