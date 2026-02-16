@@ -15,20 +15,19 @@ import {
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
-// DÜZELTİLDİ: src/shared/utils/cn.ts
+// DÜZELTME 1: cn util dosyası
 import { cn } from '@/shared/utils/cn';
-// DÜZELTİLDİ: src/features/finding-studio/hooks/useFindingStudio.ts
+// DÜZELTME 2: Hook yolu
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-// DÜZELTİLDİ: Dosya adı ui-store.ts olarak güncellendi
+// DÜZELTME 3: Dosya adı "ui" değil "ui-store" olarak değiştirildi
 import { useUIStore } from '@/shared/stores/ui-store';
 
-// --- WIDGETS (Components) ---
+// --- WIDGETS (The Organs) ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
 import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
 import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
 import { NegotiationBoardWidget } from '@/features/finding-studio/components/NegotiationBoardWidget';
-
-// DÜZELTİLDİ: UniversalFindingDrawer widgets klasöründen çekiliyor
+// DÜZELTME 4: Drawer bileşeni "widgets" klasöründen çekiliyor
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // ============================================================================
