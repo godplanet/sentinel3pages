@@ -1,390 +1,194 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Save,
-  CheckCircle2,
-  Maximize2,
-  Minimize2,
-  AlertTriangle,
-  Loader2,
-  Sparkles,
-  History,
-  MessageSquare,
-  FileText,
-  Settings,
-  Scale,
-  Search,
-  GitPullRequestArrow,
-  Zap,
+import React from 'react';
+import { 
+  Scale, 
+  Search, 
+  GitPullRequestArrow, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Calendar, 
+  User, 
   Target,
-  Sun,
-  BookOpen,
-  ScrollText,
-  Paperclip
+  Bookmark,
+  Quote
 } from 'lucide-react';
-
-// --- Utils & Hooks ---
 import { cn } from '@/shared/utils/cn';
-import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-import { useUIStore } from '@/shared/stores/ui-store';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
-// --- Shared UI ---
-import { RichTextEditor } from '@/shared/ui/RichTextEditor';
+// --- Types ---
+interface ZenReaderWidgetProps {
+  data: any; 
+  layout: 'flow' | 'book';
+  warmth?: number; // 0-50
+}
 
-// --- WIDGETS ---
-import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
-import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
-import { NegotiationBoardWidget } from '@/features/finding-studio/components/NegotiationBoardWidget';
-import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
-
-// ============================================================================
-// DYNAMIC COLOR MAP
-// ============================================================================
-// useUIStore'dan gelen string değerlere karşılık Tailwind sınıfları
-const BRAND_COLORS: Record<string, { bg: string, text: string, border: string, ring: string, light: string }> = {
-  blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-600', ring: 'ring-blue-200', light: 'bg-blue-50' },
-  indigo: { bg: 'bg-indigo-600', text: 'text-indigo-600', border: 'border-indigo-600', ring: 'ring-indigo-200', light: 'bg-indigo-50' },
-  rose: { bg: 'bg-rose-600', text: 'text-rose-600', border: 'border-rose-600', ring: 'ring-rose-200', light: 'bg-rose-50' },
-  emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', border: 'border-emerald-600', ring: 'ring-emerald-200', light: 'bg-emerald-50' },
-  slate: { bg: 'bg-slate-800', text: 'text-slate-800', border: 'border-slate-800', ring: 'ring-slate-200', light: 'bg-slate-100' },
-  violet: { bg: 'bg-violet-600', text: 'text-violet-600', border: 'border-violet-600', ring: 'ring-violet-200', light: 'bg-violet-50' },
-  amber: { bg: 'bg-amber-600', text: 'text-amber-600', border: 'border-amber-600', ring: 'ring-amber-200', light: 'bg-amber-50' },
+// --- Dynamic Paper Color ---
+const getPaperStyle = (warmth: number = 0) => {
+  // Base White (255) -> Warm Sepia/Cream
+  const r = 255 - (warmth * 0.05);
+  const g = 255 - (warmth * 0.20); 
+  const b = 255 - (warmth * 0.50); 
+  
+  return {
+    backgroundColor: `rgb(${r}, ${g}, ${b})`,
+    color: '#1e293b' // Slate-800 for high contrast
+  };
 };
 
-const EDITOR_TABS = [
-  { id: 'criteria', label: '1. KRİTER', icon: Scale, placeholder: 'Standardı veya mevzuatı giriniz...' },
-  { id: 'condition', label: '2. TESPİT', icon: Search, placeholder: 'Mevcut durumu detaylandırın...' },
-  { id: 'cause', label: '3. KÖK NEDEN', icon: GitPullRequestArrow, placeholder: 'Bu durum neden oluştu?' },
-  { id: 'consequence', label: '4. ETKİ', icon: Zap, placeholder: 'Risk ve etkileri nelerdir?' },
-  { id: 'corrective_action', label: '5. ÖNERİ', icon: Target, placeholder: 'Çözüm önerisi nedir?' },
-];
+// --- Helper Components ---
+const SectionBlock = ({ title, icon: Icon, content, colorClass }: any) => {
+  if (!content || content === '<p><br></p>') return null;
+  return (
+    <section className="mb-10 group">
+      <div className="flex items-center gap-3 mb-4 border-b border-black/5 pb-2">
+        <Icon size={18} className={cn("opacity-70", colorClass)} />
+        <h3 className="font-sans text-xs font-bold uppercase tracking-widest opacity-50">
+          {title}
+        </h3>
+      </div>
+      <div 
+        className="font-serif text-lg leading-loose opacity-90 prose prose-slate max-w-none"
+        dangerouslySetInnerHTML={{ __html: content }} 
+      />
+    </section>
+  );
+};
 
-export const FindingStudioPage: React.FC = () => {
-  // 1. Data & Logic
-  const {
-    finding,
-    mode,
-    setMode,
-    isVetoed,
-    isLoading,
-    isSaving,
-    saveFinding,
-    updateField,
-  } = useFindingStudio();
+export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({ 
+  data, 
+  layout, 
+  warmth = 0 
+}) => {
+  const paperStyle = getPaperStyle(warmth);
 
-  // 2. UI State & Brand Color
-  const { isSidebarOpen, sidebarColor } = useUIStore(); // sidebarColor: 'blue' | 'indigo' etc.
-  const navigate = useNavigate();
+  // --- SOL SAYFA: BULGU DETAYI ---
+  const LeftPage = () => (
+    <article 
+      className={cn(
+        "relative p-12 md:p-16 h-full overflow-y-auto custom-scrollbar transition-colors duration-500",
+        // Kitap modunda sağ kenar düz, sol kenar yuvarlak
+        layout === 'book' ? "rounded-l-2xl border-r-0" : "rounded-xl shadow-sm border"
+      )}
+      style={paperStyle}
+    >
+      {/* Kitap Modu İçin Orta Gölge (Spine) */}
+      {layout === 'book' && (
+        <div className="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-10" />
+      )}
+
+      {/* Header */}
+      <header className="mb-12 border-b-2 border-black/10 pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-40">
+            REF: {data.id?.toUpperCase()}
+          </span>
+          <Bookmark size={18} className="opacity-20" />
+        </div>
+        
+        <h1 className="font-serif text-4xl md:text-5xl font-bold leading-[1.1] mb-6 text-slate-900">
+          {data.title || 'Başlıksız Bulgu'}
+        </h1>
+        
+        <div className="flex flex-wrap gap-3 text-xs font-medium opacity-60">
+           <span className="flex items-center gap-1 px-2 py-1 bg-black/5 rounded">
+             <AlertTriangle size={12} /> Etki: {data.impact}/5
+           </span>
+           <span className="flex items-center gap-1 px-2 py-1 bg-black/5 rounded">
+             <Target size={12} /> Olasılık: {data.likelihood}/5
+           </span>
+        </div>
+      </header>
+
+      {/* 5C İçerik */}
+      <div className="space-y-2">
+        <SectionBlock title="Kriter" icon={Scale} content={data.criteria} colorClass="text-blue-600" />
+        <SectionBlock title="Tespit" icon={Search} content={data.condition} colorClass="text-amber-600" />
+        <SectionBlock title="Kök Neden" icon={GitPullRequestArrow} content={data.cause} colorClass="text-rose-600" />
+        <SectionBlock title="Risk / Etki" icon={AlertTriangle} content={data.consequence} colorClass="text-orange-600" />
+        <SectionBlock title="Öneri" icon={CheckCircle2} content={data.corrective_action} colorClass="text-emerald-600" />
+      </div>
+
+      {/* Footer Decoration */}
+      <div className="mt-16 flex justify-center opacity-10">
+        <Quote size={32} />
+      </div>
+    </article>
+  );
+
+  // --- SAĞ SAYFA: AKSİYON PLANI ---
+  const RightPage = () => (
+    <aside 
+      className={cn(
+        "relative p-10 h-full overflow-y-auto custom-scrollbar transition-colors duration-500 flex flex-col",
+        // Kitap modunda sol kenar düz, sağ kenar yuvarlak
+        layout === 'book' ? "rounded-r-2xl border-l-0" : "rounded-xl mt-8 border"
+      )}
+      style={layout === 'book' ? paperStyle : { backgroundColor: '#fff' }}
+    >
+      {/* Kitap Modu İçin Orta Gölge (Spine - Sol Taraf) */}
+      {layout === 'book' && (
+        <div className="absolute top-0 left-0 bottom-0 w-12 bg-gradient-to-r from-black/5 to-transparent pointer-events-none z-10" />
+      )}
+
+      <div className="mb-8 pb-4 border-b border-black/5">
+        <h3 className="font-sans font-bold text-sm uppercase tracking-widest opacity-50 flex items-center gap-2">
+          <Target size={16} /> Yönetim Aksiyon Planı
+        </h3>
+      </div>
+
+      <div className="space-y-6 flex-1">
+        {/* Sorumlu Kartı */}
+        <div className="p-4 bg-black/5 rounded-lg border border-black/5">
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+               <div className="text-[10px] uppercase opacity-50 mb-1">Sorumlu</div>
+               <div className="font-serif text-sm font-semibold">Ahmet Yılmaz</div>
+             </div>
+             <div>
+               <div className="text-[10px] uppercase opacity-50 mb-1">Vade</div>
+               <div className="font-serif text-sm font-semibold">
+                 {data.target_date ? format(new Date(data.target_date), 'dd MMM yyyy', {locale: tr}) : '-'}
+               </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Notlar */}
+        <div className="prose prose-sm prose-slate max-w-none">
+           <h4 className="font-serif font-bold opacity-80">Alınacak Aksiyonlar</h4>
+           <p className="opacity-70 italic">
+             {data.action_plan_description || "Henüz bir aksiyon planı girilmemiştir."}
+           </p>
+        </div>
+      </div>
+      
+      {/* Page Number Mock */}
+      <div className="mt-auto pt-8 text-center text-xs opacity-30 font-mono">
+         Sayfa 2 / 2
+      </div>
+    </aside>
+  );
+
+  // --- RENDER LAYOUT ---
   
-  // Local States
-  const [activeTab, setActiveTab] = useState('criteria');
-  const [warmth, setWarmth] = useState(10);
-  const [zenLayout, setZenLayout] = useState<'flow' | 'book'>('book');
-  const [isWarmthOpen, setIsWarmthOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<'chat' | 'history' | 'files'>('chat');
-
-  // Dynamic Theme Resolution
-  const theme = BRAND_COLORS[sidebarColor] || BRAND_COLORS.indigo;
-
-  // Background Styles (Zen vs Studio)
-  const pageStyle = useMemo(() => {
-    if (mode === 'zen') {
-      const r = 255 - (warmth * 0.05);
-      const g = 255 - (warmth * 0.18);
-      const b = 255 - (warmth * 0.45);
-      return { backgroundColor: `rgb(${r}, ${g}, ${b})` };
-    }
-    return {}; // Default for Studio handled by classes
-  }, [mode, warmth]);
-
-  const toggleDrawer = (tab: any) => {
-    if (isDrawerOpen && drawerTab === tab) setIsDrawerOpen(false);
-    else { setDrawerTab(tab); setIsDrawerOpen(true); }
-  };
-
-  if (isLoading || !finding) {
+  if (layout === 'book') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-        <Loader2 className={cn("animate-spin mb-4", theme.text)} size={40} />
-        <p className="text-sm font-medium text-slate-500 animate-pulse">Stüdyo Yükleniyor...</p>
+      <div className="flex w-full h-[calc(100vh-140px)] shadow-2xl rounded-2xl overflow-hidden border border-stone-200/50">
+        <div className="w-1/2 h-full border-r border-black/5 relative">
+           <LeftPage />
+        </div>
+        <div className="w-1/2 h-full relative">
+           <RightPage />
+        </div>
       </div>
     );
   }
 
+  // Flow Layout
   return (
-    <div 
-      className={cn(
-        "flex flex-col h-[calc(100vh-1rem)] w-full overflow-hidden transition-colors duration-500 ease-in-out",
-        // Studio Modunda: Hafif Gradient + Noise Texture simülasyonu
-        mode !== 'zen' && "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
-      )}
-      style={pageStyle}
-    >
-
-      {/* ================= HEADER (GLASS) ================= */}
-      <header className={cn(
-        "shrink-0 h-16 flex items-center justify-between px-6 z-30 transition-all",
-        mode === 'zen' 
-          ? "bg-transparent border-b border-transparent" 
-          : "bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm"
-      )}>
-        
-        {/* LEFT */}
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full text-slate-400 hover:bg-black/5 hover:text-slate-700 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          
-          <div className="h-6 w-px bg-slate-300/50" />
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className={cn("font-mono text-[10px] font-bold uppercase tracking-widest", theme.text)}>
-                #{finding.id === 'new' ? 'DRAFT' : finding.id}
-              </span>
-              {isVetoed && (
-                <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-600 text-[9px] font-bold border border-rose-200 animate-pulse">
-                  KRİTİK
-                </span>
-              )}
-            </div>
-            <h1 className="text-sm font-semibold text-slate-800 truncate max-w-md">
-              {finding.title || 'İsimsiz Taslak'}
-            </h1>
-          </div>
-        </div>
-
-        {/* CENTER: Mode Switcher */}
-        <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex bg-slate-100/50 p-1 rounded-lg border border-slate-200/50 backdrop-blur-sm shadow-inner">
-          {(['edit', 'zen', 'negotiation'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={cn(
-                "px-4 py-1.5 text-xs font-semibold rounded-md capitalize transition-all flex items-center gap-2",
-                mode === m 
-                  ? "bg-white text-slate-900 shadow-sm ring-1 ring-black/5" 
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
-              )}
-            >
-              {m === 'edit' && <Settings size={14} />}
-              {m === 'zen' && <BookOpen size={14} />}
-              {m === 'negotiation' && <CheckCircle2 size={14} />}
-              {m}
-            </button>
-          ))}
-        </div>
-
-        {/* RIGHT: Actions */}
-        <div className="flex items-center gap-3">
-          
-          {/* Zen Controls */}
-          {mode === 'zen' && (
-            <div className="relative">
-              <button 
-                onClick={() => setIsWarmthOpen(!isWarmthOpen)}
-                className="p-2 rounded-full hover:bg-black/5 text-amber-600 transition-colors"
-              >
-                <Sun size={20} />
-              </button>
-              
-              {/* Warmth Popover */}
-              {isWarmthOpen && (
-                <div className="absolute top-full right-0 mt-2 p-4 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/20 w-64 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Sun size={14} className="text-amber-500" />
-                    <input 
-                      type="range" min="0" max="50" 
-                      value={warmth} onChange={(e) => setWarmth(parseInt(e.target.value))}
-                      className="flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-amber-500"
-                    />
-                  </div>
-                  <div className="flex justify-between bg-slate-100 p-1 rounded-lg">
-                    <button 
-                      onClick={() => setZenLayout('flow')} 
-                      className={cn("flex-1 py-1 text-xs rounded", zenLayout === 'flow' ? "bg-white shadow text-indigo-600" : "text-slate-500")}
-                    >Akış</button>
-                    <button 
-                      onClick={() => setZenLayout('book')} 
-                      className={cn("flex-1 py-1 text-xs rounded", zenLayout === 'book' ? "bg-white shadow text-indigo-600" : "text-slate-500")}
-                    >Kitap</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Edit Actions */}
-          {mode === 'edit' && (
-            <button
-              onClick={saveFinding}
-              disabled={isSaving}
-              className={cn(
-                "flex items-center gap-2 px-5 py-2 text-white text-sm font-medium rounded-lg shadow-lg shadow-slate-200 transition-all active:scale-95 disabled:opacity-70",
-                theme.bg, // Dynamic Brand Color
-                "hover:brightness-110"
-              )}
-            >
-              {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
-            </button>
-          )}
-
-          {/* Negotiation Actions */}
-          {mode === 'negotiation' && (
-            <button className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-lg shadow-emerald-200 transition-all active:scale-95">
-              <CheckCircle2 size={16} /> Onayla
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* ================= MAIN CONTENT ================= */}
-      <div className="flex-1 flex overflow-hidden relative">
-        
-        {/* --- MOD A: EDIT (GLASS COCKPIT) --- */}
-        {mode === 'edit' && (
-          <main className="flex-1 flex gap-6 p-6 h-full overflow-hidden">
-            
-            {/* LEFT: Tabbed Editor (Glass Panel) */}
-            <div className="flex-1 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/40 shadow-sm flex flex-col overflow-hidden relative group">
-              {/* Decorative Gradient Blob behind the glass */}
-              <div className="absolute -top-20 -left-20 w-64 h-64 bg-slate-200/30 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-100/30 transition-colors duration-1000" />
-              
-              {/* Tabs */}
-              <div className="flex items-center px-4 pt-3 border-b border-slate-200/50 gap-2 overflow-x-auto no-scrollbar z-10">
-                {EDITOR_TABS.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  const hasContent = finding[tab.id] && finding[tab.id].length > 10;
-                  
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide rounded-t-lg transition-all min-w-max border-b-2",
-                        isActive 
-                          ? cn("bg-white/80 text-slate-800 shadow-sm", `border-${sidebarColor}-600`) // Dynamic Border
-                          : "text-slate-500 border-transparent hover:bg-white/40 hover:text-slate-700"
-                      )}
-                      style={isActive ? { borderColor: `var(--color-${sidebarColor}-600)` } : {}}
-                    >
-                      <tab.icon size={14} className={cn(isActive ? theme.text : "text-slate-400")} />
-                      {tab.label}
-                      {hasContent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Editor Canvas */}
-              <div className="flex-1 overflow-y-auto p-8 bg-white/40 z-10">
-                 <div className="max-w-4xl mx-auto min-h-full bg-white rounded-xl shadow-sm border border-slate-100 p-8">
-                    {EDITOR_TABS.map((tab) => (
-                      <div key={tab.id} className={cn(activeTab === tab.id ? "block" : "hidden", "animate-in fade-in slide-in-from-bottom-2 duration-300")}>
-                        <div className="mb-4 flex items-center gap-2 text-slate-400 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
-                          <tab.icon size={14} />
-                          <span>{tab.placeholder}</span>
-                        </div>
-                        
-                        <RichTextEditor
-                          value={finding[tab.id] || ''}
-                          onChange={(val) => updateField(tab.id, val)}
-                          placeholder="Buraya yazmaya başlayın..."
-                          className="prose-lg min-h-[400px] outline-none"
-                        />
-                      </div>
-                    ))}
-                 </div>
-              </div>
-            </div>
-
-            {/* RIGHT: Control Center (Glass Panel) */}
-            <div className="w-[340px] shrink-0 flex flex-col gap-6 h-full overflow-hidden">
-              <div className="flex-1 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 shadow-sm overflow-hidden flex flex-col">
-                <FindingFormWidget finding={finding} onUpdate={updateField} />
-              </div>
-            </div>
-          </main>
-        )}
-
-        {/* --- MOD B: ZEN (READER) --- */}
-        {mode === 'zen' && (
-          <main className="flex-1 overflow-y-auto relative h-full">
-             <div className="max-w-full h-full p-8 flex justify-center">
-                <ZenReaderWidget 
-                  data={finding} 
-                  layout={zenLayout} 
-                  warmth={warmth} 
-                />
-             </div>
-          </main>
-        )}
-
-        {/* --- MOD C: NEGOTIATION --- */}
-        {mode === 'negotiation' && (
-           <main className="flex-1 flex gap-6 p-6 h-full overflow-hidden bg-slate-50/50">
-             <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-y-auto p-8">
-                <ZenReaderWidget data={finding} layout="flow" warmth={0} />
-             </div>
-             
-             <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <NegotiationBoardWidget id={finding.id} />
-             </div>
-           </main>
-        )}
-
-        {/* --- UNIVERSAL RIGHT RAIL (Drawer Triggers) --- */}
-        <div className="w-16 border-l border-white/20 bg-white/40 backdrop-blur-md z-20 flex flex-col items-center py-4 gap-4 shrink-0 shadow-[-4px_0_15px_rgba(0,0,0,0.01)]">
-          <button 
-            onClick={() => toggleDrawer('chat')}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              drawerTab === 'chat' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
-            )}
-          >
-            <MessageSquare size={20} />
-          </button>
-
-          <button 
-            onClick={() => toggleDrawer('history')}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              drawerTab === 'history' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
-            )}
-          >
-            <History size={20} />
-          </button>
-
-          <div className="w-8 h-px bg-slate-200" />
-
-          <button 
-            onClick={() => toggleDrawer('files')}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              drawerTab === 'files' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
-            )}
-          >
-            <Paperclip size={20} />
-          </button>
-        </div>
-
-      </div>
-
-      <UniversalFindingDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        activeTab={drawerTab}
-        finding={finding}
-      />
-
+    <div className="max-w-3xl mx-auto pb-20 space-y-8">
+       <LeftPage />
+       <RightPage />
     </div>
   );
 };
-
-export default FindingStudioPage;
