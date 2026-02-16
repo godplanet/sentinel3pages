@@ -23,7 +23,9 @@ import {
   ScrollText,
   Paperclip,
   Trash2,
-  FileText as FileIcon
+  FileText as FileIcon,
+  Printer,    // YENİ: Yazıcı İkonu
+  Download    // YENİ: İndirme İkonu (Opsiyonel)
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
@@ -173,11 +175,10 @@ export const FindingStudioPage: React.FC = () => {
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-3">
           
-          {/* Zen Controls - YENİLENEN KISIM */}
+          {/* Zen Controls */}
           {mode === 'zen' && (
             <div className="flex items-center gap-1 bg-white/80 p-1 rounded-full border border-slate-200 backdrop-blur-sm shadow-sm">
               
-              {/* Layout Switchers */}
               <button 
                 onClick={() => setZenLayout('flow')} 
                 className={cn(
@@ -202,7 +203,6 @@ export const FindingStudioPage: React.FC = () => {
 
               <div className="w-px h-4 bg-slate-200 mx-1" />
 
-              {/* Warmth Toggle */}
               <div className="relative">
                 <button 
                   onClick={() => setIsWarmthOpen(!isWarmthOpen)}
@@ -394,39 +394,50 @@ export const FindingStudioPage: React.FC = () => {
            </main>
         )}
 
-        {/* --- UNIVERSAL RIGHT RAIL --- */}
+        {/* --- UNIVERSAL RIGHT RAIL (Drawer Triggers & Tools) --- */}
         <div className="w-16 border-l border-white/20 bg-white/40 backdrop-blur-md z-20 flex flex-col items-center py-4 gap-4 shrink-0 shadow-[-4px_0_15px_rgba(0,0,0,0.01)]">
+          
+          {/* 1. Chat (Drawer Trigger) */}
           <button 
             onClick={() => toggleDrawer('chat')}
             className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
               drawerTab === 'chat' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
             )}
+            title="Mesajlar / Yorumlar"
           >
             <MessageSquare size={20} />
           </button>
 
+          <div className="w-8 h-px bg-slate-200/50" />
+
+          {/* 2. Print */}
           <button 
-            onClick={() => toggleDrawer('history')}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              drawerTab === 'history' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
-            )}
+            onClick={() => window.print()}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-slate-700 hover:bg-white/60"
+            title="Yazdır"
           >
-            <History size={20} />
+            <Printer size={20} />
           </button>
 
-          <div className="w-8 h-px bg-slate-200" />
-
+          {/* 3. Export PDF */}
           <button 
-            onClick={() => toggleDrawer('files')}
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-              drawerTab === 'files' && isDrawerOpen ? `${theme.bg} text-white shadow-lg` : "text-slate-400 hover:bg-white/60"
-            )}
+            onClick={() => console.log('Export PDF')}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all text-rose-500/80 hover:text-rose-600 hover:bg-white/60"
+            title="PDF'e Aktar"
           >
-            <Paperclip size={20} />
+            <FileText size={20} />
           </button>
+
+           {/* 4. Export Word */}
+           <button 
+            onClick={() => console.log('Export Word')}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all text-blue-600/80 hover:text-blue-700 hover:bg-white/60"
+            title="Word'e Aktar"
+          >
+            <FileIcon size={20} /> 
+          </button>
+
         </div>
 
       </div>
