@@ -22,8 +22,8 @@ import {
   BookOpen,
   ScrollText,
   Paperclip,
-  Trash2,           // YENİ: Silme ikonu
-  FileText as FileIcon // YENİ: Dosya ikonu alias
+  Trash2,
+  FileText as FileIcon
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
@@ -33,10 +33,11 @@ import { useUIStore } from '@/shared/stores/ui-store';
 
 // --- Shared UI ---
 import { RichTextEditor } from '@/shared/ui/RichTextEditor';
-import { FileUploader } from '@/shared/ui/FileUploader'; // YENİ: Dosya Yükleyici
+import { FileUploader } from '@/shared/ui/FileUploader';
 
 // --- WIDGETS ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
+import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
 import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
 import { NegotiationBoardWidget } from '@/features/finding-studio/components/NegotiationBoardWidget';
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
@@ -44,7 +45,6 @@ import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 // ============================================================================
 // DYNAMIC COLOR MAP
 // ============================================================================
-// useUIStore'dan gelen string değerlere karşılık Tailwind sınıfları
 const BRAND_COLORS: Record<string, { bg: string, text: string, border: string, ring: string, light: string }> = {
   blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-600', ring: 'ring-blue-200', light: 'bg-blue-50' },
   indigo: { bg: 'bg-indigo-600', text: 'text-indigo-600', border: 'border-indigo-600', ring: 'ring-indigo-200', light: 'bg-indigo-50' },
@@ -65,19 +65,10 @@ const EDITOR_TABS = [
 
 export const FindingStudioPage: React.FC = () => {
   // 1. Data & Logic
-  const {
-    finding,
-    mode,
-    setMode,
-    isVetoed,
-    isLoading,
-    isSaving,
-    saveFinding,
-    updateField,
-  } = useFindingStudio();
+  const { finding, mode, setMode, isVetoed, isLoading, isSaving, saveFinding, updateField } = useFindingStudio();
 
-  // 2. UI State & Brand Color
-  const { isSidebarOpen, sidebarColor } = useUIStore(); // sidebarColor: 'blue' | 'indigo' etc.
+  // 2. UI State
+  const { isSidebarOpen, sidebarColor } = useUIStore();
   const navigate = useNavigate();
   
   // Local States
@@ -88,32 +79,27 @@ export const FindingStudioPage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'chat' | 'history' | 'files'>('chat');
   
-  // YENİ: Kanıt Dosyaları State'i
+  // Evidence State
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [activeTool, setActiveTool] = useState<'ai' | 'history' | null>(null);
 
-  // Dynamic Theme Resolution
+  // Theme
   const theme = BRAND_COLORS[sidebarColor] || BRAND_COLORS.indigo;
 
-  // Background Styles (Zen vs Studio)
-  const pageStyle = useMemo(() => {
-    if (mode === 'zen') {
-      const r = 255 - (warmth * 0.05);
-      const g = 255 - (warmth * 0.18);
-      const b = 255 - (warmth * 0.45);
-      return { backgroundColor: `rgb(${r}, ${g}, ${b})` };
-    }
-    return {}; // Default for Studio handled by classes
-  }, [mode, warmth]);
+  // Background Styles (Zen Mode Only - Outer background is handled by CSS classes)
+  const zenPageStyle = useMemo(() => {
+    // Bu stil artık sayfa dışını değil, sadece "kağıt" (Widget) alanını etkileyecek (ZenReaderWidget içinde).
+    // Ancak dış arka planın sabit gri olması istendi, bu yüzden burayı basitleştiriyoruz.
+    return {};
+  }, []);
 
   const toggleDrawer = (tab: any) => {
     if (isDrawerOpen && drawerTab === tab) setIsDrawerOpen(false);
     else { setDrawerTab(tab); setIsDrawerOpen(true); }
   };
 
-  // YENİ: Dosya Yükleme Handler'ı
   const handleEvidenceUpload = (files: File[]) => {
     setEvidenceFiles(prev => [...prev, ...files]);
-    // Burada gerçek API çağrısı yapılabilir veya global state güncellenebilir
   };
 
   if (isLoading || !finding) {
@@ -129,13 +115,11 @@ export const FindingStudioPage: React.FC = () => {
     <div 
       className={cn(
         "flex flex-col h-[calc(100vh-1rem)] w-full overflow-hidden transition-colors duration-500 ease-in-out",
-        // Studio Modunda: Hafif Gradient + Noise Texture simülasyonu
-        mode !== 'zen' && "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
+        mode === 'zen' ? "bg-slate-100" : "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
       )}
-      style={pageStyle}
     >
 
-      {/* ================= HEADER (GLASS) ================= */}
+      {/* ================= HEADER ================= */}
       <header className={cn(
         "shrink-0 h-16 flex items-center justify-between px-6 z-30 transition-all",
         mode === 'zen' 
@@ -145,10 +129,7 @@ export const FindingStudioPage: React.FC = () => {
         
         {/* LEFT */}
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full text-slate-400 hover:bg-black/5 hover:text-slate-700 transition-colors"
-          >
+          <button onClick={() => navigate(-1)} className="p-2 rounded-full text-slate-400 hover:bg-black/5 hover:text-slate-700 transition-colors">
             <ArrowLeft size={20} />
           </button>
           
@@ -205,7 +186,6 @@ export const FindingStudioPage: React.FC = () => {
                 <Sun size={20} />
               </button>
               
-              {/* Warmth Popover */}
               {isWarmthOpen && (
                 <div className="absolute top-full right-0 mt-2 p-4 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/20 w-64 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
                   <div className="flex items-center gap-3 mb-3">
@@ -238,7 +218,7 @@ export const FindingStudioPage: React.FC = () => {
               disabled={isSaving}
               className={cn(
                 "flex items-center gap-2 px-5 py-2 text-white text-sm font-medium rounded-lg shadow-lg shadow-slate-200 transition-all active:scale-95 disabled:opacity-70",
-                theme.bg, // Dynamic Brand Color
+                theme.bg,
                 "hover:brightness-110"
               )}
             >
@@ -265,7 +245,7 @@ export const FindingStudioPage: React.FC = () => {
             
             {/* LEFT: Tabbed Editor (Glass Panel) */}
             <div className="flex-1 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/40 shadow-sm flex flex-col overflow-hidden relative group">
-              {/* Decorative Gradient Blob behind the glass */}
+              {/* Decorative Gradient Blob */}
               <div className="absolute -top-20 -left-20 w-64 h-64 bg-slate-200/30 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-100/30 transition-colors duration-1000" />
               
               {/* Tabs */}
@@ -281,7 +261,7 @@ export const FindingStudioPage: React.FC = () => {
                       className={cn(
                         "flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide rounded-t-lg transition-all min-w-max border-b-2",
                         isActive 
-                          ? cn("bg-white/80 text-slate-800 shadow-sm", `border-${sidebarColor}-600`) // Dynamic Border
+                          ? cn("bg-white/80 text-slate-800 shadow-sm", `border-${sidebarColor}-600`) 
                           : "text-slate-500 border-transparent hover:bg-white/40 hover:text-slate-700"
                       )}
                       style={isActive ? { borderColor: `var(--color-${sidebarColor}-600)` } : {}}
@@ -317,7 +297,7 @@ export const FindingStudioPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* 2. Evidence Uploader Card (YENİ EKLEME) */}
+                    {/* 2. Evidence Uploader Card (YENİ EKLENEN KISIM) */}
                     <div className="bg-slate-50/50 rounded-xl border border-slate-200 border-dashed p-6">
                        <div className="flex items-center gap-2 mb-4 text-slate-500 font-bold text-xs uppercase tracking-wide">
                          <Paperclip size={16} /> Kanıt Dokümanları & Ekler
@@ -356,12 +336,12 @@ export const FindingStudioPage: React.FC = () => {
                          </div>
                        )}
                     </div>
-
+                    
                  </div>
               </div>
             </div>
 
-            {/* RIGHT: Control Center (Glass Panel) */}
+            {/* RIGHT: Control Center */}
             <div className="w-[340px] shrink-0 flex flex-col gap-6 h-full overflow-hidden">
               <div className="flex-1 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 shadow-sm overflow-hidden flex flex-col">
                 <FindingFormWidget finding={finding} onUpdate={updateField} />
