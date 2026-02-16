@@ -1,26 +1,28 @@
-import React, { useEffect, useMemo } from 'react';
-import * as Icons from 'lucide-react'; // Dinamik ikon render için
-import { cn } from '@/lib/utils';
+import React, { useEffect } from 'react';
+import * as Icons from 'lucide-react'; 
+import { cn } from '@/shared/utils/cn';
 
 // --- Stores & Hooks ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
-import { useFindingStudio, Finding } from '@/features/finding-studio/hooks/useFindingStudio';
+import { useFindingStudio, ComprehensiveFinding } from '@/features/finding-studio/hooks/useFindingStudio';
 
 // --- Shared UI Components ---
-import { RichTextEditor } from '@/shared/ui/RichTextEditor'; // Varsayılan Editör
+import { RichTextEditor } from '@/shared/ui/RichTextEditor'; 
+// Root Cause Engine (Varsa import et, yoksa RichTextEditor fallback yap)
+import { RootCauseEngine } from '@/features/finding-studio/components/RootCauseEngine';
 
 // --- Types ---
 interface ZenEditorProps {
-  finding: Finding;
+  finding: ComprehensiveFinding;
 }
 
 // Renk Temaları (5C Metodolojisine göre görsel kodlama)
 const SECTION_THEMES: Record<string, string> = {
-  criteria: 'border-l-blue-500 bg-blue-50/30', // Standart (Mavi)
-  condition: 'border-l-amber-500 bg-amber-50/30', // Tespit (Sarı/Uyarı)
-  cause: 'border-l-rose-500 bg-rose-50/30', // Kök Neden (Kırmızı/Kritik)
-  consequence: 'border-l-orange-500 bg-orange-50/30', // Etki (Turuncu/Risk)
-  corrective_action: 'border-l-emerald-500 bg-emerald-50/30', // Çözüm (Yeşil)
+  criteria: 'border-l-blue-500 bg-blue-50/30', 
+  condition: 'border-l-amber-500 bg-amber-50/30', 
+  cause: 'border-l-rose-500 bg-rose-50/30', 
+  consequence: 'border-l-orange-500 bg-orange-50/30', 
+  corrective_action: 'border-l-emerald-500 bg-emerald-50/30', 
 };
 
 // Yardımcı: Lucide string isminden bileşen üretme
@@ -36,12 +38,14 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
 
   // 2. Initial Fetch
   useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    if (findingSections.length === 0) {
+      fetchConfig();
+    }
+  }, [fetchConfig, findingSections.length]);
 
-  if (isLoading || findingSections.length === 0) {
+  if (isLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
+      <div className="space-y-4 animate-pulse p-6">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-32 bg-slate-100 rounded-lg"></div>
         ))}
@@ -55,8 +59,8 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
       <div className="absolute left-[19px] top-4 bottom-12 w-0.5 bg-slate-200 -z-10" />
 
       {findingSections
-        .filter((section) => section.is_active) // Sadece aktif bölümleri göster
-        .sort((a, b) => a.order - b.order) // Sıralama garantisi
+        .filter((section) => section.is_active)
+        .sort((a, b) => a.order - b.order)
         .map((section, index) => {
           
           // Theme Determination
@@ -64,7 +68,7 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
           const isRootCauseSection = section.key === 'cause';
           
           // Current Value (Dynamic Access)
-          const currentValue = finding[section.key as keyof Finding] || '';
+          const currentValue = finding[section.key as keyof ComprehensiveFinding] || '';
 
           return (
             <div 
@@ -80,7 +84,7 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
                 <div 
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border bg-white shadow-sm z-10 transition-colors",
-                    isRootCauseSection ? "border-rose-200 text-rose-600" : "border-slate-200 text-slate-500 group-hover:border-primary-300 group-hover:text-primary-600"
+                    isRootCauseSection ? "border-rose-200 text-rose-600" : "border-slate-200 text-slate-500 group-hover:border-indigo-300 group-hover:text-indigo-600"
                   )}
                 >
                   <DynamicIcon name={section.icon} />
@@ -112,23 +116,30 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
                 className={cn(
                   "ml-5 p-4 rounded-xl border-l-4 transition-all shadow-sm group-hover:shadow-md",
                   themeClass,
-                  "bg-white border-slate-200 border-l-slate-300" // Override theme background for cleaner look, keep border color
+                  "bg-white border-slate-200 border-l-slate-300" 
                 )}
-                // Dinamik border rengi için style override veya yukarıdaki class mapping kullanılır.
-                // Burada temiz görünüm için arka planı beyaz yapıp sol border'ı renkli bırakıyoruz.
                 style={{ borderLeftColor: isRootCauseSection ? '#f43f5e' : undefined }}
               >
-                {/* 4. Root Cause Integration - Using RichTextEditor for all sections */}
-                <RichTextEditor
-                  value={currentValue}
-                  onChange={(val) => updateField(section.key as keyof Finding, val)}
-                  placeholder={section.placeholder.tr}
-                  minHeight="120px"
-                  className="prose-sm focus:outline-none"
-                />
+                {/* Kök Neden Analizi için Özel Motor, Diğerleri için Standart Editör */}
+                {isRootCauseSection ? (
+                   <RootCauseEngine
+                     initialValue={currentValue}
+                     onChange={(val) => updateField(section.key, val)}
+                     placeholder={section.placeholder.tr}
+                     findingId={finding.id}
+                   />
+                ) : (
+                  <RichTextEditor
+                    value={currentValue}
+                    onChange={(val) => updateField(section.key, val)}
+                    placeholder={section.placeholder.tr}
+                    minHeight="120px"
+                    className="prose-sm focus:outline-none"
+                  />
+                )}
 
-                {/* Helper Text (Placeholder as hint if empty) */}
-                {!currentValue && (
+                {/* Helper Text */}
+                {!currentValue && !isRootCauseSection && (
                    <p className="mt-2 text-xs text-slate-400 italic flex items-center gap-1">
                      <Icons.Info size={12} />
                      İpucu: {section.placeholder.tr}
@@ -138,14 +149,14 @@ export const ZenEditor: React.FC<ZenEditorProps> = ({ finding }) => {
             </div>
           );
         })}
-        
-        {/* End of Flow Indicator */}
-        <div className="flex items-center gap-3 pl-4 opacity-50">
-           <div className="w-10 h-10 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
-             <div className="w-3 h-3 bg-slate-300 rounded-full" />
-           </div>
-           <span className="text-sm text-slate-400 font-medium">Akış Sonu</span>
-        </div>
+       
+       {/* Akış Sonu İndikatörü */}
+       <div className="flex items-center gap-3 pl-4 opacity-50 mt-8">
+          <div className="w-10 h-10 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center">
+            <div className="w-3 h-3 bg-slate-300 rounded-full" />
+          </div>
+          <span className="text-sm text-slate-400 font-medium">Akış Sonu</span>
+       </div>
     </div>
   );
 };
