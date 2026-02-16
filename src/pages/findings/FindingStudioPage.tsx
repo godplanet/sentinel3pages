@@ -15,19 +15,20 @@ import {
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
-// Dosya yapısına göre doğru import: src/shared/utils/cn.ts
+// DÜZELTİLDİ: src/shared/utils/cn.ts
 import { cn } from '@/shared/utils/cn';
-// Dosya yapısına göre doğru import: src/features/finding-studio/hooks/useFindingStudio.ts
+// DÜZELTİLDİ: src/features/finding-studio/hooks/useFindingStudio.ts
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-// DÜZELTİLDİ: Dosya adı ui.ts değil, ui-store.ts olarak görünüyor.
+// DÜZELTİLDİ: Dosya adı ui-store.ts olarak güncellendi
 import { useUIStore } from '@/shared/stores/ui-store';
 
-// --- WIDGETS (The Organs) ---
+// --- WIDGETS (Components) ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
 import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
 import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
 import { NegotiationBoardWidget } from '@/features/finding-studio/components/NegotiationBoardWidget';
-// DÜZELTİLDİ: Bu bileşen src/widgets altında yer alıyor.
+
+// DÜZELTİLDİ: UniversalFindingDrawer widgets klasöründen çekiliyor
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // ============================================================================
@@ -227,7 +228,7 @@ export const FindingStudioPage: React.FC = () => {
         />
 
         <main className="flex-1 p-6 h-[calc(100vh-4rem)]">
-          <NegotiationBoardWidget id={finding.id} />
+          <NegotiationBoardWidget findingId={finding.id} />
         </main>
       </div>
     );
