@@ -8,7 +8,8 @@ import {
   Calendar, 
   User, 
   Target,
-  Bookmark
+  Bookmark,
+  Quote
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { format } from 'date-fns';
@@ -16,237 +17,178 @@ import { tr } from 'date-fns/locale';
 
 // --- Types ---
 interface ZenReaderWidgetProps {
-  data: any; // ComprehensiveFinding type
+  data: any; 
   layout: 'flow' | 'book';
-  warmth?: number; // 0 (White) - 50 (Warm Sepia)
+  warmth?: number; // 0-50
 }
 
-// --- Helper: Dynamic Paper Color ---
-// Sıcaklık değerine göre Beyaz -> Krem/Sepia geçişi sağlar
+// --- Dynamic Paper Color ---
 const getPaperStyle = (warmth: number = 0) => {
-  // Base: White (255, 255, 255) -> Target: Warm Beige (253, 246, 227)
-  const r = 255 - (warmth * 0.04); // Min change
-  const g = 255 - (warmth * 0.18); 
-  const b = 255 - (warmth * 0.56); 
+  // Base White (255) -> Warm Sepia/Cream
+  const r = 255 - (warmth * 0.05);
+  const g = 255 - (warmth * 0.20); 
+  const b = 255 - (warmth * 0.50); 
   
   return {
     backgroundColor: `rgb(${r}, ${g}, ${b})`,
-    color: '#1e293b' // Slate-800 for high contrast text
+    color: '#1e293b' // Slate-800 for high contrast
   };
 };
 
-// --- Sub-Component: Typography Section Block ---
-const SectionBlock = ({ 
-  title, 
-  icon: Icon, 
-  content, 
-  colorClass = "text-slate-400" 
-}: { 
-  title: string; 
-  icon: any; 
-  content: string; 
-  colorClass?: string; 
-}) => {
-  if (!content) return null;
-
+// --- Helper Components ---
+const SectionBlock = ({ title, icon: Icon, content, colorClass }: any) => {
+  if (!content || content === '<p><br></p>') return null;
   return (
     <section className="mb-10 group">
-      <div className="flex items-center gap-3 mb-3 border-b border-slate-100 pb-2">
-        <Icon size={18} className={cn("transition-colors", colorClass)} />
-        <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-400">
+      <div className="flex items-center gap-3 mb-4 border-b border-black/5 pb-2">
+        <Icon size={18} className={cn("opacity-70", colorClass)} />
+        <h3 className="font-sans text-xs font-bold uppercase tracking-widest opacity-50">
           {title}
         </h3>
       </div>
       <div 
-        className="font-serif text-lg leading-loose text-slate-800 prose prose-slate max-w-none"
+        className="font-serif text-lg leading-loose opacity-90 prose prose-slate max-w-none"
         dangerouslySetInnerHTML={{ __html: content }} 
       />
     </section>
   );
 };
 
-// --- Sub-Component: Action Plan Card (Compact View) ---
-const ActionPlanView = ({ data }: { data: any }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm h-full flex flex-col">
-    <div className="flex items-center gap-2 mb-6 text-indigo-900 border-b border-indigo-50 pb-4">
-      <Target size={20} className="text-indigo-600" />
-      <h3 className="font-sans font-bold text-sm uppercase tracking-wide">Yönetim Aksiyon Planı</h3>
-    </div>
-
-    <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-      {/* Meta Data */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
-            <User size={12} /> Sorumlu
-          </div>
-          <div className="text-sm font-semibold text-slate-700">Ahmet Yılmaz</div>
-        </div>
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
-            <Calendar size={12} /> Termin
-          </div>
-          <div className="text-sm font-semibold text-slate-700">
-            {data.target_date 
-              ? format(new Date(data.target_date), 'dd MMM yyyy', { locale: tr }) 
-              : 'Belirlenmedi'}
-          </div>
-        </div>
-      </div>
-
-      {/* Action Steps */}
-      <div>
-        <h4 className="text-xs font-bold text-slate-500 mb-2">Planlanan Adımlar</h4>
-        <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100 italic">
-          {data.corrective_action || "Henüz bir aksiyon planı girilmemiştir."}
-        </div>
-      </div>
-
-      {/* History / Audit Trail Mock */}
-      <div className="pt-4 border-t border-slate-100">
-        <h4 className="text-xs font-bold text-slate-400 mb-2">Tarihçe</h4>
-        <ul className="space-y-3">
-          <li className="text-xs text-slate-500 flex gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5" />
-            <span>Bulgu taslağı oluşturuldu (12 Şub)</span>
-          </li>
-          <li className="text-xs text-slate-500 flex gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mt-1.5" />
-            <span>Risk analizi tamamlandı (14 Şub)</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-);
-
-// ============================================================================
-// MAIN WIDGET
-// ============================================================================
-
 export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({ 
   data, 
   layout, 
-  warmth = 20 
+  warmth = 0 
 }) => {
   const paperStyle = getPaperStyle(warmth);
 
-  // Common Paper Content (Reused in both layouts)
-  const PaperContent = () => (
+  // --- SOL SAYFA: BULGU DETAYI ---
+  const LeftPage = () => (
     <article 
       className={cn(
-        "relative p-12 md:p-16 rounded-xl shadow-sm border border-stone-200/60 transition-colors duration-500",
-        "selection:bg-yellow-200/50"
+        "relative p-12 md:p-16 h-full overflow-y-auto custom-scrollbar transition-colors duration-500",
+        // Kitap modunda sağ kenar düz, sol kenar yuvarlak
+        layout === 'book' ? "rounded-l-2xl border-r-0" : "rounded-xl shadow-sm border"
       )}
       style={paperStyle}
     >
-      {/* Decorative Top Gradient (Simulating slight paper curve/shadow) */}
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/[0.02] to-transparent pointer-events-none rounded-t-xl" />
+      {/* Kitap Modu İçin Orta Gölge (Spine) */}
+      {layout === 'book' && (
+        <div className="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-10" />
+      )}
 
       {/* Header */}
-      <header className="mb-12 border-b-2 border-slate-900 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="font-mono text-xs text-slate-400 font-bold tracking-widest">
-            REF: {data.id.toUpperCase()}
+      <header className="mb-12 border-b-2 border-black/10 pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-40">
+            REF: {data.id?.toUpperCase()}
           </span>
-          <Bookmark size={16} className="text-slate-300" />
+          <Bookmark size={18} className="opacity-20" />
         </div>
         
-        <h1 className="font-serif text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-4">
-          {data.title || 'İsimsiz Bulgu'}
+        <h1 className="font-serif text-4xl md:text-5xl font-bold leading-[1.1] mb-6 text-slate-900">
+          {data.title || 'Başlıksız Bulgu'}
         </h1>
         
-        <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
-          <span className="px-2 py-1 bg-slate-900 text-white text-xs rounded">
-            {data.riskLevel || 'Risk Analizi Yok'}
-          </span>
-          <span>•</span>
-          <span>Etki: {data.impact}/5</span>
-          <span>•</span>
-          <span>Olasılık: {data.likelihood}/5</span>
+        <div className="flex flex-wrap gap-3 text-xs font-medium opacity-60">
+           <span className="flex items-center gap-1 px-2 py-1 bg-black/5 rounded">
+             <AlertTriangle size={12} /> Etki: {data.impact}/5
+           </span>
+           <span className="flex items-center gap-1 px-2 py-1 bg-black/5 rounded">
+             <Target size={12} /> Olasılık: {data.likelihood}/5
+           </span>
         </div>
       </header>
 
-      {/* The 5C Content Flow */}
+      {/* 5C İçerik */}
       <div className="space-y-2">
-        <SectionBlock 
-          title="1. KRİTER (Criteria)" 
-          icon={Scale} 
-          content={data.criteria}
-          colorClass="text-blue-500"
-        />
-        
-        <SectionBlock 
-          title="2. TESPİT (Condition)" 
-          icon={Search} 
-          content={data.condition}
-          colorClass="text-amber-500"
-        />
-        
-        <SectionBlock 
-          title="3. KÖK NEDEN (Cause)" 
-          icon={GitPullRequestArrow} 
-          content={data.cause}
-          colorClass="text-rose-500"
-        />
-        
-        <SectionBlock 
-          title="4. ETKİ / RİSK (Consequence)" 
-          icon={AlertTriangle} 
-          content={data.consequence}
-          colorClass="text-orange-500"
-        />
-        
-        <SectionBlock 
-          title="5. ÖNERİ (Recommendation)" 
-          icon={CheckCircle2} 
-          content={data.corrective_action} // Öneri kısmı genelde buraya map edilir veya ayrı bir alandır
-          colorClass="text-emerald-600"
-        />
+        <SectionBlock title="Kriter" icon={Scale} content={data.criteria} colorClass="text-blue-600" />
+        <SectionBlock title="Tespit" icon={Search} content={data.condition} colorClass="text-amber-600" />
+        <SectionBlock title="Kök Neden" icon={GitPullRequestArrow} content={data.cause} colorClass="text-rose-600" />
+        <SectionBlock title="Risk / Etki" icon={AlertTriangle} content={data.consequence} colorClass="text-orange-600" />
+        <SectionBlock title="Öneri" icon={CheckCircle2} content={data.corrective_action} colorClass="text-emerald-600" />
       </div>
 
-      {/* Footer / End Mark */}
-      <div className="mt-16 flex justify-center opacity-30">
-        <div className="w-16 h-1 bg-slate-900 rounded-full" />
+      {/* Footer Decoration */}
+      <div className="mt-16 flex justify-center opacity-10">
+        <Quote size={32} />
       </div>
     </article>
   );
 
-  // --- LAYOUT RENDERING ---
+  // --- SAĞ SAYFA: AKSİYON PLANI ---
+  const RightPage = () => (
+    <aside 
+      className={cn(
+        "relative p-10 h-full overflow-y-auto custom-scrollbar transition-colors duration-500 flex flex-col",
+        // Kitap modunda sol kenar düz, sağ kenar yuvarlak
+        layout === 'book' ? "rounded-r-2xl border-l-0" : "rounded-xl mt-8 border"
+      )}
+      style={layout === 'book' ? paperStyle : { backgroundColor: '#fff' }}
+    >
+      {/* Kitap Modu İçin Orta Gölge (Spine - Sol Taraf) */}
+      {layout === 'book' && (
+        <div className="absolute top-0 left-0 bottom-0 w-12 bg-gradient-to-r from-black/5 to-transparent pointer-events-none z-10" />
+      )}
 
-  // SCENARIO 1: BOOK LAYOUT (Split View)
+      <div className="mb-8 pb-4 border-b border-black/5">
+        <h3 className="font-sans font-bold text-sm uppercase tracking-widest opacity-50 flex items-center gap-2">
+          <Target size={16} /> Yönetim Aksiyon Planı
+        </h3>
+      </div>
+
+      <div className="space-y-6 flex-1">
+        {/* Sorumlu Kartı */}
+        <div className="p-4 bg-black/5 rounded-lg border border-black/5">
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+               <div className="text-[10px] uppercase opacity-50 mb-1">Sorumlu</div>
+               <div className="font-serif text-sm font-semibold">Ahmet Yılmaz</div>
+             </div>
+             <div>
+               <div className="text-[10px] uppercase opacity-50 mb-1">Vade</div>
+               <div className="font-serif text-sm font-semibold">
+                 {data.target_date ? format(new Date(data.target_date), 'dd MMM yyyy', {locale: tr}) : '-'}
+               </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Notlar */}
+        <div className="prose prose-sm prose-slate max-w-none">
+           <h4 className="font-serif font-bold opacity-80">Alınacak Aksiyonlar</h4>
+           <p className="opacity-70 italic">
+             {data.action_plan_description || "Henüz bir aksiyon planı girilmemiştir."}
+           </p>
+        </div>
+      </div>
+      
+      {/* Page Number Mock */}
+      <div className="mt-auto pt-8 text-center text-xs opacity-30 font-mono">
+         Sayfa 2 / 2
+      </div>
+    </aside>
+  );
+
+  // --- RENDER LAYOUT ---
+  
   if (layout === 'book') {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-140px)]">
-        {/* Left Page: Finding (Scrollable) */}
-        <div className="h-full overflow-y-auto pr-2 custom-scrollbar pb-10">
-          <PaperContent />
+      <div className="flex w-full h-[calc(100vh-140px)] shadow-2xl rounded-2xl overflow-hidden border border-stone-200/50">
+        <div className="w-1/2 h-full border-r border-black/5 relative">
+           <LeftPage />
         </div>
-        
-        {/* Right Page: Action Plan (Sticky/Fixed) */}
-        <div className="h-full pb-10">
-          <ActionPlanView data={data} />
+        <div className="w-1/2 h-full relative">
+           <RightPage />
         </div>
       </div>
     );
   }
 
-  // SCENARIO 2: FLOW LAYOUT (Single Column)
+  // Flow Layout
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-20">
-      <PaperContent />
-      
-      {/* In Flow layout, Action Plan comes after the paper */}
-      <div className="border-t border-dashed border-slate-300 pt-10">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-center font-sans font-bold text-slate-400 uppercase tracking-widest mb-8">
-            — Yönetim Aksiyon Planı —
-          </h2>
-          <div className="h-auto">
-             <ActionPlanView data={data} />
-          </div>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto pb-20 space-y-8">
+       <LeftPage />
+       <RightPage />
     </div>
   );
 };
