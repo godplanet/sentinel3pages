@@ -21,7 +21,9 @@ import {
   Sun,
   BookOpen,
   ScrollText,
-  Paperclip
+  Paperclip,
+  Trash2,           // YENİ: Silme ikonu
+  FileText as FileIcon // YENİ: Dosya ikonu alias
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
@@ -31,6 +33,7 @@ import { useUIStore } from '@/shared/stores/ui-store';
 
 // --- Shared UI ---
 import { RichTextEditor } from '@/shared/ui/RichTextEditor';
+import { FileUploader } from '@/shared/ui/FileUploader'; // YENİ: Dosya Yükleyici
 
 // --- WIDGETS ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
@@ -84,6 +87,9 @@ export const FindingStudioPage: React.FC = () => {
   const [isWarmthOpen, setIsWarmthOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'chat' | 'history' | 'files'>('chat');
+  
+  // YENİ: Kanıt Dosyaları State'i
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
 
   // Dynamic Theme Resolution
   const theme = BRAND_COLORS[sidebarColor] || BRAND_COLORS.indigo;
@@ -102,6 +108,12 @@ export const FindingStudioPage: React.FC = () => {
   const toggleDrawer = (tab: any) => {
     if (isDrawerOpen && drawerTab === tab) setIsDrawerOpen(false);
     else { setDrawerTab(tab); setIsDrawerOpen(true); }
+  };
+
+  // YENİ: Dosya Yükleme Handler'ı
+  const handleEvidenceUpload = (files: File[]) => {
+    setEvidenceFiles(prev => [...prev, ...files]);
+    // Burada gerçek API çağrısı yapılabilir veya global state güncellenebilir
   };
 
   if (isLoading || !finding) {
@@ -283,23 +295,68 @@ export const FindingStudioPage: React.FC = () => {
               </div>
 
               {/* Editor Canvas */}
-              <div className="flex-1 overflow-y-auto p-8 bg-white/40 z-10">
-                 <div className="max-w-4xl mx-auto min-h-full bg-white rounded-xl shadow-sm border border-slate-100 p-8">
-                    {EDITOR_TABS.map((tab) => (
-                      <div key={tab.id} className={cn(activeTab === tab.id ? "block" : "hidden", "animate-in fade-in slide-in-from-bottom-2 duration-300")}>
-                        <div className="mb-4 flex items-center gap-2 text-slate-400 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
-                          <tab.icon size={14} />
-                          <span>{tab.placeholder}</span>
+              <div className="flex-1 overflow-y-auto p-8 bg-white/40 z-10 custom-scrollbar">
+                 <div className="max-w-4xl mx-auto min-h-full space-y-8">
+                    
+                    {/* 1. Rich Text Editor Card */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-8 min-h-[400px]">
+                      {EDITOR_TABS.map((tab) => (
+                        <div key={tab.id} className={cn(activeTab === tab.id ? "block" : "hidden", "animate-in fade-in slide-in-from-bottom-2 duration-300")}>
+                          <div className="mb-4 flex items-center gap-2 text-slate-400 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <tab.icon size={14} />
+                            <span>{tab.placeholder}</span>
+                          </div>
+                          
+                          <RichTextEditor
+                            value={finding[tab.id] || ''}
+                            onChange={(val) => updateField(tab.id, val)}
+                            placeholder="Buraya yazmaya başlayın..."
+                            className="prose-lg min-h-[300px] outline-none"
+                          />
                         </div>
-                        
-                        <RichTextEditor
-                          value={finding[tab.id] || ''}
-                          onChange={(val) => updateField(tab.id, val)}
-                          placeholder="Buraya yazmaya başlayın..."
-                          className="prose-lg min-h-[400px] outline-none"
-                        />
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    {/* 2. Evidence Uploader Card (YENİ EKLEME) */}
+                    <div className="bg-slate-50/50 rounded-xl border border-slate-200 border-dashed p-6">
+                       <div className="flex items-center gap-2 mb-4 text-slate-500 font-bold text-xs uppercase tracking-wide">
+                         <Paperclip size={16} /> Kanıt Dokümanları & Ekler
+                       </div>
+                       
+                       <FileUploader 
+                         onUpload={handleEvidenceUpload}
+                         compact
+                         label="Kanıt dosyalarını buraya sürükleyin veya seçin"
+                         accept={{ 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }}
+                         maxSize={10 * 1024 * 1024} // 10MB
+                       />
+                       
+                       {/* Dosya Listesi */}
+                       {evidenceFiles.length > 0 && (
+                         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {evidenceFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 bg-white border border-slate-200 rounded text-xs shadow-sm animate-in fade-in slide-in-from-top-1">
+                                <div className="flex items-center gap-2 truncate">
+                                  <div className={cn("p-1.5 rounded text-white", theme.bg)}>
+                                    <FileIcon size={14} />
+                                  </div>
+                                  <div className="flex flex-col truncate">
+                                    <span className="truncate font-medium text-slate-700">{file.name}</span>
+                                    <span className="text-[9px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</span>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => setEvidenceFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                  className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors"
+                                >
+                                  <Trash2 size={14}/>
+                                </button>
+                              </div>
+                            ))}
+                         </div>
+                       )}
+                    </div>
+
                  </div>
               </div>
             </div>
