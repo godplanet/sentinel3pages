@@ -86,10 +86,9 @@ export const FindingStudioPage: React.FC = () => {
   // Theme
   const theme = BRAND_COLORS[sidebarColor] || BRAND_COLORS.indigo;
 
-  // Background Styles (Zen Mode Only - Outer background is handled by CSS classes)
-  const zenPageStyle = useMemo(() => {
-    // Bu stil artık sayfa dışını değil, sadece "kağıt" (Widget) alanını etkileyecek (ZenReaderWidget içinde).
-    // Ancak dış arka planın sabit gri olması istendi, bu yüzden burayı basitleştiriyoruz.
+  // Background Styles
+  const pageStyle = useMemo(() => {
+    // Zen Mode: Background is handled by classes now (bg-slate-50)
     return {};
   }, []);
 
@@ -115,7 +114,8 @@ export const FindingStudioPage: React.FC = () => {
     <div 
       className={cn(
         "flex flex-col h-[calc(100vh-1rem)] w-full overflow-hidden transition-colors duration-500 ease-in-out",
-        mode === 'zen' ? "bg-slate-100" : "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
+        // GÜNCELLEME: Zen modu artık daha açık bir gri (slate-50) kullanıyor, Studio modu ile aynı tabanda ama dokusuz.
+        mode === 'zen' ? "bg-slate-50" : "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
       )}
     >
 
@@ -243,9 +243,8 @@ export const FindingStudioPage: React.FC = () => {
         {mode === 'edit' && (
           <main className="flex-1 flex gap-6 p-6 h-full overflow-hidden">
             
-            {/* LEFT: Tabbed Editor (Glass Panel) */}
+            {/* LEFT: Tabbed Editor */}
             <div className="flex-1 bg-white/60 backdrop-blur-lg rounded-2xl border border-white/40 shadow-sm flex flex-col overflow-hidden relative group">
-              {/* Decorative Gradient Blob */}
               <div className="absolute -top-20 -left-20 w-64 h-64 bg-slate-200/30 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-100/30 transition-colors duration-1000" />
               
               {/* Tabs */}
@@ -297,7 +296,7 @@ export const FindingStudioPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* 2. Evidence Uploader Card (YENİ EKLENEN KISIM) */}
+                    {/* 2. Evidence Uploader Card */}
                     <div className="bg-slate-50/50 rounded-xl border border-slate-200 border-dashed p-6">
                        <div className="flex items-center gap-2 mb-4 text-slate-500 font-bold text-xs uppercase tracking-wide">
                          <Paperclip size={16} /> Kanıt Dokümanları & Ekler
@@ -308,10 +307,9 @@ export const FindingStudioPage: React.FC = () => {
                          compact
                          label="Kanıt dosyalarını buraya sürükleyin veya seçin"
                          accept={{ 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }}
-                         maxSize={10 * 1024 * 1024} // 10MB
+                         maxSize={10 * 1024 * 1024}
                        />
                        
-                       {/* Dosya Listesi */}
                        {evidenceFiles.length > 0 && (
                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
                             {evidenceFiles.map((file, idx) => (
@@ -376,7 +374,7 @@ export const FindingStudioPage: React.FC = () => {
            </main>
         )}
 
-        {/* --- UNIVERSAL RIGHT RAIL (Drawer Triggers) --- */}
+        {/* --- UNIVERSAL RIGHT RAIL --- */}
         <div className="w-16 border-l border-white/20 bg-white/40 backdrop-blur-md z-20 flex flex-col items-center py-4 gap-4 shrink-0 shadow-[-4px_0_15px_rgba(0,0,0,0.01)]">
           <button 
             onClick={() => toggleDrawer('chat')}
