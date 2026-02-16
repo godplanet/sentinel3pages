@@ -44,6 +44,7 @@ import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
 import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
+import ReportStudioPage from '@/pages/reporting/ReportStudioPage';
 import ReportViewerPage from '@/pages/reporting/ReportViewerPage';
 import TrendAnalysisPage from '@/pages/reporting/TrendAnalysisPage';
 import EntityScorecardPage from '@/pages/reporting/EntityScorecardPage';
@@ -171,6 +172,11 @@ export const AppRoutes = () => {
       <Route path="/reporting/library" element={<ProtectedRoute><ReportLibraryPage /></ProtectedRoute>} />
       <Route path="/reporting/editor/new" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
+
+      {/* NEW: Report Studio (Edit/View modes) */}
+      <Route path="/reports/new" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
+      <Route path="/reports/:id" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
+
       <Route path="/reporting/view/:id" element={<ProtectedRoute><ReportViewerPage /></ProtectedRoute>} />
       <Route path="/reporting/edit/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/executive" element={<ProtectedRoute><ExecutiveDashboardPage /></ProtectedRoute>} />

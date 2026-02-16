@@ -1,13 +1,15 @@
 /**
- * Risk Heatmap Block - Live SVG Heatmap Embedded in Report
+ * SENTINEL v3.0 - RISK HEATMAP BLOCK
  *
- * This component renders the actual live risk heatmap (Comet Chart)
- * directly in the document editor and PDF exports.
+ * Live SVG risk heatmap (Comet Chart) embedded in report.
+ * Pulls real-time data from audit_universe table.
+ *
+ * DESIGN STANDARD: Report Studio - Apple Glass / Remarkable Paper
  */
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/shared/api/supabase';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface RiskEntity {
   entity_name: string;
