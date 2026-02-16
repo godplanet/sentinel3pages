@@ -15,16 +15,20 @@ import {
 } from 'lucide-react';
 
 // --- Utils & Hooks ---
+// Dosya yapısına göre doğru import: src/shared/utils/cn.ts
 import { cn } from '@/shared/utils/cn';
+// Dosya yapısına göre doğru import: src/features/finding-studio/hooks/useFindingStudio.ts
 import { useFindingStudio } from '@/features/finding-studio/hooks/useFindingStudio';
-import { useUIStore } from '@/shared/stores/ui';
+// DÜZELTİLDİ: Dosya adı ui.ts değil, ui-store.ts olarak görünüyor.
+import { useUIStore } from '@/shared/stores/ui-store';
 
 // --- WIDGETS (The Organs) ---
 import { FindingFormWidget } from '@/features/finding-studio/components/FindingFormWidget';
 import { ZenEditor } from '@/features/finding-studio/components/ZenEditor';
 import { ZenReaderWidget } from '@/features/finding-studio/components/ZenReaderWidget';
 import { NegotiationBoardWidget } from '@/features/finding-studio/components/NegotiationBoardWidget';
-import { UniversalFindingDrawer } from '@/features/finding-studio/components/UniversalFindingDrawer';
+// DÜZELTİLDİ: Bu bileşen src/widgets altında yer alıyor.
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // ============================================================================
 // COMPONENT: STUDIO HEADER (Glassmorphism)
