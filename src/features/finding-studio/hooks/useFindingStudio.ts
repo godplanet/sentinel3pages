@@ -6,7 +6,7 @@ import { differenceInDays, parseISO, isValid } from 'date-fns';
 // --- Imports (External Modules) ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
 import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store';
-import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
+import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 
 // --- Types ---
 
@@ -108,11 +108,11 @@ export const useFindingStudio = () => {
 
         } else {
           // --- SENARYO B: MEVCUT KAYIT ---
-          const found = mockComprehensiveFindings.find((f: any) => f.id === id);
-          
+          const found = await comprehensiveFindingApi.getById(id);
+
           if (!found) {
             toast.error('Bulgu bulunamadı!');
-            navigate('/findings'); // Geri at
+            navigate('/execution/findings'); // Bulgu merkezine geri dön
             return;
           }
 
@@ -224,11 +224,11 @@ export const useFindingStudio = () => {
           : 'Değişiklikler başarıyla kaydedildi.'
       );
 
-      // Eğer yeni oluşturulduysa URL'i güncelle (örn: /findings/new -> /findings/gen_123)
+      // Eğer yeni oluşturulduysa URL'i güncelle (örn: /execution/findings/new -> /execution/findings/gen_123)
       if (id === 'new') {
         // Mock ID generation
         const newId = `gen_${Math.floor(Math.random() * 10000)}`;
-        navigate(`/findings/${newId}?mode=${mode}`, { replace: true });
+        navigate(`/execution/findings/${newId}?mode=${mode}`, { replace: true });
       }
 
     } catch (err) {

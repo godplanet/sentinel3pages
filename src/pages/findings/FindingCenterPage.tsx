@@ -43,10 +43,12 @@ export default function FindingCenterPage() {
   const loadFindings = async () => {
     try {
       setLoading(true);
+      console.log('FindingCenterPage: Loading findings...');
       const data = await comprehensiveFindingApi.getAll();
+      console.log('FindingCenterPage: Loaded', data?.length || 0, 'findings');
       setFindings(data || []);
     } catch (error) {
-      console.error('Failed to load findings:', error);
+      console.error('FindingCenterPage: Failed to load findings:', error);
       setFindings([]);
     } finally {
       setLoading(false);

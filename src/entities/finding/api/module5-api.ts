@@ -12,33 +12,31 @@ export const comprehensiveFindingApi = {
   async getAll(): Promise<ComprehensiveFinding[]> {
     const { data, error } = await supabase
       .from('audit_findings')
-      .select(`
-        *,
-        secrets:finding_secrets(*),
-        action_plans(*),
-        comments:finding_comments(*),
-        history:finding_history(*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase getAll error:', error);
+      throw error;
+    }
+
+    console.log('Fetched findings:', data?.length || 0);
     return (data || []) as ComprehensiveFinding[];
   },
 
   async getById(id: string): Promise<ComprehensiveFinding | null> {
     const { data, error } = await supabase
       .from('audit_findings')
-      .select(`
-        *,
-        secrets:finding_secrets(*),
-        action_plans(*),
-        comments:finding_comments(*),
-        history:finding_history(*)
-      `)
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase getById error:', error);
+      throw error;
+    }
+
+    console.log('Fetched finding by ID:', id, data ? 'FOUND' : 'NOT FOUND');
     return data ? (data as ComprehensiveFinding) : null;
   },
 
