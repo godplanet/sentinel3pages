@@ -7,7 +7,12 @@ import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
 import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store';
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
-import type { Finding } from '@/entities/finding/model/types'; // Ana tipleri buradan çekiyoruz (Varsa)
+import type { Finding } from '@/entities/finding/model/types';
+import {
+  fetchFinding,
+  createFinding,
+  updateFinding
+} from '@/entities/finding/api/supabase-api';
 
 // --- Types ---
 export type FindingMode = 'zen' | 'edit' | 'negotiation';
@@ -105,22 +110,19 @@ export const useFindingStudio = () => {
 
     const initStudio = async () => {
       setIsLoading(true);
-      
+
       try {
         // 1. Metodolojiyi yükle (Eğer boşsa)
         if (findingSections.length === 0) {
            await fetchConfig();
         }
 
-        // Simüle edilmiş ağ gecikmesi
-        await new Promise((resolve) => setTimeout(resolve, 600));
-
         if (!isMounted) return;
 
         if (id === 'new') {
           // --- YENİ KAYIT ---
           const dynamicFields = findingSections.reduce((acc, section) => {
-            acc[section.key] = ''; 
+            acc[section.key] = '';
             return acc;
           }, {} as Record<string, any>);
 
@@ -132,40 +134,49 @@ export const useFindingStudio = () => {
             likelihood: 1,
             control_effectiveness: 1,
             audit_framework: 'STANDARD',
+            evidence_files: [],
+            related_items: [],
+            activity_log: [],
             ...dynamicFields,
           };
-          
+
           setFinding(newTemplate);
 
         } else {
-          // --- MEVCUT KAYIT ---
-          // Mock veriden bulma işlemi (Tip zorlaması ile)
-          const found = mockComprehensiveFindings.find((f: any) => f.id === id);
-          
-          if (!found) {
-            // Eğer mock veride yoksa, demo amaçlı ilk kaydı yükle veya hata ver
-            // Güvenlik için 'find-001' fallback yapabiliriz veya hata dönebiliriz.
-            if (id === 'find-001') { // Sadece demo ID'si için fallback
-               const demoFinding = mockComprehensiveFindings[0];
-               if (demoFinding) {
-                 setFinding(sanitizeData(demoFinding as unknown as ComprehensiveFinding));
-                 setIsLoading(false);
-                 return;
-               }
-            }
+          // --- MEVCUT KAYIT: SUPABASE'DEN ÇEK ---
+          try {
+            const foundInDB = await fetchFinding(id);
 
-            console.warn(`Finding with ID ${id} not found in mock data.`);
-            // Demo modunda olduğumuz için hata verip çıkmak yerine, kullanıcıyı listeden atmayalım diye
-            // boş bir şablon ile devam etme (isteğe bağlı) veya redirect:
-            // navigate('/findings'); 
-            // return;
-            
-            // DEMO FIX: Hata vermemek için ilk kaydı zorla yükle (Geliştirme aşaması için)
-             const fallbackFinding = mockComprehensiveFindings[0] as unknown as ComprehensiveFinding;
-             setFinding(sanitizeData(fallbackFinding));
-             
-          } else {
-            setFinding(sanitizeData(found as unknown as ComprehensiveFinding));
+            if (foundInDB) {
+              // Veritabanında bulundu
+              setFinding(sanitizeData(foundInDB));
+            } else {
+              // Veritabanında yok - FALLBACK: Mock data kontrol et (geçiş dönemi için)
+              console.warn(`Finding ${id} not found in database, checking mock data...`);
+              const foundInMock = mockComprehensiveFindings.find((f: any) => f.id === id);
+
+              if (foundInMock) {
+                setFinding(sanitizeData(foundInMock as unknown as ComprehensiveFinding));
+                toast('Bu kayıt mock veridedir. Değişiklikler veritabanına yazılmayacak.', {
+                  icon: '⚠️',
+                  duration: 4000
+                });
+              } else {
+                // Hiçbir yerde bulunamadı
+                toast.error('Bulgu bulunamadı. Ana sayfaya yönlendiriliyorsunuz...');
+                setTimeout(() => navigate('/findings'), 2000);
+                return;
+              }
+            }
+          } catch (dbError: any) {
+            console.error('Database Fetch Error:', dbError);
+            toast.error(`Veritabanı hatası: ${dbError.message || 'Bilinmeyen hata'}`);
+
+            // Fallback: Mock data
+            const foundInMock = mockComprehensiveFindings.find((f: any) => f.id === id);
+            if (foundInMock) {
+              setFinding(sanitizeData(foundInMock as unknown as ComprehensiveFinding));
+            }
           }
         }
 
@@ -180,7 +191,7 @@ export const useFindingStudio = () => {
     initStudio();
 
     return () => { isMounted = false; };
-  }, [id, navigate, sanitizeData, fetchConfig]); // findingSections dependency array'den çıkarıldı
+  }, [id, navigate, sanitizeData, fetchConfig]);
 
 
   // --- Logic: Risk Engine Calculation ---
@@ -242,21 +253,33 @@ export const useFindingStudio = () => {
     setIsSaving(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setHasUnsavedChanges(false);
-      toast.success(
-        finding.id === 'new' 
-          ? 'Yeni bulgu taslağı oluşturuldu.' 
-          : 'Değişiklikler başarıyla kaydedildi.'
-      );
-
       if (id === 'new') {
-        const newId = `gen_${Math.floor(Math.random() * 10000)}`;
-        navigate(`/findings/${newId}?mode=${mode}`, { replace: true });
+        // --- YENİ KAYIT OLUŞTUR ---
+        // Not: engagement_id gerekli! Demo için sabit bir ID kullanıyoruz.
+        // Production'da bu dinamik olmalı (context'ten veya URL'den gelmeli)
+        const DEMO_ENGAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
+
+        const createdFinding = await createFinding(finding, DEMO_ENGAGEMENT_ID);
+
+        setHasUnsavedChanges(false);
+        toast.success('Yeni bulgu başarıyla oluşturuldu!');
+
+        // Yeni ID ile sayfayı güncelle
+        navigate(`/findings/${createdFinding.id}?mode=${mode}`, { replace: true });
+        setFinding(createdFinding);
+
+      } else {
+        // --- MEVCUT KAYIT GÜNCELLE ---
+        const updatedFinding = await updateFinding(id, finding);
+
+        setHasUnsavedChanges(false);
+        setFinding(updatedFinding);
+        toast.success('Değişiklikler başarıyla kaydedildi.');
       }
 
-    } catch (err) {
-      toast.error('Kaydetme başarısız oldu.');
+    } catch (err: any) {
+      console.error('Save Finding Error:', err);
+      toast.error(err.message || 'Kaydetme başarısız oldu.');
     } finally {
       setIsSaving(false);
     }
