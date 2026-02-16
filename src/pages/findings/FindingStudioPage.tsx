@@ -81,14 +81,12 @@ export const FindingStudioPage: React.FC = () => {
   
   // Evidence State
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  const [activeTool, setActiveTool] = useState<'ai' | 'history' | null>(null);
-
+  
   // Theme
   const theme = BRAND_COLORS[sidebarColor] || BRAND_COLORS.indigo;
 
   // Background Styles
   const pageStyle = useMemo(() => {
-    // Zen Mode: Background is handled by classes now (bg-slate-50)
     return {};
   }, []);
 
@@ -114,7 +112,6 @@ export const FindingStudioPage: React.FC = () => {
     <div 
       className={cn(
         "flex flex-col h-[calc(100vh-1rem)] w-full overflow-hidden transition-colors duration-500 ease-in-out",
-        // GÜNCELLEME: Zen modu artık daha açık bir gri (slate-50) kullanıyor, Studio modu ile aynı tabanda ama dokusuz.
         mode === 'zen' ? "bg-slate-50" : "bg-slate-50 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"
       )}
     >
@@ -176,38 +173,61 @@ export const FindingStudioPage: React.FC = () => {
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-3">
           
-          {/* Zen Controls */}
+          {/* Zen Controls - YENİLENEN KISIM */}
           {mode === 'zen' && (
-            <div className="relative">
+            <div className="flex items-center gap-1 bg-white/80 p-1 rounded-full border border-slate-200 backdrop-blur-sm shadow-sm">
+              
+              {/* Layout Switchers */}
               <button 
-                onClick={() => setIsWarmthOpen(!isWarmthOpen)}
-                className="p-2 rounded-full hover:bg-black/5 text-amber-600 transition-colors"
+                onClick={() => setZenLayout('flow')} 
+                className={cn(
+                  "p-2 rounded-full transition-colors", 
+                  zenLayout === 'flow' ? "bg-slate-100 text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Akış Görünümü"
               >
-                <Sun size={20} />
+                <ScrollText size={16} />
               </button>
               
-              {isWarmthOpen && (
-                <div className="absolute top-full right-0 mt-2 p-4 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl border border-white/20 w-64 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Sun size={14} className="text-amber-500" />
-                    <input 
-                      type="range" min="0" max="50" 
-                      value={warmth} onChange={(e) => setWarmth(parseInt(e.target.value))}
-                      className="flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-amber-500"
-                    />
+              <button 
+                onClick={() => setZenLayout('book')} 
+                className={cn(
+                  "p-2 rounded-full transition-colors", 
+                  zenLayout === 'book' ? "bg-slate-100 text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="Kitap Görünümü"
+              >
+                <BookOpen size={16} />
+              </button>
+
+              <div className="w-px h-4 bg-slate-200 mx-1" />
+
+              {/* Warmth Toggle */}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsWarmthOpen(!isWarmthOpen)}
+                  className={cn(
+                    "p-2 rounded-full transition-colors",
+                    isWarmthOpen ? "text-amber-600 bg-amber-50" : "text-slate-400 hover:text-amber-500"
+                  )}
+                  title="Sıcaklık Ayarı"
+                >
+                  <Sun size={18} />
+                </button>
+                
+                {isWarmthOpen && (
+                  <div className="absolute top-full right-0 mt-3 p-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 w-64 z-50 animate-in slide-in-from-top-2 fade-in duration-200 ring-1 ring-black/5">
+                    <div className="flex items-center gap-3">
+                      <Sun size={14} className="text-amber-500" />
+                      <input 
+                        type="range" min="0" max="50" 
+                        value={warmth} onChange={(e) => setWarmth(parseInt(e.target.value))}
+                        className="flex-1 h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer accent-amber-500"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between bg-slate-100 p-1 rounded-lg">
-                    <button 
-                      onClick={() => setZenLayout('flow')} 
-                      className={cn("flex-1 py-1 text-xs rounded", zenLayout === 'flow' ? "bg-white shadow text-indigo-600" : "text-slate-500")}
-                    >Akış</button>
-                    <button 
-                      onClick={() => setZenLayout('book')} 
-                      className={cn("flex-1 py-1 text-xs rounded", zenLayout === 'book' ? "bg-white shadow text-indigo-600" : "text-slate-500")}
-                    >Kitap</button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
