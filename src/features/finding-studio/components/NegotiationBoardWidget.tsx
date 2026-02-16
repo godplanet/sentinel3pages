@@ -14,11 +14,17 @@ import {
   Trash2, 
   Send,
   AlertOctagon,
-  Clock
+  Clock,
+  Paperclip,
+  X
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+
+// --- Shared UI ---
+// Projenizde mevcut olan FileUploader'ı kullanıyoruz
+import { FileUploader } from '@/shared/ui/FileUploader';
 
 // --- Types ---
 type DecisionType = 'accept' | 'reject';
@@ -64,12 +70,14 @@ export const NegotiationBoardWidget: React.FC<{ id: string }> = ({ id }) => {
   const [steps, setSteps] = useState<ActionStep[]>([
     { id: 's1', description: '', dueDate: '' }
   ]);
+  // YENİ: Aksiyon Planı Dosyaları
+  const [planFiles, setPlanFiles] = useState<File[]>([]);
 
   // Risk Acceptance State
   const [justification, setJustification] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  // GÜNCELLEME: Tek dosya yerine çoklu dosya desteği (Mevcut yapıyı bozmadan genişletildi)
+  const [acceptanceFiles, setAcceptanceFiles] = useState<File[]>([]);
+  
   // Chat State
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [newMessage, setNewMessage] = useState('');
@@ -98,10 +106,47 @@ export const NegotiationBoardWidget: React.FC<{ id: string }> = ({ id }) => {
     setNewMessage('');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  // Dosya Yükleme Handler'ları
+  const handlePlanFileUpload = (files: File[]) => {
+    setPlanFiles(prev => [...prev, ...files]);
+  };
+
+  const handleAcceptanceFileUpload = (files: File[]) => {
+    setAcceptanceFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (type: 'plan' | 'accept', index: number) => {
+    if (type === 'plan') {
+      setPlanFiles(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setAcceptanceFiles(prev => prev.filter((_, i) => i !== index));
     }
+  };
+
+  // --- Render Helper: File List ---
+  const renderFileList = (files: File[], type: 'plan' | 'accept') => {
+    if (files.length === 0) return null;
+    return (
+      <div className="space-y-2 mt-3">
+        {files.map((f, i) => (
+          <div key={i} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded text-xs animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2 overflow-hidden">
+               <div className="p-1.5 bg-white border border-slate-200 rounded text-slate-500">
+                 <FileText size={14} />
+               </div>
+               <span className="truncate max-w-[200px] text-slate-600 font-medium">{f.name}</span>
+               <span className="text-[10px] text-slate-400">({(f.size / 1024).toFixed(0)} KB)</span>
+            </div>
+            <button 
+              onClick={() => removeFile(type, i)} 
+              className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -241,6 +286,23 @@ export const NegotiationBoardWidget: React.FC<{ id: string }> = ({ id }) => {
                 ))}
               </div>
             </div>
+
+            {/* YENİ BÖLÜM: Plan Files Upload */}
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 text-emerald-700 mb-2">
+                <Paperclip size={18} />
+                <h3 className="font-bold text-sm">Ek Dokümanlar / Plan Dosyası</h3>
+              </div>
+              <div className="p-4 bg-slate-50 border border-slate-200 border-dashed rounded-lg">
+                 <FileUploader 
+                    onUpload={handlePlanFileUpload}
+                    compact
+                    label="Proje planı veya destekleyici belge yükle"
+                 />
+                 {renderFileList(planFiles, 'plan')}
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -282,28 +344,18 @@ export const NegotiationBoardWidget: React.FC<{ id: string }> = ({ id }) => {
                   />
                 </div>
 
+                {/* UPDATED: File Upload for Evidence (Using FileUploader) */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                     YK Kararı / Kanıt Belgesi <span className="text-rose-500">*</span>
                   </label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 cursor-pointer transition-colors group"
-                  >
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      ref={fileInputRef} 
-                      onChange={handleFileUpload}
+                  <div className="bg-rose-50/50 border-2 border-dashed border-rose-100 rounded-lg p-4">
+                    <FileUploader 
+                      onUpload={handleAcceptanceFileUpload}
+                      compact
+                      label="Yönetim Kurulu kararını buraya yükleyin"
                     />
-                    <Upload size={24} className="mx-auto text-slate-400 group-hover:text-rose-500 mb-2 transition-colors" />
-                    {file ? (
-                      <span className="text-sm font-medium text-slate-700">{file.name}</span>
-                    ) : (
-                      <span className="text-xs text-slate-500">
-                        Dosya yüklemek için tıklayın veya sürükleyin
-                      </span>
-                    )}
+                    {renderFileList(acceptanceFiles, 'accept')}
                   </div>
                 </div>
               </div>
