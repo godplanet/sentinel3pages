@@ -61,6 +61,13 @@ export default function ReportStudioPage() {
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [warmth, setWarmth] = useState(0);
 
+  // Audit Grade (Mock - will be fetched from engagement later)
+  const [auditGrade, setAuditGrade] = useState<{
+    letter: string;
+    score: number;
+    label: string;
+  } | null>(null);
+
   // Layout State (Edit Mode)
   const [showOutline, setShowOutline] = useState(true);
   const [showAssets, setShowAssets] = useState(true);
@@ -86,6 +93,12 @@ export default function ReportStudioPage() {
             if (dbReport.blocks) {
               setBlocks(dbReport.blocks);
             }
+            // Mock Grade (will be replaced with real API later)
+            setAuditGrade({
+              letter: 'B+',
+              score: 85,
+              label: 'İyi Performans',
+            });
           } else {
             // Fallback: Mock data
             const mockReport = MOCK_REPORT_ARCHIVE.find((r) => r.id === id);
@@ -93,6 +106,12 @@ export default function ReportStudioPage() {
               setReport(mockReport);
               setTitle(mockReport.title);
               setContent(mockReport.content || '');
+              // Mock Grade
+              setAuditGrade({
+                letter: 'B+',
+                score: 85,
+                label: 'İyi Performans',
+              });
             }
           }
         })
@@ -152,6 +171,42 @@ export default function ReportStudioPage() {
   // =====================================================
   // RENDER HELPERS
   // =====================================================
+  const getGradeBadgeColor = (letter: string): { bg: string; text: string; border: string } => {
+    const firstChar = letter[0].toUpperCase();
+    if (firstChar === 'A') return { bg: 'bg-emerald-500', text: 'text-white', border: 'border-emerald-600' };
+    if (firstChar === 'B') return { bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600' };
+    if (firstChar === 'C') return { bg: 'bg-amber-500', text: 'text-white', border: 'border-amber-600' };
+    if (firstChar === 'D') return { bg: 'bg-orange-500', text: 'text-white', border: 'border-orange-600' };
+    return { bg: 'bg-rose-500', text: 'text-white', border: 'border-rose-600' };
+  };
+
+  const renderGradeBadge = () => {
+    if (!auditGrade) return null;
+
+    const colors = getGradeBadgeColor(auditGrade.letter);
+
+    return (
+      <div
+        className={clsx(
+          'flex items-center gap-2 px-3 py-2 rounded-lg border-2 backdrop-blur-sm',
+          colors.bg,
+          colors.text,
+          colors.border
+        )}
+      >
+        <div className="flex flex-col items-center leading-none">
+          <span className="text-xs font-bold opacity-80">NOT</span>
+          <span className="text-2xl font-black">{auditGrade.letter}</span>
+        </div>
+        <div className="h-8 w-px bg-white/30" />
+        <div className="flex flex-col leading-tight">
+          <span className="text-xs opacity-90">{auditGrade.label}</span>
+          <span className="text-xs font-mono font-bold">{auditGrade.score}/100</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderSaveButton = () => {
     if (mode === 'view') return null;
 
@@ -225,6 +280,9 @@ export default function ReportStudioPage() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
+              {/* Audit Grade Badge */}
+              {renderGradeBadge()}
+
               <button
                 onClick={() => handleModeSwitch('view')}
                 className="px-4 py-2 rounded-lg font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2"

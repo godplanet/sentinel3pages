@@ -43,7 +43,6 @@ import WorkflowSettingsPage from '@/pages/settings/WorkflowSettingsPage';
 import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
-import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
 import ReportStudioPage from '@/pages/reporting/ReportStudioPage';
 import ReportViewerPage from '@/pages/reporting/ReportViewerPage';
 import TrendAnalysisPage from '@/pages/reporting/TrendAnalysisPage';
@@ -170,15 +169,16 @@ export const AppRoutes = () => {
       <Route path="/monitoring/market" element={<ProtectedRoute><MarketMonitoringPage /></ProtectedRoute>} />
 
       <Route path="/reporting/library" element={<ProtectedRoute><ReportLibraryPage /></ProtectedRoute>} />
-      <Route path="/reporting/editor/new" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
-      <Route path="/reporting/editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
 
-      {/* NEW: Report Studio (Edit/View modes) */}
+      {/* REPORT STUDIO (New Universal Editor - Edit/View modes) */}
       <Route path="/reports/new" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
       <Route path="/reports/:id" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
 
+      {/* Legacy Routes - Redirect to Report Studio */}
+      <Route path="/reporting/editor/new" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
+      <Route path="/reporting/editor/:id" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
+      <Route path="/reporting/edit/:id" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />
       <Route path="/reporting/view/:id" element={<ProtectedRoute><ReportViewerPage /></ProtectedRoute>} />
-      <Route path="/reporting/edit/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/executive" element={<ProtectedRoute><ExecutiveDashboardPage /></ProtectedRoute>} />
       <Route path="/reporting/trends" element={<ProtectedRoute><TrendAnalysisPage /></ProtectedRoute>} />
       <Route path="/reporting/entity-scorecard" element={<ProtectedRoute><EntityScorecardPage /></ProtectedRoute>} />
