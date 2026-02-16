@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { differenceInDays, parseISO, isValid } from 'date-fns';
 
 // --- Imports ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
-import { useRiskConfigurationStore } from '@/features/admin/risk-configuration/model/store';
+import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store';
 import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 import type { Finding } from '@/entities/finding/model/types'; // Ana tipleri buradan çekiyoruz (Varsa)
 
@@ -51,7 +51,7 @@ export const useFindingStudio = () => {
 
   // 2. Global Stores
   const { findingSections, fetchConfig } = useMethodologyStore();
-  const riskConfig = useRiskConfigurationStore((state: any) => state.config);
+  const riskConfig = useRiskConfigStore((state: any) => state);
 
   // 3. Local State
   const [finding, setFinding] = useState<ComprehensiveFinding | null>(null);
