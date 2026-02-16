@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { 
-  X, MessageSquare, History, Network, ShieldCheck, 
-  Sparkles, SlidersHorizontal 
+import {
+  X, MessageSquare, History, Network, ShieldCheck,
+  Sparkles, SlidersHorizontal, Activity // GÖREV 3: Activity icon
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -11,9 +11,10 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { RCAPanel } from './components/RCAPanel';
 import { ReviewPanel } from './components/ReviewPanel';
 import { AIPanel } from './components/AIPanel';
+import { ActivityLogPanel } from './components/ActivityLogPanel'; // GÖREV 3
 
 // TİPLER
-export type DrawerTab = 'chat' | 'ai' | 'rca' | 'review' | 'history' | null;
+export type DrawerTab = 'chat' | 'ai' | 'rca' | 'review' | 'history' | 'activity' | null; // GÖREV 3: activity eklendi
 
 interface UniversalFindingDrawerProps {
   findingId: string | null;
@@ -96,10 +97,16 @@ export function UniversalFindingDrawer({
                   label="Gözetim" 
                   isGlass={currentViewMode === 'glass'}
                 />
-                <TabButton 
-                  active={activeTab === 'history'} onClick={() => setActiveTab('history')} 
-                  icon={<History size={16} className={activeTab === 'history' ? "text-slate-600" : ""} />} 
-                  label="Tarihçe" 
+                <TabButton
+                  active={activeTab === 'history'} onClick={() => setActiveTab('history')}
+                  icon={<History size={16} className={activeTab === 'history' ? "text-slate-600" : ""} />}
+                  label="Tarihçe"
+                  isGlass={currentViewMode === 'glass'}
+                />
+                <TabButton
+                  active={activeTab === 'activity'} onClick={() => setActiveTab('activity')}
+                  icon={<Activity size={16} className={activeTab === 'activity' ? "text-teal-600" : ""} />}
+                  label="Denetim İzi"
                   isGlass={currentViewMode === 'glass'}
                 />
             </div>
@@ -171,6 +178,11 @@ export function UniversalFindingDrawer({
               {/* 5. TARİHÇE PANELİ */}
               {activeTab === 'history' && (
                 <HistoryPanel findingId={findingId} />
+              )}
+
+              {/* 6. GÖREV 3: DENETİM İZİ (ACTIVITY LOG) */}
+              {activeTab === 'activity' && (
+                <ActivityLogPanel findingId={findingId} />
               )}
 
             </div>

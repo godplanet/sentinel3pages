@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
-import { 
-  Activity, 
-  Tags, 
-  Building, 
-  AlertTriangle, 
-  Layers, 
-  X, 
+import {
+  Activity,
+  Tags,
+  Building,
+  AlertTriangle,
+  Layers,
+  X,
   GitPullRequestArrow,
   HelpCircle,
   Gavel,    // YENİ: BDDK İkonu
   Globe,    // YENİ: Global İkonu
-  Info      // YENİ: Gözlem İkonu
+  Info,      // YENİ: Gözlem İkonu
+  Send,     // GÖREV 1: Workflow advance butonu
+  Link,     // GÖREV 2: Cross-linking
+  Plus
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { QAIPChecklistModal } from './QAIPChecklistModal';
 
 // --- Types ---
 interface FindingFormWidgetProps {
   finding: any; // ComprehensiveFinding
   onUpdate: (field: string, value: any) => void;
+  onAdvanceWorkflow?: () => void; // GÖREV 1: Workflow callback
 }
 
 // --- Constants & Mappings (BDDK & GIAS 2024) ---
@@ -83,9 +88,16 @@ const CONTROLS = [
   { id: 'C005', title: 'Üst Limit Onayı', category: 'Preventive' }
 ];
 
-export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, onUpdate }) => {
+export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, onUpdate, onAdvanceWorkflow }) => {
   // Local state for Tag Input
   const [tagInput, setTagInput] = useState('');
+
+  // GÖREV 1: QAIP Modal State
+  const [isQAIPModalOpen, setIsQAIPModalOpen] = useState(false);
+
+  // GÖREV 2: Cross-Linking State
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkSearchQuery, setLinkSearchQuery] = useState('');
 
   // --- Logic Extraction ---
   
@@ -490,9 +502,71 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
 
       </div>
 
+      {/* === GÖREV 2: ÇAPRAZ BAĞLANTILAR === */}
+      <div className="px-6 pb-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+            <Link size={14} /> İlişkili Kayıtlar
+          </label>
+          <button
+            onClick={() => setIsLinkModalOpen(true)}
+            className="p-1.5 rounded hover:bg-slate-100 text-indigo-600 transition-colors"
+            title="Kayıt Ekle"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        {/* Related Items List */}
+        {finding.related_items && finding.related_items.length > 0 ? (
+          <div className="space-y-2">
+            {finding.related_items.map((item: any, idx: number) => (
+              <div
+                key={idx}
+                className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-start justify-between gap-2 hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                      {item.type}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-semibold text-slate-700 truncate">{item.title}</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">ID: {item.id}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const newItems = finding.related_items.filter((_: any, i: number) => i !== idx);
+                    onUpdate('related_items', newItems);
+                  }}
+                  className="p-1 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 border-dashed text-center">
+            <p className="text-xs text-slate-400">Henüz bağlantı yok</p>
+          </div>
+        )}
+      </div>
+
       {/* --- 3. ACTIONS FOOTER --- */}
-      <div className="p-4 border-t border-slate-200 bg-white">
-        <button 
+      <div className="p-4 border-t border-slate-200 bg-white space-y-2">
+        {/* GÖREV 1: İncelemeye Gönder (QAIP Quality Gate) */}
+        {finding.status === 'draft' && (
+          <button
+            onClick={() => setIsQAIPModalOpen(true)}
+            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md"
+          >
+            <Send size={16} />
+            İncelemeye Gönder
+          </button>
+        )}
+
+        <button
           onClick={() => console.log('Open Root Cause Tool')}
           className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wide rounded-lg border border-slate-200 flex items-center justify-center gap-2 transition-colors active:scale-95"
         >
@@ -509,6 +583,78 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
           </div>
         )}
       </div>
+
+      {/* === GÖREV 1: QAIP MODAL === */}
+      <QAIPChecklistModal
+        isOpen={isQAIPModalOpen}
+        onClose={() => setIsQAIPModalOpen(false)}
+        onSubmit={() => {
+          onUpdate('status', 'review');
+          if (onAdvanceWorkflow) onAdvanceWorkflow();
+        }}
+        finding={finding}
+      />
+
+      {/* === GÖREV 2: LINK MODAL (Simple Inline) === */}
+      {isLinkModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200]"
+            onClick={() => setIsLinkModalOpen(false)}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-[201] p-4 pointer-events-none">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md pointer-events-auto">
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-slate-800">İlişkili Kayıt Ekle</h3>
+                  <button onClick={() => setIsLinkModalOpen(false)} className="p-1 rounded hover:bg-slate-100">
+                    <X size={16} />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={linkSearchQuery}
+                  onChange={(e) => setLinkSearchQuery(e.target.value)}
+                  placeholder="Kayıt ID veya başlık ara..."
+                  className="w-full p-2.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                {/* Mock Suggestions */}
+                {[
+                  { id: 'FIND-042', type: 'Finding', title: 'Yetkilendirme Matrisi Eksikliği' },
+                  { id: 'POL-018', type: 'Policy', title: 'Bilgi Güvenliği Politikası' },
+                  { id: 'ACT-125', type: 'Action', title: 'Firewall Kuralları Revizyonu' }
+                ].filter(item =>
+                  linkSearchQuery === '' ||
+                  item.title.toLowerCase().includes(linkSearchQuery.toLowerCase()) ||
+                  item.id.toLowerCase().includes(linkSearchQuery.toLowerCase())
+                ).map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      const currentLinks = finding.related_items || [];
+                      const newLinks = [...currentLinks, item];
+                      onUpdate('related_items', newLinks);
+                      setIsLinkModalOpen(false);
+                      setLinkSearchQuery('');
+                    }}
+                    className="w-full p-3 text-left rounded-lg border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {item.type}
+                      </span>
+                      <span className="text-xs text-slate-500">{item.id}</span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-slate-700 mt-1">{item.title}</h4>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
     </div>
   );

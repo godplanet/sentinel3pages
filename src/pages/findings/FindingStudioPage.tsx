@@ -424,7 +424,14 @@ export const FindingStudioPage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <FindingFormWidget finding={finding} onUpdate={updateField} />
+                  <FindingFormWidget
+                    finding={finding}
+                    onUpdate={updateField}
+                    onAdvanceWorkflow={() => {
+                      // GÖREV 1: Workflow advanced after QAIP check
+                      saveFinding();
+                    }}
+                  />
                 )}
               </div>
             </div>

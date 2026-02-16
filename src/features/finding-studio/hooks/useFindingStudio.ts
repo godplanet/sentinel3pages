@@ -49,6 +49,22 @@ export interface ComprehensiveFinding {
   // GÖREV 4: Workflow
   rejection_reason?: string; // Rejection reason from reviewer
 
+  // GÖREV 2 (Best-in-Class): Cross-Linking
+  related_items?: Array<{
+    id: string;
+    type: 'Finding' | 'Policy' | 'Action' | 'Risk';
+    title: string;
+  }>;
+
+  // GÖREV 3 (Best-in-Class): Activity Log
+  activity_log?: Array<{
+    id: string;
+    timestamp: Date;
+    action_type: string;
+    actor: { name: string; role: string };
+    details?: any;
+  }>;
+
   [key: string]: any; // Dinamik alanlar için
 }
 

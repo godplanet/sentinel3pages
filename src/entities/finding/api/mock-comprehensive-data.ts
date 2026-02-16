@@ -26,6 +26,13 @@ export const mockComprehensiveFindings: ComprehensiveFinding[] = [
     // GÖREV 3: Evidence Management
     evidence_files: ['kasa_kamera_kaydi_14022026.mp4', 'anahtar_zimmet_defteri.pdf'],
 
+    // GÖREV 2 (Best-in-Class): Cross-Linking
+    related_items: [
+      { id: 'FIND-038', type: 'Finding', title: 'Yetkilendirme Matrisi Güncel Değil' },
+      { id: 'POL-012', type: 'Policy', title: 'Fiziki Güvenlik Politikası' },
+      { id: 'ACT-087', type: 'Action', title: 'Şube Personel Norm Kadro Revizyonu' }
+    ],
+
     // 5C İçerik (Zengin Metin)
     criteria: `
       <p><strong>Bankaların İç Sistemleri Hakkında Yönetmelik (Madde 42):</strong></p>
@@ -104,6 +111,38 @@ export const mockComprehensiveFindings: ComprehensiveFinding[] = [
         role: 'REVIEWER',
         user_name: 'Yönetici Selim',
         status: 'PENDING'
+      }
+    ],
+
+    // GÖREV 3 (Best-in-Class): Activity Log (Denetim İzi)
+    activity_log: [
+      {
+        id: 'log-001',
+        timestamp: new Date(Date.now() - 1000 * 60 * 15),
+        action_type: 'risk_score_changed',
+        actor: { name: 'Ahmet Yılmaz', role: 'Kıdemli Denetçi' },
+        details: { field: 'impact', old_value: 3, new_value: 5 }
+      },
+      {
+        id: 'log-002',
+        timestamp: new Date(Date.now() - 1000 * 60 * 45),
+        action_type: 'evidence_uploaded',
+        actor: { name: 'Zeynep Demir', role: 'Denetçi' },
+        details: { filename: 'kasa_kamera_kaydi_14022026.mp4' }
+      },
+      {
+        id: 'log-003',
+        timestamp: new Date(Date.now() - 1000 * 60 * 120),
+        action_type: 'status_changed',
+        actor: { name: 'Sistem', role: 'Automation' },
+        details: { old_status: 'draft', new_status: 'review' }
+      },
+      {
+        id: 'log-004',
+        timestamp: new Date(Date.now() - 1000 * 60 * 240),
+        action_type: 'finding_created',
+        actor: { name: 'Ahmet Yılmaz', role: 'Kıdemli Denetçi' },
+        details: { title: 'Kasa İşlemlerinde Çift Anahtar Prensibi İhlali' }
       }
     ],
 
