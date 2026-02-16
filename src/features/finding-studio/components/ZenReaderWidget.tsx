@@ -63,18 +63,19 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   const LeftPage = () => (
     <article 
       className={cn(
-        "relative p-12 md:p-16 transition-colors duration-500",
-        // Kitap modu: Sabit yükseklik, scroll, sağ kenar düz (cilt)
-        // Akış modu: Yükseklik serbest (h-auto), tam yuvarlak
+        "relative p-12 md:p-16 transition-all duration-500",
+        // MOD AYRIMI: 
+        // Book: Sabit yükseklik, scroll içeride, sağ köşe düz (cilt), border yok
+        // Flow: Otomatik yükseklik, scroll yok, tam yuvarlak köşe, derin gölge
         layout === 'book' 
-          ? "h-full overflow-y-auto custom-scrollbar rounded-l-2xl border-r-0 border-y border-l border-stone-200/50" 
-          : "h-auto rounded-xl shadow-sm border border-stone-200"
+          ? "h-full overflow-y-auto custom-scrollbar rounded-l-2xl" 
+          : "h-auto rounded-xl shadow-xl border border-stone-100/50 hover:shadow-2xl transition-shadow"
       )}
       style={paperStyle}
     >
       {/* Kitap Modu İçin Orta Gölge (Spine - Sağ Kenar) */}
       {layout === 'book' && (
-        <div className="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-black/10 to-transparent pointer-events-none z-10" />
+        <div className="absolute top-0 right-0 bottom-0 w-16 bg-gradient-to-l from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
       )}
 
       {/* Header */}
@@ -120,18 +121,19 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   const RightPage = () => (
     <aside 
       className={cn(
-        "relative p-10 transition-colors duration-500 flex flex-col",
-        // Kitap modu: Sabit yükseklik, scroll, sol kenar düz (cilt)
-        // Akış modu: Yükseklik serbest (h-auto), mt-8 ile boşluk
+        "relative p-10 transition-all duration-500 flex flex-col",
+        // MOD AYRIMI:
+        // Book: Sabit yükseklik, scroll içeride, sol köşe düz (cilt), border yok
+        // Flow: Otomatik yükseklik, scroll yok, tam yuvarlak köşe, derin gölge
         layout === 'book' 
-          ? "h-full overflow-y-auto custom-scrollbar rounded-r-2xl border-l-0 border-y border-r border-stone-200/50" 
-          : "h-auto rounded-xl mt-8 border border-stone-200"
+          ? "h-full overflow-y-auto custom-scrollbar rounded-r-2xl" 
+          : "h-auto rounded-xl shadow-xl border border-stone-100/50 hover:shadow-2xl transition-shadow mt-8"
       )}
       style={layout === 'book' ? paperStyle : { backgroundColor: '#fff' }}
     >
       {/* Kitap Modu İçin Orta Gölge (Spine - Sol Kenar) */}
       {layout === 'book' && (
-        <div className="absolute top-0 left-0 bottom-0 w-12 bg-gradient-to-r from-black/10 to-transparent pointer-events-none z-10" />
+        <div className="absolute top-0 left-0 bottom-0 w-16 bg-gradient-to-r from-black/10 via-black/5 to-transparent pointer-events-none z-20 mix-blend-multiply" />
       )}
 
       <div className="mb-8 pb-4 border-b border-black/5">
@@ -178,7 +180,8 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
   if (layout === 'book') {
     return (
       // Gap-0 ile sayfaları birleştirdik
-      <div className="flex w-full h-[calc(100vh-140px)] shadow-2xl rounded-2xl overflow-hidden gap-0">
+      // shadow-[...] ile çok derin, yumuşak "levitation" gölgesi verildi
+      <div className="flex w-full h-[calc(100vh-140px)] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-2xl overflow-hidden gap-0 border border-stone-200/50 my-4 transform transition-transform hover:-translate-y-1 duration-500">
         <div className="w-1/2 h-full relative z-10">
            <LeftPage />
         </div>
@@ -191,7 +194,7 @@ export const ZenReaderWidget: React.FC<ZenReaderWidgetProps> = ({
 
   // Flow Layout (Sonsuz Akış)
   return (
-    <div className="max-w-3xl mx-auto pb-20 space-y-8">
+    <div className="max-w-3xl mx-auto pb-20 space-y-12">
        <LeftPage />
        <RightPage />
     </div>
