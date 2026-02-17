@@ -37,6 +37,10 @@ import { MOCK_REPORT_ARCHIVE } from '@/shared/data/mock-reports';
 import { WarmthSlider } from '@/widgets/ReportStudio';
 import { exportReportToPDF } from '@/features/report-editor/utils/pdf-export';
 
+// SENTINEL v4.0 - Ultimate Grading Engine
+import { calculateAuditScore, FindingInput } from '@/features/grading-engine/calculator';
+import { DEFAULT_CONSTITUTION } from '@/features/grading-engine/types';
+
 type ViewMode = 'edit' | 'view';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -93,11 +97,25 @@ export default function ReportStudioPage() {
             if (dbReport.blocks) {
               setBlocks(dbReport.blocks);
             }
-            // Mock Grade (will be replaced with real API later)
+
+            // SENTINEL v4.0: Calculate grade using Ultimate Grading Engine
+            // Rule: In production, fetch real findings from engagement
+            // For now, use mock findings for demonstration
+            const mockFindings: FindingInput[] = [
+              { id: '1', severity: 'critical', title: 'Kritik Güvenlik Açığı', is_repeat: false },
+              { id: '2', severity: 'high', title: 'Yüksek Risk Kontrol Zafiyeti', is_repeat: true },
+              { id: '3', severity: 'high', title: 'İkinci Yüksek Risk', is_repeat: false },
+              { id: '4', severity: 'medium', title: 'Orta Seviye Bulgu', is_repeat: false },
+              { id: '5', severity: 'medium', title: 'İkinci Orta Bulgu', is_repeat: false },
+              { id: '6', severity: 'low', title: 'Düşük Önem', is_repeat: false },
+            ];
+
+            const gradingResult = calculateAuditScore(mockFindings, DEFAULT_CONSTITUTION);
+
             setAuditGrade({
-              letter: 'B+',
-              score: 85,
-              label: 'İyi Performans',
+              letter: gradingResult.finalGrade,
+              score: gradingResult.finalScore,
+              label: gradingResult.assuranceLabel,
             });
           } else {
             // Fallback: Mock data
@@ -106,11 +124,18 @@ export default function ReportStudioPage() {
               setReport(mockReport);
               setTitle(mockReport.title);
               setContent(mockReport.content || '');
-              // Mock Grade
+
+              // SENTINEL v4.0: Calculate grade
+              const mockFindings: FindingInput[] = [
+                { id: '1', severity: 'critical', title: 'Kritik Güvenlik Açığı' },
+                { id: '2', severity: 'high', title: 'Yüksek Risk' },
+              ];
+              const gradingResult = calculateAuditScore(mockFindings, DEFAULT_CONSTITUTION);
+
               setAuditGrade({
-                letter: 'B+',
-                score: 85,
-                label: 'İyi Performans',
+                letter: gradingResult.finalGrade,
+                score: gradingResult.finalScore,
+                label: gradingResult.assuranceLabel,
               });
             }
           }

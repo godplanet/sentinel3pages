@@ -4,7 +4,10 @@ import type {
   DeductionStep,
   CappingResult,
   GradingResult,
+  GradingConfig,
+  FindingSeverity,
 } from './types';
+import { DEFAULT_CONSTITUTION } from './types';
 
 const DEFAULT_GRADING_RULES: GradingRules = {
   deductions: { critical: 25, high: 10, medium: 3, low: 1 },
@@ -230,3 +233,268 @@ export const calculateDynamicRisk = (risk: StrategicRisk, selectedVelocity: Velo
 
   return { ...risk, baseScore, dynamicScore, speedFactor, category, colorClass };
 };
+
+// ============================================================================
+// SENTINEL v4.0 - ULTIMATE GRADING ENGINE
+// Constraint-Based Deduction Model (Kısıt Bazlı Kesinti Modeli)
+// Rule Source: Sentinel_Infografik.html & User Requirements
+// ============================================================================
+
+/**
+ * Finding Input Interface
+ * Represents a single finding with all attributes needed for grading calculation
+ */
+export interface FindingInput {
+  id: string;
+  severity: FindingSeverity; // 'critical' | 'high' | 'medium' | 'low'
+  title: string;
+
+  // Special condition flags
+  is_repeat?: boolean; // Is this a recurring finding?
+  tags?: string[]; // Tags for auto-fail detection
+
+  // Age and SLA tracking
+  created_at?: Date | string; // When was the finding created?
+  sla_due_date?: Date | string; // When is the response due?
+  months_over_sla?: number; // Manual override: how many months overdue?
+}
+
+/**
+ * ULTIMATE GRADING ENGINE - MAIN CALCULATION FUNCTION
+ *
+ * This is a pure function that calculates audit grade based on findings.
+ * Rule: Start at 100, deduct points for each finding, apply multipliers, then enforce caps.
+ *
+ * @param findings - Array of findings with severity and attributes
+ * @param config - Grading configuration (defaults to DEFAULT_CONSTITUTION)
+ * @returns Complete grading result with score, grade, and waterfall breakdown
+ */
+export function calculateAuditScore(
+  findings: FindingInput[],
+  config: GradingConfig = DEFAULT_CONSTITUTION
+): GradingResult {
+  const { base_score, deductions, multipliers, logic_gates, grade_scale } = config;
+
+  // =====================================================
+  // STEP 1: INITIALIZE
+  // =====================================================
+  let currentScore = base_score;
+  const waterfall: DeductionStep[] = [];
+  const counts: FindingSeverityCounts = {
+    count_critical: 0,
+    count_high: 0,
+    count_medium: 0,
+    count_low: 0,
+    total: findings.length,
+  };
+
+  // Rule: Check for auto-fail tags FIRST (immediate F grade)
+  const hasAutoFailTag = findings.some(f =>
+    f.tags?.some(tag => logic_gates.auto_fail_tags.includes(tag.toLowerCase()))
+  );
+
+  if (hasAutoFailTag) {
+    // Rule: Auto-fail - bypass all calculations
+    const autoFailReason = findings
+      .filter(f => f.tags?.some(tag => logic_gates.auto_fail_tags.includes(tag.toLowerCase())))
+      .map(f => f.title)
+      .join(', ');
+
+    return {
+      baseScore: base_score,
+      totalDeductions: base_score, // All points deducted
+      scoreBeforeCapping: 0,
+      finalScore: 0,
+      finalGrade: 'F',
+      assuranceOpinion: 'GUVENCE_YOK',
+      assuranceLabel: 'Güvence Yok',
+      color: '#ef4444',
+      capping: {
+        triggered: true,
+        reason: `Otomatik Başarısızlık: ${autoFailReason}`,
+        cappedFrom: base_score,
+        cappedTo: 0,
+        cappedGrade: 'F',
+      },
+      waterfall: [],
+      counts,
+    };
+  }
+
+  // =====================================================
+  // STEP 2: CALCULATE DEDUCTIONS PER FINDING
+  // =====================================================
+  const deductionDetails: Array<{
+    finding: FindingInput;
+    baseDeduction: number;
+    multiplier: number;
+    finalDeduction: number;
+  }> = [];
+
+  for (const finding of findings) {
+    // Count by severity
+    if (finding.severity === 'critical') counts.count_critical++;
+    else if (finding.severity === 'high') counts.count_high++;
+    else if (finding.severity === 'medium') counts.count_medium++;
+    else if (finding.severity === 'low') counts.count_low++;
+
+    // Rule: Get base deduction for this severity
+    let baseDeduction = deductions[finding.severity];
+
+    // Rule: Apply repeat finding multiplier if applicable
+    let multiplier = 1.0;
+    if (finding.is_repeat) {
+      multiplier *= multipliers.repeat_finding;
+    }
+
+    // Rule: Apply SLA breach penalty (per month)
+    let monthsOverSLA = finding.months_over_sla || 0;
+
+    // Auto-calculate months over SLA if dates provided
+    if (!monthsOverSLA && finding.created_at && finding.sla_due_date) {
+      const created = new Date(finding.created_at);
+      const slaDate = new Date(finding.sla_due_date);
+      const now = new Date();
+
+      if (now > slaDate) {
+        const monthsDiff = Math.floor(
+          (now.getTime() - slaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        );
+        monthsOverSLA = Math.max(0, monthsDiff);
+      }
+    }
+
+    if (monthsOverSLA > 0) {
+      // Rule: Each month over SLA adds X% penalty
+      multiplier *= (1 + (monthsOverSLA * multipliers.sla_breach_monthly));
+    }
+
+    // Calculate final deduction for this finding
+    const finalDeduction = baseDeduction * multiplier;
+
+    deductionDetails.push({
+      finding,
+      baseDeduction,
+      multiplier,
+      finalDeduction,
+    });
+
+    // Deduct from score
+    currentScore -= finalDeduction;
+  }
+
+  // Rule: Score cannot go below 0
+  currentScore = Math.max(0, currentScore);
+
+  // =====================================================
+  // STEP 3: BUILD WATERFALL (Group by severity)
+  // =====================================================
+  const severityGroups = {
+    critical: deductionDetails.filter(d => d.finding.severity === 'critical'),
+    high: deductionDetails.filter(d => d.finding.severity === 'high'),
+    medium: deductionDetails.filter(d => d.finding.severity === 'medium'),
+    low: deductionDetails.filter(d => d.finding.severity === 'low'),
+  };
+
+  let runningScore = base_score;
+
+  for (const [severity, details] of Object.entries(severityGroups)) {
+    if (details.length === 0) continue;
+
+    const totalDeduction = details.reduce((sum, d) => sum + d.finalDeduction, 0);
+    const avgPointsEach = totalDeduction / details.length;
+
+    runningScore = Math.max(0, runningScore - totalDeduction);
+
+    waterfall.push({
+      severity: severity.charAt(0).toUpperCase() + severity.slice(1),
+      count: details.length,
+      pointsEach: Math.round(avgPointsEach * 100) / 100,
+      totalDeduction: Math.round(totalDeduction * 100) / 100,
+      runningScore: Math.round(runningScore * 100) / 100,
+      label: `${details.length} ${severity} bulgu`,
+    });
+  }
+
+  const totalDeductions = base_score - currentScore;
+  const scoreBeforeCapping = currentScore;
+
+  // =====================================================
+  // STEP 4: APPLY CAPPING LOGIC
+  // =====================================================
+  let cappingResult: CappingResult = {
+    triggered: false,
+    reason: null,
+    cappedFrom: null,
+    cappedTo: null,
+  };
+
+  // Rule: Check each capping rule
+  for (const rule of logic_gates.capping) {
+    const countKey = `count_${rule.severity}` as keyof FindingSeverityCounts;
+    const actualCount = counts[countKey];
+
+    if (actualCount >= rule.count_threshold) {
+      // Rule: This capping rule is triggered
+      // Find the max score allowed for this grade
+      const gradeEntry = grade_scale.find(g => g.grade === rule.max_grade);
+
+      if (gradeEntry && currentScore > gradeEntry.min_score) {
+        // Cap the score to this grade's minimum
+        cappingResult = {
+          triggered: true,
+          reason: `${actualCount} ${rule.severity} bulgu mevcut - Maksimum not ${rule.max_grade}`,
+          cappedFrom: currentScore,
+          cappedTo: gradeEntry.min_score,
+          cappedGrade: rule.max_grade,
+        };
+
+        currentScore = gradeEntry.min_score;
+        break; // Apply first matching cap only
+      }
+    }
+  }
+
+  const finalScore = currentScore;
+
+  // =====================================================
+  // STEP 5: RESOLVE GRADE
+  // =====================================================
+  const sortedScale = [...grade_scale].sort((a, b) => b.min_score - a.min_score);
+  let gradeEntry = sortedScale.find(g => finalScore >= g.min_score);
+
+  if (!gradeEntry) {
+    gradeEntry = sortedScale[sortedScale.length - 1]; // Fallback to lowest grade
+  }
+
+  // Map to assurance opinion
+  const opinionMap: Record<string, string> = {
+    'A+': 'TAM_GUVENCE',
+    'A': 'TAM_GUVENCE',
+    'B+': 'MAKUL_GUVENCE',
+    'B': 'MAKUL_GUVENCE',
+    'C+': 'SINIRLI_GUVENCE',
+    'C': 'SINIRLI_GUVENCE',
+    'D': 'SINIRLI_GUVENCE',
+    'F': 'GUVENCE_YOK',
+  };
+
+  const assuranceOpinion = opinionMap[gradeEntry.grade] || 'SINIRLI_GUVENCE';
+
+  // =====================================================
+  // STEP 6: RETURN RESULT
+  // =====================================================
+  return {
+    baseScore: base_score,
+    totalDeductions: Math.round(totalDeductions * 100) / 100,
+    scoreBeforeCapping: Math.round(scoreBeforeCapping * 100) / 100,
+    finalScore: Math.round(finalScore * 100) / 100,
+    finalGrade: gradeEntry.grade,
+    assuranceOpinion,
+    assuranceLabel: gradeEntry.label,
+    color: gradeEntry.color,
+    capping: cappingResult,
+    waterfall,
+    counts,
+  };
+}

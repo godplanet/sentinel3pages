@@ -8,11 +8,18 @@ interface Props {
   finalScore: number;
 }
 
+// Rule: Severity colors matching SENTINEL v4.0 taxonomy
 const SEVERITY_COLORS: Record<string, string> = {
+  Critical: '#800000', // Maroon/Bordo
   Kritik: '#800000',
+  High: '#dc2626', // Red
   Yuksek: '#dc2626',
+  Yüksek: '#dc2626',
+  Medium: '#f97316', // Orange
   Orta: '#f97316',
+  Low: '#eab308', // Yellow
   Dusuk: '#eab308',
+  Düşük: '#eab308',
 };
 
 export function WaterfallChart({ baseScore, waterfall, capping, finalScore }: Props) {
