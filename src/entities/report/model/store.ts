@@ -1,6 +1,16 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, M6ReportStatus, M6ReviewNote, ReportSection, ExecutiveSummary } from './types';
 import { reportApi } from '../api';
+import {
+  fetchReportData,
+  updateReportMetaDb,
+  upsertBlockDb,
+  updateBlockOrdersDb,
+  deleteBlockDb,
+  publishReportApi,
+} from '../api/report-api';
+import { generateSHA256Hash } from '@/shared/lib/crypto';
 
 interface ReportState {
   reports: Report[];
@@ -239,7 +249,10 @@ export const useReportStore = create<ReportState>((set, get) => ({
 
 interface ActiveReportState {
   activeReport: M6Report | null;
+  isLoading: boolean;
+  error: string | null;
   smartVariables: Record<string, string | number>;
+  loadReport: (reportId: string) => Promise<void>;
   setActiveReport: (report: M6Report | null) => void;
   updateReportMeta: (data: Partial<M6Report>) => void;
   updateExecutiveSummary: (data: Partial<ExecutiveSummary>) => void;
@@ -264,25 +277,14 @@ const mapSection = (
 ): ReportSection[] =>
   sections.map((s) => (s.id === sectionId ? { ...s, blocks: fn(s.blocks) } : s));
 
-async function computeSha256(obj: unknown): Promise<string> {
-  const json = JSON.stringify(obj);
-  const encoded = new TextEncoder().encode(json);
-  try {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  } catch {
-    let h = 0;
-    for (let i = 0; i < json.length; i++) {
-      h = (Math.imul(31, h) + json.charCodeAt(i)) | 0;
-    }
-    return Math.abs(h).toString(16).padStart(8, '0').repeat(8).slice(0, 64);
-  }
+function isIronVaultError(message: string): boolean {
+  return message.includes('HUKUKİ İHLAL') || message.includes('Iron Vault');
 }
 
 export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
   activeReport: null,
+  isLoading: false,
+  error: null,
 
   smartVariables: {
     npl_ratio: '%3.42',
@@ -290,45 +292,70 @@ export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
     total_risk_exposure: '₺45.2M',
   },
 
+  loadReport: async (reportId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const report = await fetchReportData(reportId);
+      set({ activeReport: report, isLoading: false });
+    } catch (err: any) {
+      set({ isLoading: false, error: err?.message ?? 'Rapor yüklenemedi.' });
+      toast.error('Rapor yüklenirken bir hata oluştu.');
+    }
+  },
+
   setActiveReport: (report) => set({ activeReport: report }),
 
-  updateExecutiveSummary: (data) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          executiveSummary: { ...state.activeReport.executiveSummary, ...data },
-          updatedAt: new Date().toISOString(),
-        },
-      };
-    }),
+  updateExecutiveSummary: (data) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = { ...activeReport };
+    const optimistic: M6Report = {
+      ...activeReport,
+      executiveSummary: { ...activeReport.executiveSummary, ...data },
+      updatedAt: new Date().toISOString(),
+    };
+    set({ activeReport: optimistic });
+    updateReportMetaDb(activeReport.id, {
+      executive_summary: optimistic.executiveSummary,
+    }).catch((err: any) => {
+      set({ activeReport: prev });
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Yönetici özeti kaydedilemedi.');
+    });
+  },
 
-  changeReportStatus: (status) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      const now = new Date().toISOString();
-      return {
-        activeReport: {
-          ...state.activeReport,
-          status,
-          updatedAt: now,
-          publishedAt: status === 'published' ? now : state.activeReport.publishedAt,
-        },
-      };
-    }),
+  changeReportStatus: (status) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = { ...activeReport };
+    const now = new Date().toISOString();
+    const optimistic: M6Report = {
+      ...activeReport,
+      status,
+      updatedAt: now,
+      publishedAt: status === 'published' ? now : activeReport.publishedAt,
+    };
+    set({ activeReport: optimistic });
+    updateReportMetaDb(activeReport.id, { status }).catch((err: any) => {
+      set({ activeReport: prev });
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Durum güncellenemedi.');
+    });
+  },
 
-  updateReportMeta: (data) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          ...data,
-          updatedAt: new Date().toISOString(),
-        },
-      };
-    }),
+  updateReportMeta: (data) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = { ...activeReport };
+    const optimistic: M6Report = {
+      ...activeReport,
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    set({ activeReport: optimistic });
+    updateReportMetaDb(activeReport.id, data as Record<string, any>).catch((err: any) => {
+      set({ activeReport: prev });
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Meta bilgisi kaydedilemedi.');
+    });
+  },
 
   updateSmartVariable: (id, value) =>
     set((state) => ({
@@ -369,74 +396,117 @@ export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
       };
     }),
 
-  addBlock: (sectionId, block) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
-            reindexBlocks([...blocks, block]),
-          ),
-        },
-      };
-    }),
+  addBlock: (sectionId, block) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    set({
+      activeReport: {
+        ...activeReport,
+        sections: mapSection(activeReport.sections, sectionId, (blocks) =>
+          reindexBlocks([...blocks, block]),
+        ),
+      },
+    });
+    upsertBlockDb(sectionId, block).catch((err: any) => {
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Blok eklenemedi.');
+      set({ activeReport });
+    });
+  },
 
-  updateBlock: (sectionId, blockId, updates) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
-            blocks.map((b) =>
-              b.id === blockId ? ({ ...b, ...updates } as M6ReportBlock) : b,
-            ),
-          ),
-        },
-      };
-    }),
+  updateBlock: (sectionId, blockId, updates) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = activeReport;
+    const optimistic: M6Report = {
+      ...activeReport,
+      sections: mapSection(activeReport.sections, sectionId, (blocks) =>
+        blocks.map((b) => (b.id === blockId ? ({ ...b, ...updates } as M6ReportBlock) : b)),
+      ),
+    };
+    set({ activeReport: optimistic });
+    const updatedBlock = optimistic.sections
+      .find((s) => s.id === sectionId)
+      ?.blocks.find((b) => b.id === blockId);
+    if (updatedBlock) {
+      upsertBlockDb(sectionId, updatedBlock).catch((err: any) => {
+        set({ activeReport: prev });
+        toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Blok güncellenemedi.');
+      });
+    }
+  },
 
-  removeBlock: (sectionId, blockId) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
-            reindexBlocks(blocks.filter((b) => b.id !== blockId)),
-          ),
-        },
-      };
-    }),
+  removeBlock: (sectionId, blockId) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = activeReport;
+    set({
+      activeReport: {
+        ...activeReport,
+        sections: mapSection(activeReport.sections, sectionId, (blocks) =>
+          reindexBlocks(blocks.filter((b) => b.id !== blockId)),
+        ),
+      },
+    });
+    deleteBlockDb(blockId).catch((err: any) => {
+      set({ activeReport: prev });
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Blok silinemedi.');
+    });
+  },
 
-  reorderBlocks: (sectionId, startIndex, endIndex) =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          sections: mapSection(state.activeReport.sections, sectionId, (blocks) => {
-            const result = [...blocks];
-            const [moved] = result.splice(startIndex, 1);
-            result.splice(endIndex, 0, moved);
-            return reindexBlocks(result);
-          }),
-        },
-      };
-    }),
+  reorderBlocks: (sectionId, startIndex, endIndex) => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const prev = activeReport;
+    const optimistic: M6Report = {
+      ...activeReport,
+      sections: mapSection(activeReport.sections, sectionId, (blocks) => {
+        const result = [...blocks];
+        const [moved] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, moved);
+        return reindexBlocks(result);
+      }),
+    };
+    set({ activeReport: optimistic });
+    const reindexed = optimistic.sections
+      .find((s) => s.id === sectionId)
+      ?.blocks.map((b) => ({ id: b.id, order_index: b.orderIndex })) ?? [];
+    updateBlockOrdersDb(reindexed).catch((err: any) => {
+      set({ activeReport: prev });
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Sıralama kaydedilemedi.');
+    });
+  },
 
   publishReport: async () => {
     const { activeReport } = get();
     if (!activeReport) return;
+    const prev = activeReport;
     const now = new Date().toISOString();
-    const snapshot = { ...activeReport, status: 'published', publishedAt: now, updatedAt: now };
-    const hashSeal = await computeSha256(snapshot);
-    set({
-      activeReport: {
-        ...snapshot,
-        hashSeal,
-      },
-    });
+    const blocksSnapshotMap: Record<string, any> = {};
+    for (const section of activeReport.sections) {
+      for (const block of section.blocks) {
+        blocksSnapshotMap[block.id] = block.content;
+      }
+    }
+    const hashSeal = await generateSHA256Hash(
+      JSON.stringify({ id: activeReport.id, sections: activeReport.sections, publishedAt: now }),
+    );
+    const optimistic: M6Report = {
+      ...activeReport,
+      status: 'published',
+      publishedAt: now,
+      updatedAt: now,
+      hashSeal,
+    };
+    set({ activeReport: optimistic });
+    try {
+      await publishReportApi(activeReport.id, hashSeal, blocksSnapshotMap);
+    } catch (err: any) {
+      set({ activeReport: prev });
+      toast.error(
+        isIronVaultError(err?.message ?? '')
+          ? err.message
+          : 'Rapor yayınlanamadı. Lütfen tekrar deneyin.',
+      );
+    }
   },
 }));

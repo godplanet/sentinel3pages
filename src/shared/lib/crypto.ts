@@ -14,6 +14,13 @@ export function canonicalStringify(obj: unknown): string {
   return JSON.stringify(canonicalize(obj));
 }
 
+export async function generateSHA256Hash(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function generateRecordHash(data: Record<string, unknown>): Promise<string> {
   const canonical = canonicalStringify(data);
   const encoded = new TextEncoder().encode(canonical);

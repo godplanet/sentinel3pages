@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Lock, BookOpen, Layout, Monitor, MessageSquare, Plus, Sun, Sunrise, X } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Lock, BookOpen, Layout, Monitor, MessageSquare, Plus, Sun, Sunrise, X, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
-import { mockReport } from '@/entities/report/api/mock-data';
+import { fetchFirstDraftReport } from '@/entities/report/api/report-api';
 import { useFindingStore } from '@/entities/finding/model/store';
 import { fetchFindingsByEngagement } from '@/entities/finding/api/supabase-api';
 import type { ComprehensiveFinding } from '@/entities/finding/model/types';
@@ -165,15 +166,43 @@ function WarmthControl({ warmth, onChange }: { warmth: number; onChange: (v: num
 }
 
 export default function ReportEditorPage() {
-  const { activeReport, setActiveReport } = useActiveReportStore();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { activeReport, isLoading, error, loadReport, setActiveReport } = useActiveReportStore();
   const setFindings = useFindingStore((s) => s.setFindings);
   const [activeTab, setActiveTab] = useState<TabId>('executive');
   const [rightPanel, setRightPanel] = useState<'blocks' | 'notes'>('blocks');
   const [warmth, setWarmth] = useState(2);
 
   useEffect(() => {
-    setActiveReport(mockReport);
-    const engagementId = mockReport.engagementId;
+    let cancelled = false;
+    async function init() {
+      let targetId = id;
+      if (!targetId) {
+        const firstId = await fetchFirstDraftReport().catch(() => null);
+        if (firstId && !cancelled) {
+          navigate(`/reporting/zen-editor/${firstId}`, { replace: true });
+          return;
+        }
+      }
+      if (targetId && !cancelled) {
+        await loadReport(targetId);
+      }
+    }
+    init();
+    return () => {
+      cancelled = true;
+      setActiveReport(null);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!activeReport) return;
+    const engagementId = activeReport.engagementId;
+    if (!engagementId) {
+      setFindings(FALLBACK_FINDINGS);
+      return;
+    }
     (async () => {
       try {
         const data = await fetchFindingsByEngagement(engagementId);
@@ -182,10 +211,27 @@ export default function ReportEditorPage() {
         setFindings(FALLBACK_FINDINGS);
       }
     })();
-    return () => {
-      setActiveReport(null);
-    };
-  }, [setActiveReport, setFindings]);
+  }, [activeReport?.id, setFindings]);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin" />
+        <p className="text-sm font-sans text-slate-500">Rapor yükleniyor...</p>
+      </div>
+    );
+  }
+
+  if (error || !activeReport) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <FileText size={40} className="text-slate-300" />
+        <p className="text-sm font-sans font-semibold text-slate-600">
+          {error ?? 'Rapor bulunamadı.'}
+        </p>
+      </div>
+    );
+  }
 
   const isLocked =
     activeReport?.status === 'published' || activeReport?.status === 'archived';
