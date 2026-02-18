@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ShieldCheck, ShieldAlert, ShieldX, Download } from 'lucide-react';
 import type { M6Report } from '@/entities/report';
 
 function warmthToBg(w: number): string {
@@ -235,9 +235,18 @@ export function BoardBriefingCard({ report, warmth = 2 }: Props) {
             <p className="text-xs text-slate-400 font-sans">
               Bu belge Sentinel v3.0 tarafından oluşturulmuştur. GIAS 2024 · BDDK Uyumlu.
             </p>
-            <p className="text-xs text-slate-400 font-sans">
-              Rapor ID: {report.id}
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-xs text-slate-400 font-sans">
+                Rapor ID: {report.id}
+              </p>
+              <button
+                onClick={() => window.print()}
+                className="no-print inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans font-medium text-slate-600 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+              >
+                <Download size={13} />
+                PDF İndir
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -230,7 +230,7 @@ export function DynamicFindingsBlock({
   }
 
   return (
-    <div className="relative">
+    <div className="relative report-finding-block print:break-inside-avoid">
       {!readOnly && (
         <div className="flex items-center justify-between mb-4 p-3 bg-blue-50/50 border border-blue-200 rounded-lg">
           <div className="flex items-center gap-3">
@@ -463,7 +463,7 @@ export function LiveFindingRefBlock({ block }: { block: FindingRefBlock }) {
 
   return (
     <div
-      className={`${borderClass} border border-slate-200 rounded-r-xl bg-white shadow-sm mb-6 overflow-hidden`}
+      className={`${borderClass} report-finding-block print:break-inside-avoid border border-slate-200 rounded-r-xl bg-white shadow-sm mb-6 overflow-hidden`}
     >
       {/* ── HEADER ──────────────────────────────────────────────── */}
       <div className="px-5 pt-5 pb-4">

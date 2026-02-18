@@ -16,7 +16,7 @@ export function SectionNavigator() {
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white border-r border-slate-200 overflow-y-auto flex flex-col">
+    <aside className="no-print report-section-navigator w-64 flex-shrink-0 bg-white border-r border-slate-200 overflow-y-auto flex flex-col">
       <div className="px-4 py-3 border-b border-slate-100">
         <div className="flex items-center gap-2 text-xs font-sans font-semibold uppercase tracking-wider text-slate-400">
           <BookOpen size={13} />

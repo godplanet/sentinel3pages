@@ -618,5 +618,52 @@
 }
 
 /* ========================================
+   MODULE 6 REPORT EDITOR — PRINT RULES
+   ======================================== */
+
+@media print {
+  /* Hide all editor chrome (toolbar, nav, panels, action bar) */
+  .report-editor-toolbar,
+  .report-section-navigator,
+  .report-workflow-bar,
+  .report-block-palette,
+  .report-review-sidebar,
+  .report-ai-copilot,
+  .report-warmth-slider {
+    display: none !important;
+  }
+
+  /* Keep only the zen canvas and board briefing content */
+  .report-zen-canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Finding cards and stats blocks: never split across pages */
+  .report-finding-block,
+  .report-stats-block,
+  .report-chart-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Section headings: keep with following content */
+  .report-block-heading {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* New section starts on a new page */
+  .report-section-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+}
+
+/* ========================================
    END OF PRINT STYLES
    ======================================== */

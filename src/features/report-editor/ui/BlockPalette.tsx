@@ -201,7 +201,7 @@ export function BlockPalette() {
   };
 
   return (
-    <aside className="w-72 flex-shrink-0 bg-white border-l border-slate-200 overflow-y-auto flex flex-col">
+    <aside className="no-print report-block-palette w-72 flex-shrink-0 bg-white border-l border-slate-200 overflow-y-auto flex flex-col">
       <div className="p-4 pb-3 border-b border-slate-100">
         <h3 className="text-xs font-sans font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
           Blok Paleti

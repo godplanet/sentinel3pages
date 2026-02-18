@@ -67,7 +67,7 @@ export function ReviewNotesSidebar() {
   const resolvedNotes = notes.filter((n) => n.status === 'resolved');
 
   return (
-    <aside className="w-72 flex-shrink-0 border-l border-slate-200 bg-slate-50 flex flex-col h-full overflow-hidden">
+    <aside className="no-print report-review-sidebar w-72 flex-shrink-0 border-l border-slate-200 bg-slate-50 flex flex-col h-full overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare size={14} className="text-amber-500" />

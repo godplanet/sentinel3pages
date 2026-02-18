@@ -46,7 +46,7 @@ export function LiquidGlassToolbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <header className="no-print report-editor-toolbar sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200 shadow-sm">
       <div className="flex items-center justify-between h-14 px-4 gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -91,7 +91,10 @@ export function LiquidGlassToolbar() {
             <span className="hidden md:inline">AI ile Özetle</span>
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          >
             <Download size={15} />
             <span className="hidden md:inline">PDF İndir</span>
           </button>
