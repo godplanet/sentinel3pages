@@ -197,7 +197,41 @@ export interface UpdateBlockData {
 
 // ─── MODULE 6: Polymorphic Block Architecture ───────────────────────────────
 
-export type M6ReportStatus = 'draft' | 'in_review' | 'published' | 'archived';
+export type M6ReportStatus = 'draft' | 'in_review' | 'cae_review' | 'published' | 'archived';
+
+export interface ExecutiveSummaryFindingCounts {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  observation: number;
+}
+
+export interface ExecutiveSummarySections {
+  auditOpinion: string;
+  criticalRisks: string;
+  strategicRecommendations: string;
+  managementAction: string;
+}
+
+export interface ExecutiveSummary {
+  score: number;
+  grade: string;
+  assuranceLevel: string;
+  trend: number;
+  previousGrade: string;
+  findingCounts: ExecutiveSummaryFindingCounts;
+  briefingNote: string;
+  sections: ExecutiveSummarySections;
+}
+
+export interface ReportWorkflow {
+  reviewerId?: string;
+  comments?: string;
+  reviewedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+}
 
 export interface ReportTheme {
   paperStyle: 'zen_paper' | 'pure_white';
@@ -257,6 +291,8 @@ export interface M6Report {
   status: M6ReportStatus;
   themeConfig: ReportTheme;
   sections: ReportSection[];
+  executiveSummary: ExecutiveSummary;
+  workflow: ReportWorkflow;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;

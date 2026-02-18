@@ -228,6 +228,23 @@ export const mockReport: M6Report = {
   title: 'İstanbul Merkez Şube — 2026 Q1 Denetim Raporu',
   status: 'draft',
   themeConfig: { paperStyle: 'zen_paper', typography: 'merriweather_inter' },
+  executiveSummary: {
+    score: 72.4,
+    grade: 'B',
+    assuranceLevel: 'Kısmi Güvence',
+    trend: -5.2,
+    previousGrade: 'B+',
+    findingCounts: { critical: 1, high: 2, medium: 4, low: 3, observation: 2 },
+    briefingNote:
+      'Kredi kontrol süreçlerinde tespit edilen kritik bulgu nedeniyle dönem notu düşmüştür. Kredi Riski ve KYC süreçlerinde acil iyileştirme aksiyonu gerekmektedir. Banka yönetimi ile 15 Şubat 2026 tarihinde gerçekleştirilen toplantıda eylem planları mutabakata varılmıştır.',
+    sections: {
+      auditOpinion: '<p>Denetim ekibi, İstanbul Merkez Şubesi\'nin 2026 yılı birinci çeyreğine ait iç kontrol sistemini değerlendirmiş ve <strong>kısmi güvence</strong> görüşüne ulaşmıştır. Tespit edilen 1 kritik ve 2 yüksek öncelikli bulgu, operasyonel risk alanında yapısal zafiyetlerin varlığına işaret etmektedir.</p>',
+      criticalRisks: '<p>Kredi limiti onay kontrollerindeki yetki matrisi ihlalleri ve müşteri kimlik doğrulama (KYC) eksiklikleri dönemin en öncelikli risk konularını oluşturmaktadır. BDDK düzenleyici çerçevesi kapsamında acil iyileştirme aksiyonlarının hayata geçirilmesi zorunludur.</p>',
+      strategicRecommendations: '<ol><li>Kredi onay yetki matrisinin 30 gün içinde güncellenmesi.</li><li>KYC doküman yenileme kampanyasının Mart 2026\'ya kadar tamamlanması.</li><li>İç kontrol faaliyetlerinin aylık izleme döngüsüne dahil edilmesi.</li></ol>',
+      managementAction: '<p>Şube yönetimi tespit edilen bulgulara ilişkin eylem planlarını 20 Şubat 2026 tarihine kadar DenetimOS\'a iletmeyi taahhüt etmiştir. Müzakere süreci kapanmış, takip mekanizması aktive edilmiştir.</p>',
+    },
+  },
+  workflow: {},
   createdAt: '2026-02-10T09:00:00Z',
   updatedAt: '2026-02-15T14:30:00Z',
   sections: [

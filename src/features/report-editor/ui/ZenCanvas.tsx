@@ -57,8 +57,13 @@ function BlockRenderer({ block }: { block: M6ReportBlock }) {
   }
 }
 
-export function ZenCanvas() {
+interface ZenCanvasProps {
+  readOnly?: boolean;
+}
+
+export function ZenCanvas({ readOnly = false }: ZenCanvasProps) {
   const { activeReport } = useActiveReportStore();
+  void readOnly;
 
   if (!activeReport) {
     return (

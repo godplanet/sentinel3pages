@@ -6,10 +6,11 @@ import type { M6ReportStatus, FindingRefBlock } from '@/entities/report';
 import { useFindingStore } from '@/entities/finding/model/store';
 
 const STATUS_CONFIG: Record<M6ReportStatus, { label: string; className: string }> = {
-  draft:      { label: 'Taslak',     className: 'bg-slate-100 text-slate-600 border-slate-200' },
-  in_review:  { label: 'İncelemede', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  published:  { label: 'Yayında',    className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  archived:   { label: 'Arşivlendi', className: 'bg-slate-50 text-slate-400 border-slate-200' },
+  draft:      { label: 'Taslak',         className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  in_review:  { label: 'İncelemede',     className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  cae_review: { label: 'CAE İncelemesi', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  published:  { label: 'Yayında',        className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  archived:   { label: 'Arşivlendi',     className: 'bg-slate-50 text-slate-400 border-slate-200' },
 };
 
 const SIMULATION_STATES = [

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, ReportSection } from './types';
+import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, M6ReportStatus, ReportSection, ExecutiveSummary } from './types';
 import { reportApi } from '../api';
 
 interface ReportState {
@@ -241,6 +241,8 @@ interface ActiveReportState {
   activeReport: M6Report | null;
   setActiveReport: (report: M6Report | null) => void;
   updateReportMeta: (data: Partial<M6Report>) => void;
+  updateExecutiveSummary: (data: Partial<ExecutiveSummary>) => void;
+  changeReportStatus: (status: M6ReportStatus) => void;
   addBlock: (sectionId: string, block: M6ReportBlock) => void;
   updateBlock: (sectionId: string, blockId: string, updates: Partial<M6ReportBlock>) => void;
   removeBlock: (sectionId: string, blockId: string) => void;
@@ -262,6 +264,32 @@ export const useActiveReportStore = create<ActiveReportState>((set) => ({
   activeReport: null,
 
   setActiveReport: (report) => set({ activeReport: report }),
+
+  updateExecutiveSummary: (data) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          executiveSummary: { ...state.activeReport.executiveSummary, ...data },
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  changeReportStatus: (status) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      const now = new Date().toISOString();
+      return {
+        activeReport: {
+          ...state.activeReport,
+          status,
+          updatedAt: now,
+          publishedAt: status === 'published' ? now : state.activeReport.publishedAt,
+        },
+      };
+    }),
 
   updateReportMeta: (data) =>
     set((state) => {

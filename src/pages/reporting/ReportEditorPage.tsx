@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Lock, BookOpen, Layout, Monitor } from 'lucide-react';
+import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
 import { mockReport } from '@/entities/report/api/mock-data';
 import { useFindingStore } from '@/entities/finding/model/store';
@@ -7,6 +9,17 @@ import { LiquidGlassToolbar } from '@/features/report-editor/ui/LiquidGlassToolb
 import { SectionNavigator } from '@/features/report-editor/ui/SectionNavigator';
 import { ZenCanvas } from '@/features/report-editor/ui/ZenCanvas';
 import { BlockPalette } from '@/features/report-editor/ui/BlockPalette';
+import { ExecutiveSummaryStudio } from '@/features/report-editor/ui/ExecutiveSummaryStudio';
+import { BoardBriefingCard } from '@/features/report-editor/ui/BoardBriefingCard';
+import { WorkflowActionBar } from '@/features/report-editor/ui/WorkflowActionBar';
+
+type TabId = 'executive' | 'canvas' | 'board';
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: 'executive', label: 'Yönetici Özeti', icon: <BookOpen size={15} /> },
+  { id: 'canvas', label: 'Detaylı Rapor', icon: <Layout size={15} /> },
+  { id: 'board', label: 'YK Sunumu', icon: <Monitor size={15} /> },
+];
 
 const MOCK_FINDINGS: ComprehensiveFinding[] = [
   {
@@ -27,8 +40,7 @@ const MOCK_FINDINGS: ComprehensiveFinding[] = [
     updated_at: '2026-02-15T14:00:00Z',
     secrets: {
       finding_id: 'find-001',
-      internal_notes:
-        'Şube müdürü ile 12 Şubat tarihinde gizlice görüşüldü. Sorun sistematik ve kasıtlı görünüyor; ilgili personelin rotasyonu önerildi.',
+      internal_notes: 'Şube müdürü ile 12 Şubat tarihinde gizlice görüşüldü.',
     },
     action_plans: [],
     comments: [],
@@ -45,15 +57,14 @@ const MOCK_FINDINGS: ComprehensiveFinding[] = [
     state: 'NEGOTIATION',
     impact_score: 62.0,
     detection_html:
-      '<p>147 aktif müşteri dosyasında güncel kimlik ve gelir belgesi bulunmamaktadır. Süre geçim oranı %31 olarak tespit edilmiştir.</p>',
+      '<p>147 aktif müşteri dosyasında güncel kimlik ve gelir belgesi bulunmamaktadır.</p>',
     impact_html:
-      '<p>MASAK uyumsuzluk riski kritik seviyede. Mali Suçları Araştırma Kurulu incelemesi ve 5M TL\'ye varan para cezası potansiyeli mevcut.</p>',
+      '<p>MASAK uyumsuzluk riski kritik seviyede. 5M TL\'ye varan para cezası potansiyeli mevcut.</p>',
     created_at: '2026-01-20T10:00:00Z',
     updated_at: '2026-02-10T09:00:00Z',
     secrets: {
       finding_id: 'find-002',
-      internal_notes:
-        'Uyum ekibi konu hakkında bilgilendirildi. Müşteri ilişkileri direktörü kısmen itiraz etti; müzakere süreci devam ediyor.',
+      internal_notes: 'Uyum ekibi bilgilendirildi.',
     },
     action_plans: [],
     comments: [],
@@ -62,8 +73,9 @@ const MOCK_FINDINGS: ComprehensiveFinding[] = [
 ];
 
 export default function ReportEditorPage() {
-  const { setActiveReport } = useActiveReportStore();
+  const { activeReport, setActiveReport } = useActiveReportStore();
   const setFindings = useFindingStore((s) => s.setFindings);
+  const [activeTab, setActiveTab] = useState<TabId>('executive');
 
   useEffect(() => {
     setActiveReport(mockReport);
@@ -73,15 +85,64 @@ export default function ReportEditorPage() {
     };
   }, [setActiveReport, setFindings]);
 
+  const isLocked =
+    activeReport?.status === 'published' || activeReport?.status === 'archived';
+  const isEditable = !isLocked;
+
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-slate-50">
+    <div className="h-screen overflow-hidden flex flex-col bg-[#FDFBF7]">
       <LiquidGlassToolbar />
 
-      <div className="flex-1 flex overflow-hidden">
-        <SectionNavigator />
-        <ZenCanvas />
-        <BlockPalette />
+      {isLocked && (
+        <div className="flex items-center justify-center gap-2 bg-amber-50 border-b border-amber-200 py-2 px-4">
+          <Lock size={14} className="text-amber-600 flex-shrink-0" />
+          <span className="text-xs font-sans font-semibold text-amber-700">
+            Bu rapor kilitlenmiştir. Yayınlanmış raporlar düzenlenemez.
+          </span>
+        </div>
+      )}
+
+      <div className="bg-white border-b border-slate-200 px-6 flex-shrink-0">
+        <div className="flex gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-3 text-sm font-sans font-medium border-b-2 transition-colors',
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300',
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="flex-1 overflow-y-auto pb-20">
+        {activeTab === 'executive' && (
+          <ExecutiveSummaryStudio readOnly={!isEditable} />
+        )}
+
+        {activeTab === 'canvas' && (
+          <div className="flex h-full overflow-hidden">
+            <SectionNavigator />
+            <div className="flex-1 overflow-y-auto">
+              <ZenCanvas readOnly={!isEditable} />
+            </div>
+            {isEditable && <BlockPalette />}
+          </div>
+        )}
+
+        {activeTab === 'board' && activeReport && (
+          <BoardBriefingCard report={activeReport} />
+        )}
+      </div>
+
+      <WorkflowActionBar />
     </div>
   );
 }

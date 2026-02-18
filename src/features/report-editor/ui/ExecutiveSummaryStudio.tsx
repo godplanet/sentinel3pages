@@ -1,0 +1,283 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Sparkles, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useActiveReportStore } from '@/entities/report';
+import type { ExecutiveSummarySections } from '@/entities/report';
+
+const GRADE_OPTIONS = ['A+', 'A', 'B+', 'B', 'C', 'D'];
+const ASSURANCE_OPTIONS = ['Tam Güvence', 'Kısmi Güvence', 'Güvence Verilmedi'];
+
+const AI_MOCK_SECTIONS: ExecutiveSummarySections = {
+  auditOpinion:
+    '<p>Denetim ekibi, GIAS 2024 Standardı 2400 (Denetim Sonuçlarının Raporlanması) çerçevesinde İstanbul Merkez Şubesi\'nin 2026 yılı birinci çeyreğine ait iç kontrol ortamını bütünsel olarak değerlendirmiş ve <strong>kısmi güvence</strong> sonucuna ulaşmıştır. İç kontrol sistemi tasarım bakımından yeterli olmakla birlikte, tespit edilen 1 kritik ve 2 yüksek öncelikli bulgu, uygulamada esasa ilişkin zafiyetlerin varlığına işaret etmektedir. Söz konusu bulgular giderilmeden Standart 2450 kapsamında genel güvence verilmesi mümkün değildir.</p>',
+  criticalRisks:
+    '<p>BDDK Bankalarda İç Sistemler ve İçsel Sermaye Yeterliliği Değerlendirme Süreci Yönetmeliği kapsamında aşağıdaki kritik riskler öncelikli yönetim gündemine alınmalıdır:</p><ol><li><strong>Kredi Limiti Yetki Matrisi İhlali (KRİTİK):</strong> 147 işlemde yetkisiz onay tespit edilmiş olup potansiyel finansal kayıp 12,4M TL olarak hesaplanmıştır.</li><li><strong>KYC Belge Tamamlaması Yetersizliği (YÜKSEK):</strong> 147 aktif müşteri dosyasında güncel kimlik belgesi eksikliği mevcuttur. MASAK düzenleyici riski kritik seviyede değerlendirilmektedir.</li></ol>',
+  strategicRecommendations:
+    '<p>Denetim ekibi, GIAS 2024 Standardı 2410 (Denetim Görevi Bildiriminin Kriterleri) doğrultusunda aşağıdaki stratejik aksiyonları önermektedir:</p><ol><li>Kredi onay yetki matrisinin insan kaynakları rotasyon verileri esas alınarak <strong>30 gün</strong> içinde güncellenmesi ve otomatik kontrol mekanizmalarının devreye alınması.</li><li>KYC doküman yenileme kampanyasının müşteri segmentasyonuna göre önceliklendirilmesi ve <strong>Mart 2026</strong> sonuna kadar tamamlanması.</li><li>Operasyonel risk yönetim çerçevesinin yıllık gözden geçirme döngüsüne alınması ve aylık izleme raporunun YK Risk Komitesi\'ne sunulması.</li></ol>',
+  managementAction:
+    '<p>Şube yönetimi, denetim bulgularını 18 Şubat 2026 tarihinde müzakere etmiş ve tüm yüksek öncelikli bulgular için eylem planı hazırlamayı kabul etmiştir. Aksiyon planları <strong>20 Şubat 2026</strong> tarihine kadar DenetimOS Aksiyon Yönetimi modülüne iletilecektir. Takip denetimi Mayıs 2026 döneminde planlanmaktadır. BDDK raporlama yükümlülükleri kapsamındaki bildirimler Uyum Birimi koordinasyonuyla yürütülecektir.</p>',
+};
+
+interface TiptapFieldProps {
+  label: string;
+  fieldKey: keyof ExecutiveSummarySections;
+  content: string;
+  placeholder: string;
+  readOnly?: boolean;
+  onChange: (key: keyof ExecutiveSummarySections, html: string) => void;
+}
+
+function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, onChange }: TiptapFieldProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder }),
+    ],
+    content,
+    editable: !readOnly,
+    onUpdate: ({ editor: ed }) => {
+      onChange(fieldKey, ed.getHTML());
+    },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (currentHtml !== content) {
+      editor.commands.setContent(content, false);
+    }
+  }, [content, editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!readOnly);
+  }, [readOnly, editor]);
+
+  return (
+    <div className="mb-6">
+      <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-2">
+        {label}
+      </label>
+      <div
+        className={`min-h-[120px] rounded-xl border px-4 py-3 font-serif text-slate-800 text-sm leading-relaxed transition-colors ${
+          readOnly
+            ? 'bg-[#FDFBF7] border-slate-200 cursor-not-allowed'
+            : 'bg-white border-slate-300 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-100'
+        }`}
+      >
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonBlock({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="mb-6 animate-pulse">
+      <div className="h-3 w-24 bg-slate-200 rounded mb-3" />
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-2">
+        {Array.from({ length: lines }).map((_, i) => (
+          <div key={i} className={`h-3 bg-slate-200 rounded ${i === lines - 1 ? 'w-2/3' : 'w-full'}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface ExecutiveSummaryStudioProps {
+  readOnly?: boolean;
+}
+
+export function ExecutiveSummaryStudio({ readOnly = false }: ExecutiveSummaryStudioProps) {
+  const { activeReport, updateExecutiveSummary } = useActiveReportStore();
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const es = activeReport?.executiveSummary;
+
+  const handleAIDraft = useCallback(async () => {
+    setAiLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    updateExecutiveSummary({ sections: AI_MOCK_SECTIONS });
+    setAiLoading(false);
+  }, [updateExecutiveSummary]);
+
+  const handleSectionChange = useCallback(
+    (key: keyof ExecutiveSummarySections, html: string) => {
+      if (!es) return;
+      updateExecutiveSummary({ sections: { ...es.sections, [key]: html } });
+    },
+    [es, updateExecutiveSummary],
+  );
+
+  if (!es) return null;
+
+  const trendPositive = es.trend > 0;
+  const trendNeutral = es.trend === 0;
+
+  return (
+    <div className="max-w-3xl mx-auto py-10 px-6">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-slate-900">Yönetici Özeti Stüdyosu</h2>
+          <p className="text-sm text-slate-500 mt-1 font-sans">GIAS 2024 · Standart 2400 uyumlu</p>
+        </div>
+        {!readOnly && (
+          <button
+            onClick={handleAIDraft}
+            disabled={aiLoading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-sm font-sans font-semibold transition-colors shadow-sm"
+          >
+            <Sparkles size={16} />
+            {aiLoading ? 'Sentinel Prime Yazıyor...' : '✨ AI ile İlk Taslağı Oluştur'}
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
+        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
+          Skor ve Değerlendirme
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Güncel Skor</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={es.score}
+              disabled={readOnly}
+              onChange={(e) => updateExecutiveSummary({ score: parseFloat(e.target.value) || 0 })}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Not</label>
+            <select
+              value={es.grade}
+              disabled={readOnly}
+              onChange={(e) => updateExecutiveSummary({ grade: e.target.value })}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
+            >
+              {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Önceki Not</label>
+            <select
+              value={es.previousGrade}
+              disabled={readOnly}
+              onChange={(e) => updateExecutiveSummary({ previousGrade: e.target.value })}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
+            >
+              {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Trend (%)</label>
+            <div className="relative">
+              <input
+                type="number"
+                step={0.1}
+                value={es.trend}
+                disabled={readOnly}
+                onChange={(e) => updateExecutiveSummary({ trend: parseFloat(e.target.value) || 0 })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed pr-8"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                {trendNeutral ? (
+                  <Minus size={14} className="text-slate-400" />
+                ) : trendPositive ? (
+                  <TrendingUp size={14} className="text-green-600" />
+                ) : (
+                  <TrendingDown size={14} className="text-red-500" />
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Güvence Seviyesi</label>
+            <select
+              value={es.assuranceLevel}
+              disabled={readOnly}
+              onChange={(e) => updateExecutiveSummary({ assuranceLevel: e.target.value })}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
+            >
+              {ASSURANCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
+        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
+          YK Bilgilendirme Notu
+        </h3>
+        <textarea
+          value={es.briefingNote}
+          disabled={readOnly}
+          onChange={(e) => updateExecutiveSummary({ briefingNote: e.target.value })}
+          rows={3}
+          placeholder="Yönetim Kurulu'na iletilecek kısa özet notu..."
+          className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed"
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-6">
+          Detaylı Bölümler
+        </h3>
+
+        {aiLoading ? (
+          <>
+            <SkeletonBlock lines={4} />
+            <SkeletonBlock lines={5} />
+            <SkeletonBlock lines={4} />
+            <SkeletonBlock lines={3} />
+          </>
+        ) : (
+          <>
+            <TiptapField
+              label="I. Denetim Görüşü"
+              fieldKey="auditOpinion"
+              content={es.sections.auditOpinion}
+              placeholder="Denetim görüşünüzü buraya yazın (GIAS 2400 çerçevesinde)..."
+              readOnly={readOnly}
+              onChange={handleSectionChange}
+            />
+            <TiptapField
+              label="II. Kritik Risk Alanları"
+              fieldKey="criticalRisks"
+              content={es.sections.criticalRisks}
+              placeholder="Kritik ve yüksek öncelikli risk tespitlerini açıklayın..."
+              readOnly={readOnly}
+              onChange={handleSectionChange}
+            />
+            <TiptapField
+              label="III. Stratejik Öneriler"
+              fieldKey="strategicRecommendations"
+              content={es.sections.strategicRecommendations}
+              placeholder="Yönetime yönelik stratejik tavsiyeler ve aksiyon önerilerini yazın..."
+              readOnly={readOnly}
+              onChange={handleSectionChange}
+            />
+            <TiptapField
+              label="IV. Yönetim Eylemi ve Taahhütler"
+              fieldKey="managementAction"
+              content={es.sections.managementAction}
+              placeholder="Yönetimin bulgulara verdiği yanıtlar ve taahhütleri belirtin..."
+              readOnly={readOnly}
+              onChange={handleSectionChange}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

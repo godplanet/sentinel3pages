@@ -44,6 +44,7 @@ import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
 import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
+import BoardBriefingPage from '@/pages/reporting/BoardBriefingPage';
 import TrendAnalysisPage from '@/pages/reporting/TrendAnalysisPage';
 import EntityScorecardPage from '@/pages/reporting/EntityScorecardPage';
 import KPIDashboardPage from '@/pages/qaip/KPIDashboardPage';
@@ -170,6 +171,7 @@ export const AppRoutes = () => {
       <Route path="/reporting/library" element={<ProtectedRoute><ReportLibraryPage /></ProtectedRoute>} />
       <Route path="/reporting/zen-editor" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
       <Route path="/reporting/zen-editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
+      <Route path="/reporting/executive-dashboard/:id" element={<ProtectedRoute><BoardBriefingPage /></ProtectedRoute>} />
 
       <Route path="/reports/new" element={<Navigate to="/reporting/zen-editor" replace />} />
       <Route path="/reports/:id" element={<Navigate to="/reporting/library" replace />} />
