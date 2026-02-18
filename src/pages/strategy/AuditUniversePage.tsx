@@ -1,23 +1,58 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Scale, Activity, Search, Filter, Plus, ChevronRight, BrainCircuit, Info, Download, Server, ShieldCheck, Flame, Lock, TrendingDown, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Building2, Scale, Activity, Search, Filter, Plus, ChevronRight, BrainCircuit, Info, Download, Server, ShieldCheck, Flame, Lock, TrendingDown, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/shared/api/supabase';
 
-// Mimari Katmanlardan Veri ve Motoru Çekiyoruz
-import { MOCK_UNIVERSE, type AuditEntity } from '@/entities/universe/api/mock-data';
+import { type AuditEntity } from '@/entities/universe/api/mock-data';
 import { calculateEntityGrade } from '@/features/grading-engine/calculator';
 import { GRADING_THRESHOLDS } from '@/shared/config/constitution';
+
+const TENANT = '11111111-1111-1111-1111-111111111111';
+
+function useAuditUniverseLive() {
+  return useQuery<AuditEntity[]>({
+    queryKey: ['audit-universe-live'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_entities')
+        .select('id, name, type, path, metadata, last_audit_date')
+        .eq('tenant_id', TENANT)
+        .order('path');
+      if (error) throw error;
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        type: row.type ?? 'UNIT',
+        path: row.path ?? '',
+        weight: Number(row.metadata?.weight ?? 1.0),
+        findings: {
+          bordo: Number(row.metadata?.findings_summary?.bordo ?? 0),
+          kizil: Number(row.metadata?.findings_summary?.kizil ?? 0),
+          turuncu: Number(row.metadata?.findings_summary?.turuncu ?? 0),
+          sari: Number(row.metadata?.findings_summary?.sari ?? 0),
+          gozlem: Number(row.metadata?.findings_summary?.gozlem ?? 0),
+          shariah_systemic: Number(row.metadata?.findings_summary?.shariah_systemic ?? 0),
+        },
+        lastAudit: row.metadata?.lastAudit ?? (row.last_audit_date ? String(row.last_audit_date).slice(0, 10) : 'N/A'),
+      }));
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
 
 export default function AuditUniversePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<AuditEntity | null>(null);
+  const { data: liveUniverse, isLoading } = useAuditUniverseLive();
+  const universe = liveUniverse ?? [];
 
-  // Banka Geneli RWA (Risk Ağırlıklı Ortalama) Hesaplaması
   const { rwaScore, rwaGrade, rwaOpinion, totalWeight, cappedCount } = useMemo(() => {
     let weightedSum = 0; let weightTotal = 0; let caps = 0;
 
-    MOCK_UNIVERSE.forEach(e => {
+    universe.forEach(e => {
       const { finalScore, vetoReason } = calculateEntityGrade(e);
       weightedSum += (finalScore * e.weight);
       weightTotal += e.weight;
@@ -25,11 +60,17 @@ export default function AuditUniversePage() {
     });
 
     const score = weightTotal > 0 ? (weightedSum / weightTotal) : 0;
-    
-    let gradeData = GRADING_THRESHOLDS.find(g => score >= g.min) || GRADING_THRESHOLDS[GRADING_THRESHOLDS.length - 1];
-
+    const gradeData = GRADING_THRESHOLDS.find(g => score >= g.min) || GRADING_THRESHOLDS[GRADING_THRESHOLDS.length - 1];
     return { rwaScore: score.toFixed(2), rwaGrade: gradeData.grade, rwaOpinion: gradeData.opinion, totalWeight: weightTotal, cappedCount: caps };
-  }, []);
+  }, [universe]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-full px-6 py-8 space-y-6 bg-slate-50 min-h-screen font-sans">
@@ -105,7 +146,7 @@ export default function AuditUniversePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-800">
-              {MOCK_UNIVERSE.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.path.toLowerCase().includes(searchTerm.toLowerCase())).map((entity) => {
+              {universe.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.path.toLowerCase().includes(searchTerm.toLowerCase())).map((entity) => {
                 const { rawScore, finalScore, vetoReason, grade, opinion, color, freq } = calculateEntityGrade(entity);
                 const isCapped = rawScore !== finalScore;
                 

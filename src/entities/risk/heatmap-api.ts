@@ -85,18 +85,25 @@ export function useHeatmapData() {
 
       const enriched: AssessmentWithDetails[] = (assessments || []).map((a: any) => {
         const entity = entityMap.get(a.entity_id);
+        const impact = a.inherent_impact ?? 1;
+        const likelihood = a.inherent_likelihood ?? 1;
+        const residualImpact = a.residual_impact ?? impact;
+        const residualLikelihood = a.residual_likelihood ?? likelihood;
+        const ceRaw = a.control_effectiveness ?? 0;
         return {
           id: a.id,
           tenant_id: a.tenant_id,
           entity_id: a.entity_id,
           risk_id: a.risk_definition_id,
-          impact: a.inherent_impact,
-          likelihood: a.inherent_likelihood,
-          control_effectiveness: (a.control_effectiveness || 0) / 100,
+          impact,
+          likelihood,
+          inherent_risk_score: impact * likelihood,
+          control_effectiveness: ceRaw / 100,
+          residual_score: residualImpact * residualLikelihood,
           justification: a.notes || '',
           assessed_at: a.assessment_date,
           risk_title: a.risk_title || 'Bilinmeyen Risk',
-          risk_category: a.risk_category || 'Diğer',
+          risk_category: a.risk_category || 'Diger',
           entity_name: entity?.name ?? 'Bilinmeyen Varlik',
           entity_type: entity?.type ?? '',
         };

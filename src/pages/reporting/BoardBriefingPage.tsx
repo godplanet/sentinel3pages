@@ -2,21 +2,53 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
-import { mockReport } from '@/entities/report/api/mock-data';
 import { BoardBriefingCard } from '@/features/report-editor/ui/BoardBriefingCard';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/shared/api/supabase';
+import type { Report } from '@/entities/report/model/types';
+
+const TENANT = '11111111-1111-1111-1111-111111111111';
+
+function useLatestPublishedReport() {
+  return useQuery<Report | null>({
+    queryKey: ['board-briefing-report'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('tenant_id', TENANT)
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        ...data,
+        description: data.description ?? '',
+        theme_config: data.theme_config ?? { mode: 'minimal', accent: 'blue', layout: 'standard' },
+        layout_type: data.layout_type ?? 'executive',
+      } as Report;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export default function BoardBriefingPage() {
   const navigate = useNavigate();
   const { activeReport, setActiveReport } = useActiveReportStore();
+  const { data: liveReport, isLoading } = useLatestPublishedReport();
 
   useEffect(() => {
-    setActiveReport(mockReport);
+    if (liveReport) {
+      setActiveReport(liveReport);
+    }
     return () => {
       setActiveReport(null);
     };
-  }, [setActiveReport]);
+  }, [liveReport, setActiveReport]);
 
-  if (!activeReport) {
+  if (isLoading || !activeReport) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#FDFBF7]">
         <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
