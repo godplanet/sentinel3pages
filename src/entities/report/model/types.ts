@@ -214,6 +214,14 @@ export interface ExecutiveSummarySections {
   managementAction: string;
 }
 
+export type M6LayoutType = 'standard_audit' | 'investigation' | 'info_note';
+
+export interface DynamicSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface ManagementResponse {
   providedBy: string;
   responseText: string;
@@ -230,6 +238,9 @@ export interface ExecutiveSummary {
   briefingNote: string;
   sections: ExecutiveSummarySections;
   managementResponse?: ManagementResponse;
+  layoutType?: M6LayoutType;
+  dynamicMetrics?: Record<string, string>;
+  dynamicSections?: DynamicSection[];
 }
 
 export interface ReportWorkflow {

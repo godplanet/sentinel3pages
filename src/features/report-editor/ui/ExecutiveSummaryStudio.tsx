@@ -2,9 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Sparkles, TrendingUp, TrendingDown, Minus, Braces, ChevronDown, UserCheck } from 'lucide-react';
+import {
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Braces,
+  ChevronDown,
+  UserCheck,
+  Banknote,
+  Calendar,
+  Building,
+} from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
-import type { ExecutiveSummarySections, ManagementResponse } from '@/entities/report';
+import type { ExecutiveSummarySections, ManagementResponse, DynamicSection } from '@/entities/report';
 import { SmartVariableNode } from '@/features/report-editor/blocks/extensions/SmartVariableNode';
 
 function warmthToBg(w: number): string {
@@ -20,14 +31,26 @@ const ASSURANCE_OPTIONS = ['Tam Güvence', 'Kısmi Güvence', 'Güvence Verilmed
 
 const AI_MOCK_SECTIONS: ExecutiveSummarySections = {
   auditOpinion:
-    '<p>Denetim ekibi, GIAS 2024 Standardı 2400 (Denetim Sonuçlarının Raporlanması) çerçevesinde İstanbul Merkez Şubesi\'nin 2026 yılı birinci çeyreğine ait iç kontrol ortamını bütünsel olarak değerlendirmiş ve <strong>kısmi güvence</strong> sonucuna ulaşmıştır. İç kontrol sistemi tasarım bakımından yeterli olmakla birlikte, tespit edilen 1 kritik ve 2 yüksek öncelikli bulgu, uygulamada esasa ilişkin zafiyetlerin varlığına işaret etmektedir. Söz konusu bulgular giderilmeden Standart 2450 kapsamında genel güvence verilmesi mümkün değildir.</p>',
+    '<p>Denetim ekibi, GIAS 2024 Standardı 2400 çerçevesinde iç kontrol ortamını bütünsel olarak değerlendirmiş ve <strong>kısmi güvence</strong> sonucuna ulaşmıştır.</p>',
   criticalRisks:
-    '<p>BDDK Bankalarda İç Sistemler ve İçsel Sermaye Yeterliliği Değerlendirme Süreci Yönetmeliği kapsamında aşağıdaki kritik riskler öncelikli yönetim gündemine alınmalıdır:</p><ol><li><strong>Kredi Limiti Yetki Matrisi İhlali (KRİTİK):</strong> 147 işlemde yetkisiz onay tespit edilmiş olup potansiyel finansal kayıp 12,4M TL olarak hesaplanmıştır.</li><li><strong>KYC Belge Tamamlaması Yetersizliği (YÜKSEK):</strong> 147 aktif müşteri dosyasında güncel kimlik belgesi eksikliği mevcuttur. MASAK düzenleyici riski kritik seviyede değerlendirilmektedir.</li></ol>',
+    '<p>BDDK yönetmeliği kapsamında aşağıdaki kritik riskler öncelikli yönetim gündemine alınmalıdır:</p><ol><li><strong>Kredi Limiti Yetki Matrisi İhlali (KRİTİK)</strong></li><li><strong>KYC Belge Tamamlaması Yetersizliği (YÜKSEK)</strong></li></ol>',
   strategicRecommendations:
-    '<p>Denetim ekibi, GIAS 2024 Standardı 2410 (Denetim Görevi Bildiriminin Kriterleri) doğrultusunda aşağıdaki stratejik aksiyonları önermektedir:</p><ol><li>Kredi onay yetki matrisinin insan kaynakları rotasyon verileri esas alınarak <strong>30 gün</strong> içinde güncellenmesi ve otomatik kontrol mekanizmalarının devreye alınması.</li><li>KYC doküman yenileme kampanyasının müşteri segmentasyonuna göre önceliklendirilmesi ve <strong>Mart 2026</strong> sonuna kadar tamamlanması.</li><li>Operasyonel risk yönetim çerçevesinin yıllık gözden geçirme döngüsüne alınması ve aylık izleme raporunun YK Risk Komitesi\'ne sunulması.</li></ol>',
+    '<p>Denetim ekibi GIAS 2024 Standardı 2410 doğrultusunda aşağıdaki stratejik aksiyonları önermektedir.</p>',
   managementAction:
-    '<p>Şube yönetimi, denetim bulgularını 18 Şubat 2026 tarihinde müzakere etmiş ve tüm yüksek öncelikli bulgular için eylem planı hazırlamayı kabul etmiştir. Aksiyon planları <strong>20 Şubat 2026</strong> tarihine kadar DenetimOS Aksiyon Yönetimi modülüne iletilecektir. Takip denetimi Mayıs 2026 döneminde planlanmaktadır. BDDK raporlama yükümlülükleri kapsamındaki bildirimler Uyum Birimi koordinasyonuyla yürütülecektir.</p>',
+    '<p>Şube yönetimi denetim bulgularını müzakere etmiş ve tüm yüksek öncelikli bulgular için eylem planı hazırlamayı kabul etmiştir.</p>',
 };
+
+const AI_MOCK_INVESTIGATION: DynamicSection[] = [
+  { id: 'ds-0', title: 'I. Olay Özeti ve Tespit Yöntemi', content: '<p>Soruşturma; şüpheli işlem bildirimi üzerine başlatılmış, hesap hareketleri ve kamera kayıtları incelenmiştir.</p>' },
+  { id: 'ds-1', title: 'II. Deliller ve Bulgular', content: '<p>Toplam <strong>47 işlem</strong> incelemeye alınmış; yetkisiz para transferleri tespit edilmiştir.</p>' },
+  { id: 'ds-2', title: 'III. Önerilen Eylem Planı', content: '<p>İlgili personel hakkında idari süreç başlatılması ve kredi limiti yetki matrisinin güncellenmesi önerilmektedir.</p>' },
+];
+
+const AI_MOCK_INFO: DynamicSection[] = [
+  { id: 'ds-0', title: 'I. Konu ve Kapsam', content: '<p>Bu bilgi notu, düzenleyici otoriteler tarafından yayımlanan güncel mevzuat değişikliklerini özetlemektedir.</p>' },
+  { id: 'ds-1', title: 'II. Temel Hususlar', content: '<p>İlgili birimlerin aşağıdaki değişikliklerden haberdar edilmesi gerekmektedir.</p>' },
+  { id: 'ds-2', title: 'III. Sonuç ve Öneri', content: '<p>Uyum biriminin konuyu değerlendirerek gerekli adımları atması önerilmektedir.</p>' },
+];
 
 const SMART_VARIABLE_DEFS = [
   { id: 'npl_ratio', label: 'NPL Oranı' },
@@ -49,24 +72,16 @@ function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, 
   const [varDropOpen, setVarDropOpen] = useState(false);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder }),
-      SmartVariableNode,
-    ],
+    extensions: [StarterKit, Placeholder.configure({ placeholder }), SmartVariableNode],
     content,
     editable: !readOnly,
-    onUpdate: ({ editor: ed }) => {
-      onChange(fieldKey, ed.getHTML());
-    },
+    onUpdate: ({ editor: ed }) => { onChange(fieldKey, ed.getHTML()); },
   });
 
   useEffect(() => {
     if (!editor) return;
     const currentHtml = editor.getHTML();
-    if (currentHtml !== content) {
-      editor.commands.setContent(content, false);
-    }
+    if (currentHtml !== content) editor.commands.setContent(content, false);
   }, [content, editor]);
 
   useEffect(() => {
@@ -134,6 +149,57 @@ function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, 
   );
 }
 
+interface DynamicTiptapFieldProps {
+  section: DynamicSection;
+  index: number;
+  readOnly?: boolean;
+  onChange: (id: string, html: string) => void;
+}
+
+function DynamicTiptapField({ section, index, readOnly = false, onChange }: DynamicTiptapFieldProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: `${section.title} içeriğini buraya yazın...` }),
+      SmartVariableNode,
+    ],
+    content: section.content,
+    editable: !readOnly,
+    onUpdate: ({ editor: ed }) => { onChange(section.id, ed.getHTML()); },
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (currentHtml !== section.content) editor.commands.setContent(section.content, false);
+  }, [section.content, editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!readOnly);
+  }, [readOnly, editor]);
+
+  const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+  const label = `${romanNumerals[index] ?? index + 1}. ${section.title}`;
+
+  return (
+    <div className="mb-6">
+      <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-2">
+        {label}
+      </label>
+      <div
+        className={`min-h-[120px] rounded-xl border px-4 py-3 font-serif text-slate-800 text-sm leading-relaxed transition-colors ${
+          readOnly
+            ? 'bg-white/60 border-slate-200 cursor-not-allowed'
+            : 'bg-white border-slate-300 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-100'
+        }`}
+      >
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
 function SkeletonBlock({ lines = 3 }: { lines?: number }) {
   return (
     <div className="mb-6 animate-pulse">
@@ -157,6 +223,9 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
   const [aiLoading, setAiLoading] = useState(false);
 
   const mgmtResponse = activeReport?.executiveSummary?.managementResponse;
+  const es = activeReport?.executiveSummary;
+  const paperBg = warmthToBg(warmth);
+  const layoutType = es?.layoutType ?? 'standard_audit';
 
   const handleManagementResponseChange = useCallback(
     (field: keyof ManagementResponse, value: string) => {
@@ -165,27 +234,45 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
         responseText: '',
         providedAt: new Date().toISOString().slice(0, 10),
       };
-      updateExecutiveSummary({
-        managementResponse: { ...current, [field]: value },
-      });
+      updateExecutiveSummary({ managementResponse: { ...current, [field]: value } });
     },
     [activeReport, updateExecutiveSummary],
   );
 
-  const es = activeReport?.executiveSummary;
-  const paperBg = warmthToBg(warmth);
-
   const handleAIDraft = useCallback(async () => {
     setAiLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    updateExecutiveSummary({ sections: AI_MOCK_SECTIONS });
+    if (layoutType === 'investigation') {
+      updateExecutiveSummary({ dynamicSections: AI_MOCK_INVESTIGATION });
+    } else if (layoutType === 'info_note') {
+      updateExecutiveSummary({ dynamicSections: AI_MOCK_INFO });
+    } else {
+      updateExecutiveSummary({ sections: AI_MOCK_SECTIONS });
+    }
     setAiLoading(false);
-  }, [updateExecutiveSummary]);
+  }, [updateExecutiveSummary, layoutType]);
 
   const handleSectionChange = useCallback(
     (key: keyof ExecutiveSummarySections, html: string) => {
       if (!es) return;
       updateExecutiveSummary({ sections: { ...es.sections, [key]: html } });
+    },
+    [es, updateExecutiveSummary],
+  );
+
+  const handleDynamicSectionChange = useCallback(
+    (id: string, html: string) => {
+      if (!es) return;
+      const updated = (es.dynamicSections ?? []).map((s) => s.id === id ? { ...s, content: html } : s);
+      updateExecutiveSummary({ dynamicSections: updated });
+    },
+    [es, updateExecutiveSummary],
+  );
+
+  const handleDynamicMetricChange = useCallback(
+    (key: string, value: string) => {
+      if (!es) return;
+      updateExecutiveSummary({ dynamicMetrics: { ...(es.dynamicMetrics ?? {}), [key]: value } });
     },
     [es, updateExecutiveSummary],
   );
@@ -198,9 +285,7 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
   return (
     <div className="min-h-full bg-slate-100 overflow-y-auto p-6 lg:p-10">
       <div
-        className="max-w-5xl mx-auto rounded-sm
-          shadow-[0_8px_48px_rgba(0,0,0,0.13),0_2px_12px_rgba(0,0,0,0.07)]
-          ring-1 ring-slate-200/40 transition-colors duration-300 px-8 lg:px-14 py-10"
+        className="max-w-5xl mx-auto rounded-sm shadow-[0_8px_48px_rgba(0,0,0,0.13),0_2px_12px_rgba(0,0,0,0.07)] ring-1 ring-slate-200/40 transition-colors duration-300 px-8 lg:px-14 py-10"
         style={{ backgroundColor: paperBg }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -220,96 +305,150 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
           )}
         </div>
 
-        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
-          <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
-            Skor ve Değerlendirme
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Güncel Skor</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                value={es.score}
-                disabled={readOnly}
-                onChange={(e) => updateExecutiveSummary({ score: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Not</label>
-              <select
-                value={es.grade}
-                disabled={readOnly}
-                onChange={(e) => updateExecutiveSummary({ grade: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-              >
-                {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Önceki Not</label>
-              <select
-                value={es.previousGrade}
-                disabled={readOnly}
-                onChange={(e) => updateExecutiveSummary({ previousGrade: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-              >
-                {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Trend (%)</label>
-              <div className="relative">
+        {layoutType !== 'info_note' && (
+          <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
+            <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
+              Skor ve Değerlendirme
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Güncel Skor</label>
                 <input
                   type="number"
+                  min={0}
+                  max={100}
                   step={0.1}
-                  value={es.trend}
+                  value={es.score}
                   disabled={readOnly}
-                  onChange={(e) => updateExecutiveSummary({ trend: parseFloat(e.target.value) || 0 })}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed pr-8 bg-white"
+                  onChange={(e) => updateExecutiveSummary({ score: parseFloat(e.target.value) || 0 })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
                 />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2">
-                  {trendNeutral ? (
-                    <Minus size={14} className="text-slate-400" />
-                  ) : trendPositive ? (
-                    <TrendingUp size={14} className="text-green-600" />
-                  ) : (
-                    <TrendingDown size={14} className="text-red-500" />
-                  )}
-                </span>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Not</label>
+                <select
+                  value={es.grade}
+                  disabled={readOnly}
+                  onChange={(e) => updateExecutiveSummary({ grade: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                >
+                  {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Önceki Not</label>
+                <select
+                  value={es.previousGrade}
+                  disabled={readOnly}
+                  onChange={(e) => updateExecutiveSummary({ previousGrade: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                >
+                  {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Trend (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step={0.1}
+                    value={es.trend}
+                    disabled={readOnly}
+                    onChange={(e) => updateExecutiveSummary({ trend: parseFloat(e.target.value) || 0 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed pr-8 bg-white"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {trendNeutral ? (
+                      <Minus size={14} className="text-slate-400" />
+                    ) : trendPositive ? (
+                      <TrendingUp size={14} className="text-green-600" />
+                    ) : (
+                      <TrendingDown size={14} className="text-red-500" />
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Güvence Seviyesi</label>
+                <select
+                  value={es.assuranceLevel}
+                  disabled={readOnly}
+                  onChange={(e) => updateExecutiveSummary({ assuranceLevel: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                >
+                  {ASSURANCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
               </div>
             </div>
+          </div>
+        )}
 
-            <div>
-              <label className="block text-xs text-slate-500 mb-1">Güvence Seviyesi</label>
-              <select
-                value={es.assuranceLevel}
-                disabled={readOnly}
-                onChange={(e) => updateExecutiveSummary({ assuranceLevel: e.target.value })}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-              >
-                {ASSURANCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
+        {layoutType === 'investigation' && (
+          <div className="bg-red-50 rounded-2xl border border-red-200 p-6 mb-6 shadow-sm">
+            <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-red-600 mb-4">
+              Soruşturma Temel Bilgileri
+            </h3>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Banknote size={12} className="text-red-600" />
+                  <label className="block text-xs text-red-600 font-sans font-semibold">Mali Boyut / Zarar</label>
+                </div>
+                <input
+                  type="text"
+                  value={es.dynamicMetrics?.maliBoyu ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => handleDynamicMetricChange('maliBoyu', e.target.value)}
+                  placeholder="örn: 450.000 TL"
+                  className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:bg-white/60 disabled:cursor-not-allowed bg-white"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar size={12} className="text-red-600" />
+                  <label className="block text-xs text-red-600 font-sans font-semibold">Olay Tarihi</label>
+                </div>
+                <input
+                  type="text"
+                  value={es.dynamicMetrics?.olayTarihi ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => handleDynamicMetricChange('olayTarihi', e.target.value)}
+                  placeholder="örn: 15 Kasım 2025"
+                  className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:bg-white/60 disabled:cursor-not-allowed bg-white"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Building size={12} className="text-red-600" />
+                  <label className="block text-xs text-red-600 font-sans font-semibold">İlgili Birim / Personel</label>
+                </div>
+                <input
+                  type="text"
+                  value={es.dynamicMetrics?.ilgiliBirim ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => handleDynamicMetricChange('ilgiliBirim', e.target.value)}
+                  placeholder="örn: Kadıköy Şubesi"
+                  className="w-full border border-red-200 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:bg-white/60 disabled:cursor-not-allowed bg-white"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
           <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
-            YK Bilgilendirme Notu
+            {layoutType === 'info_note' ? 'Özet' : 'YK Bilgilendirme Notu'}
           </h3>
           <textarea
             value={es.briefingNote}
             disabled={readOnly}
             onChange={(e) => updateExecutiveSummary({ briefingNote: e.target.value })}
             rows={3}
-            placeholder="Yönetim Kurulu'na iletilecek kısa özet notu..."
+            placeholder={
+              layoutType === 'info_note'
+                ? 'Bilgi notunun kısa özeti...'
+                : "Yönetim Kurulu'na iletilecek kısa özet notu..."
+            }
             className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
           />
         </div>
@@ -324,8 +463,17 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
               <SkeletonBlock lines={4} />
               <SkeletonBlock lines={5} />
               <SkeletonBlock lines={4} />
-              <SkeletonBlock lines={3} />
             </>
+          ) : es.dynamicSections && es.dynamicSections.length > 0 ? (
+            es.dynamicSections.map((section, idx) => (
+              <DynamicTiptapField
+                key={section.id}
+                section={section}
+                index={idx}
+                readOnly={readOnly}
+                onChange={handleDynamicSectionChange}
+              />
+            ))
           ) : (
             <>
               <TiptapField
@@ -364,50 +512,50 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
           )}
         </div>
 
-        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mt-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <UserCheck size={16} className="text-slate-500" />
-            <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500">
-              Yönetim Beyanı (BDDK Gereği)
-            </h3>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-xs text-slate-500 font-sans mb-1">Beyanı Veren Yönetici</label>
-              <input
-                type="text"
-                value={mgmtResponse?.providedBy ?? ''}
-                disabled={readOnly}
-                onChange={(e) => handleManagementResponseChange('providedBy', e.target.value)}
-                placeholder="Ad Soyad – Unvan"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-              />
+        {layoutType !== 'info_note' && (
+          <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mt-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <UserCheck size={16} className="text-slate-500" />
+              <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500">
+                Yönetim Beyanı (BDDK Gereği)
+              </h3>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-slate-500 font-sans mb-1">Beyanı Veren Yönetici</label>
+                <input
+                  type="text"
+                  value={mgmtResponse?.providedBy ?? ''}
+                  disabled={readOnly}
+                  onChange={(e) => handleManagementResponseChange('providedBy', e.target.value)}
+                  placeholder="Ad Soyad – Unvan"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 font-sans mb-1">Beyan Tarihi</label>
+                <input
+                  type="date"
+                  value={mgmtResponse?.providedAt ?? new Date().toISOString().slice(0, 10)}
+                  disabled={readOnly}
+                  onChange={(e) => handleManagementResponseChange('providedAt', e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                />
+              </div>
             </div>
             <div>
-              <label className="block text-xs text-slate-500 font-sans mb-1">Beyan Tarihi</label>
-              <input
-                type="date"
-                value={mgmtResponse?.providedAt ?? new Date().toISOString().slice(0, 10)}
+              <label className="block text-xs text-slate-500 font-sans mb-1">Yönetim Beyanı Metni</label>
+              <textarea
+                value={mgmtResponse?.responseText ?? ''}
                 disabled={readOnly}
-                onChange={(e) => handleManagementResponseChange('providedAt', e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+                onChange={(e) => handleManagementResponseChange('responseText', e.target.value)}
+                rows={4}
+                placeholder="Denetlenen birim yöneticisinin bulgu ve önerilere ilişkin resmi beyanı..."
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs text-slate-500 font-sans mb-1">Yönetim Beyanı Metni</label>
-            <textarea
-              value={mgmtResponse?.responseText ?? ''}
-              disabled={readOnly}
-              onChange={(e) => handleManagementResponseChange('responseText', e.target.value)}
-              rows={4}
-              placeholder="Denetlenen birim yöneticisinin bulgu ve önerilere ilişkin resmi beyanı..."
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
