@@ -3,7 +3,6 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { MessageSquare, Check, X, Zap } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import type { TextBlock } from '@/entities/report';
@@ -55,14 +54,6 @@ export function TextBlockRenderer({ block, sectionId = '', readOnly = false, col
           field: block.id,
         }),
       );
-      if (collabCtx.provider) {
-        base.push(
-          CollaborationCursor.configure({
-            provider: collabCtx.provider,
-            user: collabCtx.userMeta,
-          }),
-        );
-      }
     }
 
     return base;
