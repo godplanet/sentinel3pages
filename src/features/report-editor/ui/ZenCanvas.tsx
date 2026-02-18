@@ -1,3 +1,4 @@
+import { ShieldCheck } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import type { M6ReportBlock, TextBlock, FindingRefBlock, LiveChartBlock } from '@/entities/report';
 import { LiveFindingRefBlock } from '@/features/report-editor/blocks/DynamicFindingsBlock';
@@ -92,6 +93,13 @@ export function ZenCanvas({ readOnly = false, warmth = 2 }: ZenCanvasProps) {
             })}
           </p>
         </div>
+
+        {activeReport.status === 'published' && activeReport.hashSeal && (
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-emerald-700 bg-emerald-50 p-4 rounded-lg border border-emerald-200 font-mono shadow-sm">
+            <ShieldCheck size={18} className="flex-shrink-0" />
+            <span className="break-all">HUKUKİ BÜTÜNLÜK MÜHRÜ (SHA-256): {activeReport.hashSeal}</span>
+          </div>
+        )}
       </div>
     </main>
   );

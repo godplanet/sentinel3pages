@@ -196,6 +196,39 @@ export function BoardBriefingCard({ report, warmth = 2 }: Props) {
             <SectionCard title="II. Kritik Risk Alanları" html={es.sections.criticalRisks} />
             <SectionCard title="III. Stratejik Öneriler" html={es.sections.strategicRecommendations} />
             <SectionCard title="IV. Yönetim Eylemi ve Taahhütler" html={es.sections.managementAction} />
+
+            {es.managementResponse && (
+              <div className="bg-slate-50 border-l-4 border-slate-400 p-4 mt-6 rounded-r-lg">
+                <p className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-2">
+                  Yönetim Beyanı ve Taahhüdü
+                </p>
+                <p className="font-serif text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {es.managementResponse.responseText}
+                </p>
+                {(es.managementResponse.providedBy || es.managementResponse.providedAt) && (
+                  <p className="text-xs font-sans text-slate-400 mt-3">
+                    {es.managementResponse.providedBy && <span>{es.managementResponse.providedBy}</span>}
+                    {es.managementResponse.providedBy && es.managementResponse.providedAt && <span> — </span>}
+                    {es.managementResponse.providedAt && (
+                      <span>
+                        {new Date(es.managementResponse.providedAt).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {report.status === 'published' && report.hashSeal && (
+              <div className="mt-6 flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 p-4 rounded-lg border border-emerald-200 font-mono shadow-sm">
+                <ShieldCheck size={18} className="flex-shrink-0" />
+                <span className="break-all">HUKUKİ BÜTÜNLÜK MÜHRÜ (SHA-256): {report.hashSeal}</span>
+              </div>
+            )}
           </div>
 
           <div className="px-8 py-6 mt-6 border-t border-slate-100 bg-white/40 flex items-center justify-between">

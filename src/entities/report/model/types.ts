@@ -214,6 +214,12 @@ export interface ExecutiveSummarySections {
   managementAction: string;
 }
 
+export interface ManagementResponse {
+  providedBy: string;
+  responseText: string;
+  providedAt: string;
+}
+
 export interface ExecutiveSummary {
   score: number;
   grade: string;
@@ -223,6 +229,7 @@ export interface ExecutiveSummary {
   findingCounts: ExecutiveSummaryFindingCounts;
   briefingNote: string;
   sections: ExecutiveSummarySections;
+  managementResponse?: ManagementResponse;
 }
 
 export interface ReportWorkflow {
@@ -308,6 +315,7 @@ export interface M6Report {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
+  hashSeal?: string;
 }
 
 // ─── END MODULE 6 ────────────────────────────────────────────────────────────

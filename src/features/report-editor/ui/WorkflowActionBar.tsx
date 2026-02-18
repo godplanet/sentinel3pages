@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<M6ReportStatus, string> = {
 };
 
 export function WorkflowActionBar() {
-  const { activeReport, changeReportStatus } = useActiveReportStore();
+  const { activeReport, changeReportStatus, publishReport } = useActiveReportStore();
   const [gateModal, setGateModal] = useState<{ open: boolean; targetStatus: M6ReportStatus | null }>({
     open: false,
     targetStatus: null,
@@ -41,7 +41,11 @@ export function WorkflowActionBar() {
 
   const handleGateConfirm = () => {
     if (!gateModal.targetStatus) return;
-    changeReportStatus(gateModal.targetStatus);
+    if (gateModal.targetStatus === 'published') {
+      publishReport();
+    } else {
+      changeReportStatus(gateModal.targetStatus);
+    }
     closeGate();
   };
 

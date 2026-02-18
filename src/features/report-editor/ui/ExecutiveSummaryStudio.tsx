@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Sparkles, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown, Minus, Braces, ChevronDown, UserCheck } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
-import type { ExecutiveSummarySections } from '@/entities/report';
+import type { ExecutiveSummarySections, ManagementResponse } from '@/entities/report';
+import { SmartVariableNode } from '@/features/report-editor/blocks/extensions/SmartVariableNode';
 
 function warmthToBg(w: number): string {
   const t = w / 10;
@@ -28,6 +29,12 @@ const AI_MOCK_SECTIONS: ExecutiveSummarySections = {
     '<p>Şube yönetimi, denetim bulgularını 18 Şubat 2026 tarihinde müzakere etmiş ve tüm yüksek öncelikli bulgular için eylem planı hazırlamayı kabul etmiştir. Aksiyon planları <strong>20 Şubat 2026</strong> tarihine kadar DenetimOS Aksiyon Yönetimi modülüne iletilecektir. Takip denetimi Mayıs 2026 döneminde planlanmaktadır. BDDK raporlama yükümlülükleri kapsamındaki bildirimler Uyum Birimi koordinasyonuyla yürütülecektir.</p>',
 };
 
+const SMART_VARIABLE_DEFS = [
+  { id: 'npl_ratio', label: 'NPL Oranı' },
+  { id: 'critical_findings_count', label: 'Kritik Bulgu Sayısı' },
+  { id: 'total_risk_exposure', label: 'Toplam Risk Maruziyeti' },
+];
+
 interface TiptapFieldProps {
   label: string;
   fieldKey: keyof ExecutiveSummarySections;
@@ -38,10 +45,14 @@ interface TiptapFieldProps {
 }
 
 function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, onChange }: TiptapFieldProps) {
+  const { smartVariables } = useActiveReportStore();
+  const [varDropOpen, setVarDropOpen] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder }),
+      SmartVariableNode,
     ],
     content,
     editable: !readOnly,
@@ -63,11 +74,53 @@ function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, 
     editor.setEditable(!readOnly);
   }, [readOnly, editor]);
 
+  const insertVariable = (id: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({ type: 'smartVariable', attrs: { id } }).run();
+    setVarDropOpen(false);
+  };
+
   return (
     <div className="mb-6">
-      <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-2">
-        {label}
-      </label>
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-slate-500">
+          {label}
+        </label>
+        {!readOnly && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setVarDropOpen((v) => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-sans font-medium border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              <Braces size={12} />
+              Değişken Ekle
+              <ChevronDown size={11} />
+            </button>
+            {varDropOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setVarDropOpen(false)} />
+                <div className="absolute right-0 top-full mt-1.5 bg-white rounded-xl border border-slate-200 shadow-xl z-20 w-52 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <p className="text-xs font-sans font-semibold text-slate-500 uppercase tracking-wider">Canlı Değişkenler</p>
+                  </div>
+                  {SMART_VARIABLE_DEFS.map(({ id, label: vLabel }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => insertVariable(id)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors"
+                    >
+                      <p className="text-xs font-sans font-semibold text-blue-700">{vLabel}</p>
+                      <p className="text-xs font-sans text-slate-500 mt-0.5">{String(smartVariables[id] ?? '—')}</p>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       <div
         className={`min-h-[120px] rounded-xl border px-4 py-3 font-serif text-slate-800 text-sm leading-relaxed transition-colors ${
           readOnly
@@ -102,6 +155,22 @@ interface ExecutiveSummaryStudioProps {
 export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: ExecutiveSummaryStudioProps) {
   const { activeReport, updateExecutiveSummary } = useActiveReportStore();
   const [aiLoading, setAiLoading] = useState(false);
+
+  const mgmtResponse = activeReport?.executiveSummary?.managementResponse;
+
+  const handleManagementResponseChange = useCallback(
+    (field: keyof ManagementResponse, value: string) => {
+      const current = activeReport?.executiveSummary?.managementResponse ?? {
+        providedBy: '',
+        responseText: '',
+        providedAt: new Date().toISOString().slice(0, 10),
+      };
+      updateExecutiveSummary({
+        managementResponse: { ...current, [field]: value },
+      });
+    },
+    [activeReport, updateExecutiveSummary],
+  );
 
   const es = activeReport?.executiveSummary;
   const paperBg = warmthToBg(warmth);
@@ -293,6 +362,51 @@ export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: Executi
               />
             </>
           )}
+        </div>
+
+        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mt-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <UserCheck size={16} className="text-slate-500" />
+            <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500">
+              Yönetim Beyanı (BDDK Gereği)
+            </h3>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs text-slate-500 font-sans mb-1">Beyanı Veren Yönetici</label>
+              <input
+                type="text"
+                value={mgmtResponse?.providedBy ?? ''}
+                disabled={readOnly}
+                onChange={(e) => handleManagementResponseChange('providedBy', e.target.value)}
+                placeholder="Ad Soyad – Unvan"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 font-sans mb-1">Beyan Tarihi</label>
+              <input
+                type="date"
+                value={mgmtResponse?.providedAt ?? new Date().toISOString().slice(0, 10)}
+                disabled={readOnly}
+                onChange={(e) => handleManagementResponseChange('providedAt', e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-500 font-sans mb-1">Yönetim Beyanı Metni</label>
+            <textarea
+              value={mgmtResponse?.responseText ?? ''}
+              disabled={readOnly}
+              onChange={(e) => handleManagementResponseChange('responseText', e.target.value)}
+              rows={4}
+              placeholder="Denetlenen birim yöneticisinin bulgu ve önerilere ilişkin resmi beyanı..."
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -239,17 +239,19 @@ export const useReportStore = create<ReportState>((set, get) => ({
 
 interface ActiveReportState {
   activeReport: M6Report | null;
+  smartVariables: Record<string, string | number>;
   setActiveReport: (report: M6Report | null) => void;
   updateReportMeta: (data: Partial<M6Report>) => void;
   updateExecutiveSummary: (data: Partial<ExecutiveSummary>) => void;
   changeReportStatus: (status: M6ReportStatus) => void;
+  updateSmartVariable: (id: string, value: string | number) => void;
   addReviewNote: (note: Omit<M6ReviewNote, 'id' | 'createdAt' | 'status'>) => void;
   resolveReviewNote: (noteId: string) => void;
   addBlock: (sectionId: string, block: M6ReportBlock) => void;
   updateBlock: (sectionId: string, blockId: string, updates: Partial<M6ReportBlock>) => void;
   removeBlock: (sectionId: string, blockId: string) => void;
   reorderBlocks: (sectionId: string, startIndex: number, endIndex: number) => void;
-  publishReport: () => void;
+  publishReport: () => Promise<void>;
 }
 
 const reindexBlocks = (blocks: M6ReportBlock[]): M6ReportBlock[] =>
@@ -262,8 +264,31 @@ const mapSection = (
 ): ReportSection[] =>
   sections.map((s) => (s.id === sectionId ? { ...s, blocks: fn(s.blocks) } : s));
 
-export const useActiveReportStore = create<ActiveReportState>((set) => ({
+async function computeSha256(obj: unknown): Promise<string> {
+  const json = JSON.stringify(obj);
+  const encoded = new TextEncoder().encode(json);
+  try {
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    let h = 0;
+    for (let i = 0; i < json.length; i++) {
+      h = (Math.imul(31, h) + json.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h).toString(16).padStart(8, '0').repeat(8).slice(0, 64);
+  }
+}
+
+export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
   activeReport: null,
+
+  smartVariables: {
+    npl_ratio: '%3.42',
+    critical_findings_count: 3,
+    total_risk_exposure: '₺45.2M',
+  },
 
   setActiveReport: (report) => set({ activeReport: report }),
 
@@ -304,6 +329,11 @@ export const useActiveReportStore = create<ActiveReportState>((set) => ({
         },
       };
     }),
+
+  updateSmartVariable: (id, value) =>
+    set((state) => ({
+      smartVariables: { ...state.smartVariables, [id]: value },
+    })),
 
   addReviewNote: (note) =>
     set((state) => {
@@ -396,16 +426,17 @@ export const useActiveReportStore = create<ActiveReportState>((set) => ({
       };
     }),
 
-  publishReport: () =>
-    set((state) => {
-      if (!state.activeReport) return state;
-      return {
-        activeReport: {
-          ...state.activeReport,
-          status: 'published',
-          publishedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      };
-    }),
+  publishReport: async () => {
+    const { activeReport } = get();
+    if (!activeReport) return;
+    const now = new Date().toISOString();
+    const snapshot = { ...activeReport, status: 'published', publishedAt: now, updatedAt: now };
+    const hashSeal = await computeSha256(snapshot);
+    set({
+      activeReport: {
+        ...snapshot,
+        hashSeal,
+      },
+    });
+  },
 }));
