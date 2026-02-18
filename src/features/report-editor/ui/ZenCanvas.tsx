@@ -4,6 +4,7 @@ import type { M6ReportBlock, TextBlock, FindingRefBlock, LiveChartBlock } from '
 import { LiveFindingRefBlock } from '@/features/report-editor/blocks/DynamicFindingsBlock';
 import { LiveChartBlockView } from '@/features/report-editor/blocks/RiskHeatmapBlock';
 import { TextBlockRenderer } from '@/features/report-editor/blocks/TextBlockRenderer';
+import { useCollaboration, type CollabContext, type PeerInfo } from '../hooks/useCollaboration';
 
 function warmthToBg(w: number): string {
   const t = w / 10;
@@ -13,33 +14,66 @@ function warmthToBg(w: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-interface BlockRendererProps {
-  block: M6ReportBlock;
-  readOnly: boolean;
+function PeerBlockBadge({ peers }: { peers: PeerInfo[] }) {
+  if (!peers.length) return null;
+  return (
+    <div className="absolute -right-2 top-0 flex flex-col gap-1 pointer-events-none">
+      {peers.map((peer, i) => (
+        <div
+          key={i}
+          className="w-2 h-2 rounded-full ring-1 ring-white shadow-sm"
+          style={{ backgroundColor: peer.color }}
+          title={peer.name}
+        />
+      ))}
+    </div>
+  );
 }
 
-function BlockRenderer({ block, readOnly }: BlockRendererProps) {
-  switch (block.type) {
-    case 'heading':
-    case 'paragraph':
-    case 'ai_summary':
-      return <TextBlockRenderer block={block as TextBlock} readOnly={readOnly} />;
-    case 'finding_ref':
-      return <LiveFindingRefBlock block={block as FindingRefBlock} />;
-    case 'live_chart':
-      return <LiveChartBlockView block={block as LiveChartBlock} />;
-    default:
-      return null;
-  }
+interface BlockRendererProps {
+  block: M6ReportBlock;
+  sectionId: string;
+  readOnly: boolean;
+  collabCtx?: CollabContext;
+  peers?: PeerInfo[];
+}
+
+function BlockRenderer({ block, sectionId, readOnly, collabCtx, peers = [] }: BlockRendererProps) {
+  const blockPeers = peers.filter((p) => p.activeBlockId === block.id);
+
+  const content = (() => {
+    switch (block.type) {
+      case 'heading':
+      case 'paragraph':
+      case 'ai_summary':
+        return <TextBlockRenderer block={block as TextBlock} sectionId={sectionId} readOnly={readOnly} collabCtx={collabCtx} />;
+      case 'finding_ref':
+        return <LiveFindingRefBlock block={block as FindingRefBlock} />;
+      case 'live_chart':
+        return <LiveChartBlockView block={block as LiveChartBlock} />;
+      default:
+        return null;
+    }
+  })();
+
+  return (
+    <div className="relative">
+      {content}
+      <PeerBlockBadge peers={blockPeers} />
+    </div>
+  );
 }
 
 interface ZenCanvasProps {
   readOnly?: boolean;
   warmth?: number;
+  externalCollabCtx?: CollabContext;
 }
 
-export function ZenCanvas({ readOnly = false, warmth = 2 }: ZenCanvasProps) {
+export function ZenCanvas({ readOnly = false, warmth = 2, externalCollabCtx }: ZenCanvasProps) {
   const { activeReport } = useActiveReportStore();
+  const ownCtx = useCollaboration(externalCollabCtx ? '' : (activeReport?.id ?? 'no-report'));
+  const collabCtx = externalCollabCtx ?? ownCtx;
 
   const paperBg = warmthToBg(warmth);
 
@@ -77,7 +111,14 @@ export function ZenCanvas({ readOnly = false, warmth = 2 }: ZenCanvasProps) {
                 .slice()
                 .sort((a, b) => a.orderIndex - b.orderIndex)
                 .map((block) => (
-                  <BlockRenderer key={block.id} block={block} readOnly={readOnly} />
+                  <BlockRenderer
+                    key={block.id}
+                    block={block}
+                    sectionId={section.id}
+                    readOnly={readOnly}
+                    collabCtx={collabCtx}
+                    peers={collabCtx.peers}
+                  />
                 ))}
             </div>
           </section>
@@ -104,3 +145,5 @@ export function ZenCanvas({ readOnly = false, warmth = 2 }: ZenCanvasProps) {
     </main>
   );
 }
+
+export type { CollabContext };

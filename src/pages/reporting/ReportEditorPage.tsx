@@ -15,6 +15,8 @@ import { ExecutiveSummaryStudio } from '@/features/report-editor/ui/ExecutiveSum
 import { BoardBriefingCard } from '@/features/report-editor/ui/BoardBriefingCard';
 import { WorkflowActionBar } from '@/features/report-editor/ui/WorkflowActionBar';
 import { ReviewNotesSidebar } from '@/features/report-editor/ui/ReviewNotesSidebar';
+import { useCollaboration } from '@/features/report-editor/hooks/useCollaboration';
+import { TraceabilityDrawer } from '@/widgets/TraceabilityDrawer';
 
 type TabId = 'executive' | 'canvas' | 'board';
 
@@ -173,6 +175,8 @@ export default function ReportEditorPage() {
   const [activeTab, setActiveTab] = useState<TabId>('executive');
   const [rightPanel, setRightPanel] = useState<'blocks' | 'notes'>('blocks');
   const [warmth, setWarmth] = useState(2);
+  const [traceabilityOpen, setTraceabilityOpen] = useState(false);
+  const collabCtx = useCollaboration(id ?? 'no-report');
 
   useEffect(() => {
     let cancelled = false;
@@ -239,7 +243,11 @@ export default function ReportEditorPage() {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-slate-100 print:h-auto print:overflow-visible">
-      <LiquidGlassToolbar />
+      <LiquidGlassToolbar
+        collabCtx={collabCtx}
+        traceabilityOpen={traceabilityOpen}
+        onTraceabilityToggle={() => setTraceabilityOpen((v) => !v)}
+      />
 
       {isLocked && (
         <div className="flex items-center justify-center gap-2 bg-amber-50 border-b border-amber-200 py-2 px-4 no-print">
@@ -288,7 +296,7 @@ export default function ReportEditorPage() {
               <SectionNavigator />
             </div>
             <div className="flex-1 min-w-0 overflow-y-auto pb-20">
-              <ZenCanvas readOnly={!isEditable} warmth={warmth} />
+              <ZenCanvas readOnly={!isEditable} warmth={warmth} externalCollabCtx={collabCtx} />
             </div>
             <div className="hidden sm:flex flex-col border-l border-slate-200 flex-shrink-0 w-56 xl:w-64">
               <div className="flex items-center bg-white border-b border-slate-200 px-2 py-1.5 gap-1">
@@ -343,6 +351,11 @@ export default function ReportEditorPage() {
       </div>
 
       <WorkflowActionBar />
+
+      <TraceabilityDrawer
+        open={traceabilityOpen}
+        onClose={() => setTraceabilityOpen(false)}
+      />
     </div>
   );
 }

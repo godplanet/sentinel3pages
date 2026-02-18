@@ -1,14 +1,19 @@
-import { useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { MessageSquare, Check, X, Zap } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import type { TextBlock } from '@/entities/report';
+import type { CollabContext } from '../hooks/useCollaboration';
 
 interface TextBlockRendererProps {
   block: TextBlock;
+  sectionId?: string;
   readOnly?: boolean;
+  collabCtx?: CollabContext;
 }
 
 interface CommentState {
@@ -27,26 +32,79 @@ const EMPTY_COMMENT: CommentState = {
   draft: '',
 };
 
-export function TextBlockRenderer({ block, readOnly = false }: TextBlockRendererProps) {
-  const { addReviewNote } = useActiveReportStore();
+const SAVE_DEBOUNCE_MS = 800;
+
+export function TextBlockRenderer({ block, sectionId = '', readOnly = false, collabCtx }: TextBlockRendererProps) {
+  const { addReviewNote, updateBlock } = useActiveReportStore();
   const [commentState, setCommentState] = useState<CommentState>(EMPTY_COMMENT);
   const [hasSelection, setHasSelection] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isCollabParagraph = block.type === 'paragraph' && !!collabCtx && !readOnly;
+
+  const buildExtensions = () => {
+    const base = [
+      StarterKit.configure({ history: isCollabParagraph ? false : undefined }),
+      Highlight.configure({ multicolor: true }),
+    ];
+
+    if (isCollabParagraph && collabCtx) {
+      base.push(
+        Collaboration.configure({
+          document: collabCtx.ydoc,
+          field: block.id,
+        }),
+      );
+      if (collabCtx.provider) {
+        base.push(
+          CollaborationCursor.configure({
+            provider: collabCtx.provider,
+            user: collabCtx.userMeta,
+          }),
+        );
+      }
+    }
+
+    return base;
+  };
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Highlight.configure({ multicolor: true }),
-    ],
-    content: block.content.html ?? '',
-    editable: false,
+    extensions: buildExtensions(),
+    content: isCollabParagraph ? undefined : (block.content.html ?? ''),
+    editable: isCollabParagraph,
     onSelectionUpdate: ({ editor: ed }) => {
       const { from, to } = ed.state.selection;
       setHasSelection(from !== to);
+      if (collabCtx) collabCtx.broadcastActiveBlock(from !== to ? block.id : null);
+    },
+    onUpdate: ({ editor: ed }) => {
+      if (!isCollabParagraph) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        updateBlock(
+          sectionId,
+          block.id,
+          { content: { ...block.content, html: ed.getHTML() } },
+        );
+      }, SAVE_DEBOUNCE_MS);
     },
   });
 
-  const handleOpenComment = () => {
+  useEffect(() => {
+    if (!editor || !isCollabParagraph || !collabCtx) return;
+    const fragment = collabCtx.ydoc.getXmlFragment(block.id);
+    if (!fragment.length && block.content.html) {
+      editor.commands.setContent(block.content.html ?? '');
+    }
+  }, [editor]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
+  const handleOpenComment = useCallback(() => {
     if (!editor) return;
     const { from, to } = editor.state.selection;
     if (from === to) return;
@@ -54,30 +112,29 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
     setCommentState({ active: true, selectedText, from, to, draft: '' });
     setHasSelection(false);
     setTimeout(() => inputRef.current?.focus(), 50);
-  };
+  }, [editor]);
 
-  const handleSaveComment = () => {
+  const handleSaveComment = useCallback(() => {
     if (!editor || !commentState.draft.trim()) return;
 
-    editor.setEditable(true);
+    const wasEditable = editor.isEditable;
+    if (!wasEditable) editor.setEditable(true);
     editor.chain()
       .setTextSelection({ from: commentState.from, to: commentState.to })
       .setHighlight({ color: '#FEF08A' })
       .run();
-    editor.setEditable(false);
+    if (!wasEditable) editor.setEditable(false);
 
     addReviewNote({
       blockId: block.id,
       selectedText: commentState.selectedText,
       comment: commentState.draft.trim(),
-      createdBy: 'Denetçi',
+      createdBy: collabCtx?.userMeta.name ?? 'Denetçi',
     });
     setCommentState(EMPTY_COMMENT);
-  };
+  }, [editor, commentState, addReviewNote, block.id, collabCtx]);
 
-  const handleCancelComment = () => {
-    setCommentState(EMPTY_COMMENT);
-  };
+  const handleCancelComment = useCallback(() => setCommentState(EMPTY_COMMENT), []);
 
   if (!editor) return null;
 
@@ -110,7 +167,16 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
 
   return (
     <div className="relative mb-4 group">
-      <div className="font-serif text-slate-700 leading-relaxed text-base [&_.highlight]:bg-amber-200 [&_.highlight]:rounded-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:cursor-text">
+      <div
+        className={
+          'font-serif text-slate-700 leading-relaxed text-base ' +
+          '[&_.highlight]:bg-amber-200 [&_.highlight]:rounded-sm ' +
+          '[&_.ProseMirror]:outline-none [&_.ProseMirror]:cursor-text ' +
+          (isCollabParagraph
+            ? '[&_.ProseMirror]:min-h-[2rem] [&_.ProseMirror]:focus:ring-0 '
+            : '')
+        }
+      >
         <EditorContent editor={editor} />
       </div>
 
@@ -152,10 +218,7 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
                   <X size={13} />
                 </button>
                 <button
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSaveComment();
-                  }}
+                  onMouseDown={(e) => { e.preventDefault(); handleSaveComment(); }}
                   disabled={!commentState.draft.trim()}
                   className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-sans font-semibold transition-colors"
                 >
@@ -170,3 +233,4 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
     </div>
   );
 }
+

@@ -1,9 +1,13 @@
-import { ArrowLeft, Sparkles, Download, Send, Zap } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Send, Zap, GitBranch, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import { useActiveReportStore } from '@/entities/report';
 import type { M6ReportStatus, FindingRefBlock } from '@/entities/report';
 import { useFindingStore } from '@/entities/finding/model/store';
+import { PresenceBar } from './PresenceBar';
+import type { CollabContext } from '../hooks/useCollaboration';
 
 const STATUS_CONFIG: Record<M6ReportStatus, { label: string; className: string }> = {
   draft:      { label: 'Taslak',         className: 'bg-slate-100 text-slate-600 border-slate-200' },
@@ -20,10 +24,45 @@ const SIMULATION_STATES = [
   { score: 18.3, severity: 'LOW' },
 ] as const;
 
-export function LiquidGlassToolbar() {
+interface LiquidGlassToolbarProps {
+  collabCtx?: CollabContext;
+  traceabilityOpen?: boolean;
+  onTraceabilityToggle?: () => void;
+}
+
+export function LiquidGlassToolbar({ collabCtx, traceabilityOpen, onTraceabilityToggle }: LiquidGlassToolbarProps) {
   const navigate = useNavigate();
   const { activeReport, publishReport } = useActiveReportStore();
   const updateFindingScore = useFindingStore((s) => s.updateFindingScore);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handlePdfExport = async () => {
+    if (!activeReport) return;
+    setPdfLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const url = `${supabaseUrl}/functions/v1/pdf-export?reportId=${activeReport.id}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${anonKey}`, Apikey: anonKey },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const objectUrl = URL.createObjectURL(blob);
+      const win = window.open(objectUrl, '_blank');
+      if (win) {
+        win.addEventListener('load', () => {
+          setTimeout(() => win.print(), 300);
+        });
+      }
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    } catch (err: any) {
+      toast.error('PDF oluşturulamadı: ' + (err?.message ?? 'Bilinmeyen hata'));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const statusCfg = activeReport
     ? STATUS_CONFIG[activeReport.status]
@@ -75,6 +114,13 @@ export function LiquidGlassToolbar() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {collabCtx && (
+            <>
+              <PresenceBar userMeta={collabCtx.userMeta} peers={collabCtx.peers} />
+              <div className="w-px h-5 bg-slate-200" />
+            </>
+          )}
+
           <button
             onClick={handleSimulate}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors"
@@ -86,16 +132,31 @@ export function LiquidGlassToolbar() {
 
           <div className="w-px h-5 bg-slate-200" />
 
+          <button
+            onClick={onTraceabilityToggle}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium transition-colors border',
+              traceabilityOpen
+                ? 'bg-amber-500 text-white border-amber-400 shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 border-transparent hover:border-slate-200',
+            )}
+            title="Altın İplik — İzlenebilirlik Zinciri"
+          >
+            <GitBranch size={15} />
+            <span className="hidden md:inline">Altın İplik</span>
+          </button>
+
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
             <Sparkles size={15} className="text-blue-500" />
             <span className="hidden md:inline">AI ile Özetle</span>
           </button>
 
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            onClick={handlePdfExport}
+            disabled={pdfLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors disabled:opacity-50"
           >
-            <Download size={15} />
+            {pdfLoading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             <span className="hidden md:inline">PDF İndir</span>
           </button>
 
