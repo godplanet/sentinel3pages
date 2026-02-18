@@ -1,90 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  FileText,
-  Plus,
-  Clock,
-  Eye,
-  CheckCircle,
-  ShieldCheck,
-  AlertCircle,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
-import clsx from 'clsx';
+import { FileText, Plus, Search, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/shared/api/supabase';
-import { PageHeader } from '@/shared/ui/PageHeader';
+import { TemplateSelectorModal } from '@/features/reporting/ui/TemplateSelectorModal';
+import { ReportFilterSidebar, type ReportFilters } from '@/features/reporting/ui/ReportFilterSidebar';
+import { ReportCard, type ReportCardData } from '@/features/reporting/ui/ReportCard';
 
-interface ReportRow {
-  id: string;
-  title: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  executive_summary: any;
-  hash_seal: string | null;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft:      { label: 'Taslak',      color: 'bg-slate-100 text-slate-700',    icon: Clock },
-  in_review:  { label: 'İncelemede',  color: 'bg-amber-100 text-amber-700',    icon: Eye },
-  cae_review: { label: 'CAE Onayı',   color: 'bg-blue-100 text-blue-700',      icon: AlertCircle },
-  published:  { label: 'Yayımlandı',  color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
-  archived:   { label: 'Arşiv',       color: 'bg-slate-200 text-slate-500',     icon: FileText },
+const DEFAULT_FILTERS: ReportFilters = {
+  year: 'Tüm Yıllar',
+  reportType: 'all',
+  riskLevel: 'all',
+  status: 'all',
 };
-
-function gradeStyle(grade?: string): { bg: string; text: string } {
-  if (!grade) return { bg: 'bg-slate-100', text: 'text-slate-500' };
-  if (grade === 'A+' || grade === 'A')   return { bg: 'bg-emerald-500', text: 'text-white' };
-  if (grade === 'B+' || grade === 'B')   return { bg: 'bg-amber-400',   text: 'text-white' };
-  if (grade === 'C')                     return { bg: 'bg-red-500',     text: 'text-white' };
-  if (grade === 'D')                     return { bg: 'bg-red-900',     text: 'text-white' };
-  return { bg: 'bg-slate-200', text: 'text-slate-700' };
-}
-
-async function createDraftReport(): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('m6_reports')
-    .insert({
-      title: 'Yeni Denetim Raporu',
-      status: 'draft',
-      theme_config: { paperStyle: 'zen_paper', typography: 'merriweather_inter' },
-      executive_summary: {
-        score: 0,
-        grade: 'N/A',
-        assuranceLevel: '',
-        trend: 0,
-        previousGrade: '',
-        findingCounts: { critical: 0, high: 0, medium: 0, low: 0, observation: 0 },
-        briefingNote: '',
-        sections: { auditOpinion: '', criticalRisks: '', strategicRecommendations: '', managementAction: '' },
-      },
-      workflow: {},
-    })
-    .select('id')
-    .maybeSingle();
-  if (error) throw error;
-  return data?.id ?? null;
-}
 
 export default function ReportLibraryPage() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<ReportRow[]>([]);
+  const [reports, setReports] = useState<ReportCardData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [search, setSearch] = useState('');
 
   const fetchReports = async () => {
     setLoading(true);
     setError(null);
     const { data, error: err } = await supabase
       .from('m6_reports')
-      .select('id, title, status, created_at, updated_at, executive_summary, hash_seal')
+      .select(
+        'id, title, status, report_type, risk_level, auditor_name, finding_count, created_at, executive_summary, hash_seal',
+      )
       .order('created_at', { ascending: false });
     if (err) {
       setError(err.message);
     } else {
-      setReports(data ?? []);
+      setReports((data ?? []) as ReportCardData[]);
     }
     setLoading(false);
   };
@@ -93,152 +43,157 @@ export default function ReportLibraryPage() {
     fetchReports();
   }, []);
 
-  const handleCreate = async () => {
-    setCreating(true);
-    try {
-      const id = await createDraftReport();
-      if (id) navigate(`/reporting/zen-editor/${id}`);
-    } catch (err: any) {
-      setError(err?.message ?? 'Rapor oluşturulamadı.');
-    } finally {
-      setCreating(false);
-    }
-  };
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    reports.forEach((r) => {
+      const t = r.report_type ?? 'blank';
+      counts[t] = (counts[t] ?? 0) + 1;
+    });
+    return counts;
+  }, [reports]);
 
-  const handleCardClick = (id: string) => {
-    navigate(`/reporting/zen-editor/${id}`);
-  };
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) => {
+      if (filters.reportType !== 'all') {
+        const type = r.report_type ?? 'blank';
+        if (type !== filters.reportType) return false;
+      }
+      if (filters.riskLevel !== 'all') {
+        if ((r.risk_level ?? 'medium') !== filters.riskLevel) return false;
+      }
+      if (filters.status !== 'all') {
+        if (r.status !== filters.status) return false;
+      }
+      if (filters.year !== 'Tüm Yıllar') {
+        const year = new Date(r.created_at).getFullYear().toString();
+        if (year !== filters.year) return false;
+      }
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const inTitle = r.title.toLowerCase().includes(q);
+        const inAuditor = (r.auditor_name ?? '').toLowerCase().includes(q);
+        if (!inTitle && !inAuditor) return false;
+      }
+      return true;
+    });
+  }, [reports, filters, search]);
+
+  const handleView = (id: string) => navigate(`/reporting/zen-editor/${id}`);
+  const handleEdit = (id: string) => navigate(`/reporting/zen-editor/${id}`);
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-      <PageHeader
-        title="Rapor Kütüphanesi"
-        description="Tüm denetim raporları, taslaklar ve yayımlanmış belgeler"
-        icon={FileText}
-        action={
+      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4 print:hidden">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <FileText size={18} className="text-slate-600" />
+            </div>
+            <div>
+              <h1 className="font-sans font-bold text-slate-900 text-lg leading-tight">
+                Rapor Kütüphanesi
+              </h1>
+              <p className="text-xs font-sans text-slate-500 mt-0.5">
+                Tüm denetim raporları, taslaklar ve yayımlanmış belgeler
+              </p>
+            </div>
+          </div>
+
           <button
-            onClick={handleCreate}
-            disabled={creating}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors font-sans font-medium text-sm disabled:opacity-60"
+            onClick={() => setTemplateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-sans font-semibold text-sm shadow-sm"
           >
-            {creating ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Plus size={16} />
-            )}
+            <Plus size={15} />
             Yeni Rapor Oluştur
           </button>
-        }
-      />
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {error && (
-          <div className="mb-6 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            <AlertCircle size={16} className="flex-shrink-0" />
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-48 bg-white rounded-2xl border border-slate-200 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <Sparkles size={48} className="text-slate-300 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Henüz rapor yok</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              İlk raporunuzu oluşturmak için butona tıklayın
-            </p>
-            <button
-              onClick={handleCreate}
-              disabled={creating}
-              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition-colors font-sans font-medium text-sm disabled:opacity-60"
-            >
-              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              Yeni Rapor Oluştur
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reports.map((report) => {
-              const statusCfg = STATUS_CONFIG[report.status] ?? STATUS_CONFIG.draft;
-              const StatusIcon = statusCfg.icon;
-              const grade = report.executive_summary?.grade;
-              const score = report.executive_summary?.score;
-              const gs = gradeStyle(grade);
-              const isPublished = report.status === 'published';
-
-              return (
-                <button
-                  key={report.id}
-                  onClick={() => handleCardClick(report.id)}
-                  className="group text-left bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-slate-400 hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-                >
-                  <div className="p-5 flex items-start justify-between gap-3 border-b border-slate-100">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-sans font-semibold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
-                        {report.title}
-                      </h3>
-                      <p className="text-xs font-sans text-slate-400 mt-1">
-                        {new Date(report.created_at).toLocaleDateString('tr-TR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
-
-                    {grade && grade !== 'N/A' ? (
-                      <div
-                        className={clsx(
-                          'flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center font-serif font-bold text-lg',
-                          gs.bg,
-                          gs.text,
-                        )}
-                      >
-                        {grade}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="px-5 py-3.5 flex items-center justify-between gap-3">
-                    <span
-                      className={clsx(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-sans font-semibold',
-                        statusCfg.color,
-                      )}
-                    >
-                      <StatusIcon size={11} />
-                      {statusCfg.label}
-                    </span>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {score != null && typeof score === 'number' && grade !== 'N/A' && (
-                        <span className="text-xs font-sans text-slate-400">
-                          {score.toFixed(1)}<span className="text-slate-300">/100</span>
-                        </span>
-                      )}
-
-                      {isPublished && report.hash_seal && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          <ShieldCheck size={10} />
-                          {report.hash_seal.slice(0, 8)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="mt-4 relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rapor ara... (başlık, açıklama, denetçi)"
+            className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-sans text-slate-700 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-colors"
+          />
+        </div>
       </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="print:hidden">
+          <ReportFilterSidebar
+            filters={filters}
+            onChange={setFilters}
+            typeCounts={typeCounts}
+            totalCount={reports.length}
+          />
+        </div>
+
+        <main className="flex-1 overflow-y-auto p-6">
+          {error && (
+            <div className="mb-6 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-sans">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 size={24} className="text-slate-400 animate-spin" />
+            </div>
+          ) : filteredReports.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+                <Sparkles size={28} className="text-slate-300" />
+              </div>
+              <h3 className="text-base font-sans font-semibold text-slate-700 mb-2">
+                {search || filters.reportType !== 'all' || filters.status !== 'all'
+                  ? 'Arama kriterlerine uyan rapor bulunamadı'
+                  : 'Henüz rapor yok'}
+              </h3>
+              <p className="text-sm font-sans text-slate-400 mb-6 max-w-xs">
+                {search || filters.reportType !== 'all' || filters.status !== 'all'
+                  ? 'Filtreleri değiştirmeyi veya arama terimini güncellemeyi deneyin.'
+                  : 'İlk raporunuzu bir şablonla oluşturmak için aşağıdaki butona tıklayın.'}
+              </p>
+              {!search && filters.reportType === 'all' && filters.status === 'all' && (
+                <button
+                  onClick={() => setTemplateModalOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-sans font-semibold text-sm"
+                >
+                  <Plus size={15} />
+                  Yeni Rapor Oluştur
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-sans text-slate-400 mb-4">
+                {filteredReports.length} rapor gösteriliyor
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredReports.map((report) => (
+                  <ReportCard
+                    key={report.id}
+                    report={report}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+
+      <TemplateSelectorModal
+        open={templateModalOpen}
+        onClose={() => setTemplateModalOpen(false)}
+      />
     </div>
   );
 }
