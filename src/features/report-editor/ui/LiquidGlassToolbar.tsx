@@ -1,8 +1,9 @@
-import { ArrowLeft, Sparkles, Download, Send } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Send, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
-import type { M6ReportStatus } from '@/entities/report';
+import type { M6ReportStatus, FindingRefBlock } from '@/entities/report';
+import { useFindingStore } from '@/entities/finding/model/store';
 
 const STATUS_CONFIG: Record<M6ReportStatus, { label: string; className: string }> = {
   draft:      { label: 'Taslak',     className: 'bg-slate-100 text-slate-600 border-slate-200' },
@@ -11,13 +12,37 @@ const STATUS_CONFIG: Record<M6ReportStatus, { label: string; className: string }
   archived:   { label: 'Arşivlendi', className: 'bg-slate-50 text-slate-400 border-slate-200' },
 };
 
+const SIMULATION_STATES = [
+  { score: 95.2, severity: 'CRITICAL' },
+  { score: 71.8, severity: 'HIGH' },
+  { score: 44.5, severity: 'MEDIUM' },
+  { score: 18.3, severity: 'LOW' },
+] as const;
+
 export function LiquidGlassToolbar() {
   const navigate = useNavigate();
   const { activeReport, publishReport } = useActiveReportStore();
+  const updateFindingScore = useFindingStore((s) => s.updateFindingScore);
 
   const statusCfg = activeReport
     ? STATUS_CONFIG[activeReport.status]
     : STATUS_CONFIG.draft;
+
+  const handleSimulate = () => {
+    if (!activeReport) return;
+    let targetId: string | null = null;
+    outer: for (const section of activeReport.sections) {
+      for (const block of section.blocks) {
+        if (block.type === 'finding_ref') {
+          targetId = (block as FindingRefBlock).content.findingId;
+          break outer;
+        }
+      }
+    }
+    if (!targetId) return;
+    const pick = SIMULATION_STATES[Math.floor(Math.random() * SIMULATION_STATES.length)];
+    updateFindingScore(targetId, pick.score, pick.severity);
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200 shadow-sm">
@@ -49,6 +74,17 @@ export function LiquidGlassToolbar() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handleSimulate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors"
+            title="Canlı veri bağını test etmek için bulgular üzerinde skor değişimi simüle eder"
+          >
+            <Zap size={14} className="text-amber-600" />
+            <span className="hidden md:inline">Simüle Et</span>
+          </button>
+
+          <div className="w-px h-5 bg-slate-200" />
+
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
             <Sparkles size={15} className="text-blue-500" />
             <span className="hidden md:inline">AI ile Özetle</span>

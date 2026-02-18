@@ -7,10 +7,13 @@
  * DESIGN STANDARD: Report Studio (Apple Glass / Remarkable Paper)
  */
 
-import { useEffect, useState } from 'react';
-import { RefreshCw, AlertCircle, Database } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { RefreshCw, AlertCircle, Database, Lock, ShieldAlert } from 'lucide-react';
 import { fetchFindingsByEngagement } from '@/entities/finding/api/supabase-api';
 import type { ComprehensiveFinding } from '@/entities/finding/model/types';
+import { useFindingStore } from '@/entities/finding/model/store';
+import { useActiveReportStore } from '@/entities/report';
+import type { FindingRefBlock } from '@/entities/report';
 
 interface DynamicFindingsBlockProps {
   engagementId?: string;
@@ -314,6 +317,152 @@ export function DynamicStatisticsBlock({ engagementId }: { engagementId?: string
         <div className="text-4xl font-bold text-emerald-700 mb-1">{stats.low}</div>
         <div className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Düşük</div>
       </div>
+    </div>
+  );
+}
+
+// ─── LIVE FINDING REF BLOCK (Faz 3 — Canlı Veri Bağı) ───────────────────────
+
+const SEVERITY_BORDER: Record<string, string> = {
+  CRITICAL: 'border-l-4 border-red-500',
+  HIGH: 'border-l-4 border-orange-500',
+  MEDIUM: 'border-l-4 border-amber-400',
+  LOW: 'border-l-4 border-emerald-500',
+  OBSERVATION: 'border-l-4 border-slate-400',
+};
+
+const SEVERITY_BADGE: Record<string, string> = {
+  CRITICAL: 'bg-red-50 text-red-700 ring-1 ring-red-200',
+  HIGH: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
+  MEDIUM: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  LOW: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+  OBSERVATION: 'bg-slate-50 text-slate-600 ring-1 ring-slate-200',
+};
+
+const SEVERITY_LABEL: Record<string, string> = {
+  CRITICAL: 'Kritik',
+  HIGH: 'Yüksek',
+  MEDIUM: 'Orta',
+  LOW: 'Düşük',
+  OBSERVATION: 'Gözlem',
+};
+
+const stripHtml = (html?: string): string => {
+  if (!html) return '';
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  return el.textContent || el.innerText || '';
+};
+
+export function LiveFindingRefBlock({ block }: { block: FindingRefBlock }) {
+  const findings = useFindingStore((s) => s.findings);
+  const activeReport = useActiveReportStore((s) => s.activeReport);
+
+  const finding = useMemo(
+    () => findings.find((f) => f.id === block.content.findingId),
+    [findings, block.content.findingId],
+  );
+
+  const isPublished = activeReport?.status === 'published';
+  const hasSnapshot = Boolean(block.snapshotData);
+
+  if (isPublished && hasSnapshot) {
+    return (
+      <div className="border border-slate-200 rounded-xl bg-white shadow-sm mb-4 overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border-b border-slate-100">
+          <Lock size={12} className="text-slate-400" />
+          <span className="text-xs font-sans text-slate-400 uppercase tracking-wider font-semibold">
+            Dondurulmuş Veri — Yayın Anı Fotoğrafı
+          </span>
+        </div>
+        <div className="p-5">
+          <p className="font-serif text-base text-slate-500 italic">
+            Bu blok yayın anında dondurulmuştur. Canlı bulgu verisi görüntülenemiyor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!finding) {
+    return (
+      <div className="flex items-start gap-3 border border-slate-200 rounded-xl bg-white p-5 mb-4 shadow-sm">
+        <ShieldAlert size={20} className="text-slate-400 mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="font-sans text-sm font-semibold text-slate-600">Bulgu Bulunamadı</p>
+          <p className="font-sans text-xs text-slate-400 mt-0.5">
+            Referans verilen bulgu (
+            <span className="font-mono">{block.content.findingId}</span>) sistemde bulunamadı.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const severityKey = (finding.severity ?? 'LOW').toUpperCase();
+  const borderClass = SEVERITY_BORDER[severityKey] ?? 'border-l-4 border-slate-300';
+  const badgeClass = SEVERITY_BADGE[severityKey] ?? 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
+  const severityLabel = SEVERITY_LABEL[severityKey] ?? severityKey;
+
+  const conditionText = stripHtml(finding.detection_html ?? finding.description);
+  const effectText = stripHtml(finding.impact_html ?? '');
+
+  return (
+    <div className={`${borderClass} border border-slate-200 rounded-r-xl bg-white shadow-sm mb-4 overflow-hidden`}>
+      <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+        <h3 className="font-serif text-lg font-bold text-slate-800 leading-snug flex-1">
+          {finding.title}
+        </h3>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {finding.impact_score != null && (
+            <span className="font-sans text-xs font-medium text-slate-500">
+              WIF{' '}
+              <span className="font-bold text-slate-900 text-sm">
+                {finding.impact_score.toFixed(1)}
+              </span>
+            </span>
+          )}
+          <span className={`font-sans text-xs font-semibold px-2.5 py-1 rounded-full ${badgeClass}`}>
+            {severityLabel}
+          </span>
+        </div>
+      </div>
+
+      <div className="px-5 pb-4 space-y-3">
+        {conditionText && (
+          <div>
+            <p className="font-sans text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
+              Mevcut Durum
+            </p>
+            <p className="font-serif text-sm text-slate-700 leading-relaxed line-clamp-4">
+              {conditionText}
+            </p>
+          </div>
+        )}
+        {effectText && (
+          <div>
+            <p className="font-sans text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">
+              Risk / Etki
+            </p>
+            <p className="font-serif text-sm text-slate-700 leading-relaxed line-clamp-4">
+              {effectText}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {!block.content.blindMode && (
+        <div className="bg-slate-50 border-t border-slate-100 px-5 py-4">
+          <p className="font-sans text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1.5">
+            Denetçi Notları (Gizli)
+          </p>
+          <p className="font-sans text-sm text-slate-700 leading-relaxed">
+            {finding.secrets?.internal_notes ??
+              finding.secrets?.root_cause_analysis_internal ??
+              'İç not mevcut değil.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,7 @@ interface FindingStore {
   deleteFinding: (id: string) => void;
   selectFinding: (id: string | null) => void;
   setLoading: (loading: boolean) => void;
+  updateFindingScore: (id: string, newScore: number, newSeverity: string) => void;
 
   // State Machine
   changeState: (id: string, newState: string) => void;
@@ -95,6 +96,17 @@ export const useFindingStore = create<FindingStore>((set) => ({
     })),
 
   setLoading: (loading) => set({ isLoading: loading }),
+
+  updateFindingScore: (id, newScore, newSeverity) =>
+    set((state) => ({
+      findings: state.findings.map((f) =>
+        f.id === id ? { ...f, impact_score: newScore, severity: newSeverity as any } : f
+      ),
+      selectedFinding:
+        state.selectedFinding?.id === id
+          ? { ...state.selectedFinding, impact_score: newScore, severity: newSeverity as any }
+          : state.selectedFinding,
+    })),
 
   changeState: (id, newState) =>
     set((state) => ({

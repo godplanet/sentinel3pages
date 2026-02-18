@@ -7,9 +7,12 @@
  * DESIGN STANDARD: Report Studio - Apple Glass / Remarkable Paper
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/shared/api/supabase';
-import { Loader2, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useFindingStore } from '@/entities/finding/model/store';
+import type { LiveChartBlock } from '@/entities/report';
 
 interface RiskEntity {
   entity_name: string;
@@ -280,6 +283,128 @@ export function RiskHeatmapBlock({
               {entities.filter((e) => e.risk_score >= 90).length}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LIVE CHART BLOCK VIEW (Faz 3 — Canlı Bulgu Dağılım Grafiği) ─────────────
+
+const CHART_COLORS: Record<string, string> = {
+  CRITICAL: '#ef4444',
+  HIGH: '#f97316',
+  MEDIUM: '#eab308',
+  LOW: '#10b981',
+  OBSERVATION: '#94a3b8',
+};
+
+const CHART_LABELS: Record<string, string> = {
+  CRITICAL: 'Kritik',
+  HIGH: 'Yüksek',
+  MEDIUM: 'Orta',
+  LOW: 'Düşük',
+  OBSERVATION: 'Gözlem',
+};
+
+const CHART_TITLE: Record<string, string> = {
+  risk_heatmap: 'Risk Dağılımı',
+  severity_distribution: 'Bulgu Önem Dağılımı',
+  wif_trend: 'WIF Trend Analizi',
+};
+
+export function LiveChartBlockView({ block }: { block: LiveChartBlock }) {
+  const findings = useFindingStore((s) => s.findings);
+
+  const data = useMemo(() => {
+    const groups: Record<string, number> = {
+      CRITICAL: 0,
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+      OBSERVATION: 0,
+    };
+    findings.forEach((f) => {
+      const key = (f.severity ?? 'LOW').toUpperCase();
+      if (key in groups) groups[key]++;
+    });
+    return Object.entries(groups)
+      .filter(([, count]) => count > 0)
+      .map(([key, count]) => ({
+        name: CHART_LABELS[key] ?? key,
+        value: count,
+        color: CHART_COLORS[key] ?? '#94a3b8',
+      }));
+  }, [findings]);
+
+  const total = data.reduce((acc, d) => acc + d.value, 0);
+
+  if (total === 0) {
+    return (
+      <div className="border border-dashed border-slate-300 bg-slate-50 rounded-xl p-8 flex items-center justify-center mb-4">
+        <p className="text-sm font-sans text-slate-400">Görüntülenecek bulgu verisi yok</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-slate-200 rounded-xl bg-white shadow-sm mb-4 overflow-hidden">
+      <div className="px-5 py-3 border-b border-slate-100">
+        <h4 className="font-sans text-sm font-semibold text-slate-700">
+          {CHART_TITLE[block.content.chartType] ?? 'Grafik'}
+        </h4>
+        <p className="font-sans text-xs text-slate-400 mt-0.5">Toplam {total} bulgu · Canlı veri</p>
+      </div>
+
+      <div className="p-4">
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={58}
+              outerRadius={88}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: number, name: string) => [`${value} bulgu`, name]}
+              contentStyle={{
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            />
+            <Legend
+              formatter={(value) => (
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#475569' }}>
+                  {value}
+                </span>
+              )}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+
+        <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-100 mt-1">
+          {data.map((d) => (
+            <div key={d.name} className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: d.color }}
+              />
+              <span className="font-sans text-xs text-slate-600">
+                {d.name}:{' '}
+                <strong className="text-slate-800">{d.value}</strong>
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
-import { BarChart2, Link2, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import type { M6ReportBlock, TextBlock, FindingRefBlock, LiveChartBlock } from '@/entities/report';
+import { LiveFindingRefBlock } from '@/features/report-editor/blocks/DynamicFindingsBlock';
+import { LiveChartBlockView } from '@/features/report-editor/blocks/RiskHeatmapBlock';
 
 function HeadingBlockView({ block }: { block: TextBlock }) {
   const level = block.content.level ?? 2;
@@ -38,48 +40,6 @@ function AISummaryBlockView({ block }: { block: TextBlock }) {
   );
 }
 
-function FindingRefBlockView({ block }: { block: FindingRefBlock }) {
-  const styleLabels = {
-    full_5c: 'Tam 5C Görünümü',
-    summary_card: 'Özet Kart',
-    table_row: 'Tablo Satırı',
-  };
-  return (
-    <div className="border-l-4 border-amber-500 bg-amber-50 p-4 mb-4 font-sans text-sm text-amber-900 rounded-r-lg">
-      <div className="flex items-center gap-2 mb-1">
-        <Link2 size={13} className="text-amber-600" />
-        <span className="font-semibold text-xs uppercase tracking-wider text-amber-700">
-          Canlı Bulgu Referansı
-        </span>
-        <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-          {styleLabels[block.content.displayStyle]}
-        </span>
-      </div>
-      <span className="font-mono text-amber-800 font-medium">{block.content.findingId}</span>
-      {block.content.blindMode && (
-        <span className="ml-2 text-xs text-amber-500">(Blind Mode)</span>
-      )}
-    </div>
-  );
-}
-
-function LiveChartBlockView({ block }: { block: LiveChartBlock }) {
-  const chartLabels = {
-    risk_heatmap: 'Risk Isı Haritası',
-    severity_distribution: 'Önem Dağılımı Grafiği',
-    wif_trend: 'WIF Trend Grafiği',
-  };
-  return (
-    <div className="border border-slate-300 bg-slate-50/80 p-8 mb-4 flex flex-col items-center justify-center font-sans text-slate-600 rounded-xl border-dashed gap-2">
-      <BarChart2 size={28} className="text-slate-400" />
-      <span className="text-sm font-medium text-slate-700">
-        {chartLabels[block.content.chartType]}
-      </span>
-      <span className="text-xs text-slate-400">Canlı veri bağlantısı aktif</span>
-    </div>
-  );
-}
-
 function BlockRenderer({ block }: { block: M6ReportBlock }) {
   switch (block.type) {
     case 'heading':
@@ -89,9 +49,9 @@ function BlockRenderer({ block }: { block: M6ReportBlock }) {
     case 'ai_summary':
       return <AISummaryBlockView block={block} />;
     case 'finding_ref':
-      return <FindingRefBlockView block={block} />;
+      return <LiveFindingRefBlock block={block as FindingRefBlock} />;
     case 'live_chart':
-      return <LiveChartBlockView block={block} />;
+      return <LiveChartBlockView block={block as LiveChartBlock} />;
     default:
       return null;
   }
