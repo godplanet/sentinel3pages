@@ -102,6 +102,18 @@ export interface MethodologyConfig {
   updated_at: string;
 }
 
+export type TalentBand = 'WEAK' | 'AVERAGE' | 'STRONG' | 'NO_DATA';
+
+export interface TalentAdjustment {
+  multiplier: number;
+  teamSkillAvg: number | null;
+  band: TalentBand;
+  label: string;
+  tooltip: string;
+  adjustedScore: number;
+  domainKeyword: string;
+}
+
 export interface FindingRiskInput {
   impact_financial: number;
   impact_legal: number;
@@ -115,6 +127,7 @@ export interface FindingRiskInput {
   shariah_vector?: ShariahVector;
   cyber_vector?: CyberVector;
   financial_vector?: FinancialVector;
+  talent_capability_multiplier?: number;
 }
 
 export interface RiskCalculationResult {
@@ -126,11 +139,13 @@ export interface RiskCalculationResult {
   vetoSource: 'jsonlogic' | 'legacy' | null;
   sla: SLAEntry | null;
   purificationAmount: number;
+  talentAdjustment?: TalentAdjustment;
   breakdown: {
     weightedImpact: number;
     likelihoodFactor: number;
     controlReduction: number;
     rawScore: number;
     assetMultiplier: number;
+    talentMultiplier?: number;
   };
 }

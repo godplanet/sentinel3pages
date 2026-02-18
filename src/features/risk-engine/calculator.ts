@@ -63,6 +63,20 @@ export class RiskEngine {
       }
     }
 
+    // ── GIAS Strategic Nexus: Talent Capability Modifier ──────────────────────
+    // talent_capability_multiplier is pre-computed by the caller via talent-nexus.ts.
+    // Range: 0.8 (strong-team discount) to 1.2 (weak-team penalty).
+    // Veto rules always take precedence; the modifier is NOT applied to vetoed scores.
+    const rawTalentMultiplier = finding.talent_capability_multiplier;
+    const talentMultiplier =
+      !vetoTriggered && rawTalentMultiplier !== undefined
+        ? Math.min(1.2, Math.max(0.8, rawTalentMultiplier))
+        : 1.0;
+
+    if (!vetoTriggered && talentMultiplier !== 1.0) {
+      score = Math.min(100, Math.max(0, Number((score * talentMultiplier).toFixed(2))));
+    }
+
     const threshold = this.classifyScore(score, severity_thresholds);
     const severityLabel = threshold?.label ?? 'Bilinmiyor';
     const sla = this.config.sla_config?.[severityLabel] ?? null;
@@ -78,11 +92,12 @@ export class RiskEngine {
       sla,
       purificationAmount,
       breakdown: {
-        weightedImpact: Number(weightedImpact.toFixed(4)),
+        weightedImpact:   Number(weightedImpact.toFixed(4)),
         likelihoodFactor: Number(likelihoodFactor.toFixed(4)),
         controlReduction: Number(controlReduction.toFixed(4)),
-        rawScore: Number(rawScore.toFixed(2)),
+        rawScore:         Number(rawScore.toFixed(2)),
         assetMultiplier,
+        talentMultiplier: talentMultiplier !== 1.0 ? talentMultiplier : undefined,
       },
     };
   }
