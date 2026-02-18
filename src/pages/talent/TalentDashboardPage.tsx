@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Zap, Award, Activity, ChevronRight, X, Send, AlertTriangle, DollarSign, ShieldCheck, Check, Loader2 } from 'lucide-react';
+import { Users, Zap, Award, Activity, ChevronRight, X, Send, AlertTriangle, DollarSign, ShieldCheck, Check, Loader2, RefreshCw, TrendingDown } from 'lucide-react';
 import { useTalentData, type TalentProfileEnriched } from '@/features/talent-os/hooks/useTalentData';
 import { AuditorProfileCard } from '@/features/talent-os/components/AuditorProfileCard';
 import { CompetencyRadar } from '@/features/talent-os/components/CompetencyRadar';
 import { updateHourlyRate } from '@/features/talent-os/api';
 import { formatCost } from '@/features/planning/lib/ResourceAllocator';
+import {
+  calculateAuditorDecay,
+  persistDecayResults,
+  buildDecayMap,
+  type AuditorDecaySummary,
+  type SkillDecayResult,
+} from '@/features/talent-os/lib/EntropyEngine';
 
 const KUDOS_CATEGORIES = [
   { value: 'QUALITY',      label: 'Kalite',     color: 'border-sky-500/40 bg-sky-500/10 text-sky-300' },
@@ -341,6 +348,27 @@ export default function TalentDashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [kudosTarget, setKudosTarget] = useState<TalentProfileEnriched | null>(null);
   const [adminMode, setAdminMode] = useState(false);
+  const [decayData, setDecayData] = useState<Map<string, AuditorDecaySummary>>(new Map());
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
+  const handleRefreshAnalytics = useCallback(async () => {
+    if (refreshing || profiles.length === 0) return;
+    setRefreshing(true);
+    try {
+      const newMap = new Map<string, AuditorDecaySummary>();
+      for (const profile of profiles) {
+        const skills = profile.skills as any[];
+        const summary = calculateAuditorDecay(profile.id, skills);
+        newMap.set(profile.id, summary);
+        await persistDecayResults(summary.skills);
+      }
+      setDecayData(newMap);
+      setLastRefreshed(new Date());
+    } finally {
+      setRefreshing(false);
+    }
+  }, [profiles, refreshing]);
 
   const selectedProfile = profiles.find((p) => p.id === selectedId) ?? null;
 
@@ -373,18 +401,54 @@ export default function TalentDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        <button
-          onClick={() => setAdminMode((v) => !v)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-            adminMode
-              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-              : 'bg-slate-800/60 border-white/8 text-slate-500 hover:border-white/20 hover:text-slate-400'
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          {adminMode ? 'Yönetici Modu Açık' : 'Yönetici Modu'}
-        </button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {decayData.size > 0 && (() => {
+          const allSummaries = Array.from(decayData.values());
+          const totalDecayed = allSummaries.reduce(
+            (sum, s) => sum + s.severeDecayCount + s.mildDecayCount, 0
+          );
+          const affectedAuditors = allSummaries.filter((s) => s.hasAnyDecay).length;
+          return (
+            <div className="flex items-center gap-2 px-3 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs">
+              <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
+              <span className="text-rose-300 font-medium">
+                {affectedAuditors} denetçide {totalDecayed} bozunan yetenek
+              </span>
+              {lastRefreshed && (
+                <span className="text-slate-500">
+                  · {lastRefreshed.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={handleRefreshAnalytics}
+            disabled={refreshing || loading}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+              refreshing
+                ? 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+                : 'bg-slate-800/60 border-white/8 text-slate-400 hover:border-sky-500/40 hover:text-sky-300 hover:bg-sky-500/10'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Analiz ediliyor...' : 'Analitikleri Yenile'}
+          </button>
+
+          <button
+            onClick={() => setAdminMode((v) => !v)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+              adminMode
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                : 'bg-slate-800/60 border-white/8 text-slate-500 hover:border-white/20 hover:text-slate-400'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {adminMode ? 'Yönetici Modu Açık' : 'Yönetici Modu'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -472,6 +536,11 @@ export default function TalentDashboardPage() {
                 <CompetencyRadar
                   profileName={selectedProfile.full_name}
                   snapshot={selectedProfile.skills_snapshot}
+                  decayMap={
+                    decayData.has(selectedProfile.id)
+                      ? buildDecayMap(decayData.get(selectedProfile.id)!)
+                      : undefined
+                  }
                 />
               </div>
             </motion.div>

@@ -6,54 +6,70 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
-  Legend,
   Tooltip,
+  Legend,
 } from 'recharts';
-import { Eye, EyeOff, GitCompare } from 'lucide-react';
+import { Eye, EyeOff, GitCompare, TrendingDown, AlertTriangle } from 'lucide-react';
 import type { SkillSnapshot } from '@/shared/types/talent';
+import type { SkillDecayResult } from '@/features/talent-os/lib/EntropyEngine';
 
 interface Props {
   profileName: string;
   snapshot: SkillSnapshot | null;
+  decayMap?: Record<string, SkillDecayResult>;
 }
 
 interface RadarDataPoint {
   skill: string;
   self: number;
   supervisor: number;
+  effective: number;
 }
 
-function buildRadarData(snapshot: SkillSnapshot | null): RadarDataPoint[] {
-  if (!snapshot?.radar_labels?.length) {
-    return [
-      { skill: 'Risk', self: 3, supervisor: 4 },
-      { skill: 'Kontrol', self: 3, supervisor: 3 },
-      { skill: 'Raporlama', self: 3, supervisor: 4 },
-      { skill: 'Analitik', self: 3, supervisor: 2 },
-      { skill: 'Mevzuat', self: 3, supervisor: 3 },
-    ];
-  }
+function buildRadarData(
+  snapshot: SkillSnapshot | null,
+  decayMap?: Record<string, SkillDecayResult>,
+): RadarDataPoint[] {
+  const fallback: RadarDataPoint[] = [
+    { skill: 'Risk',      self: 3, supervisor: 4, effective: 3 },
+    { skill: 'Kontrol',   self: 3, supervisor: 3, effective: 3 },
+    { skill: 'Raporlama', self: 3, supervisor: 4, effective: 3 },
+    { skill: 'Analitik',  self: 3, supervisor: 2, effective: 3 },
+    { skill: 'Mevzuat',   self: 3, supervisor: 3, effective: 3 },
+  ];
+
+  if (!snapshot?.radar_labels?.length) return fallback;
 
   return snapshot.radar_labels.map((label, i) => {
-    const selfVal = snapshot.radar_values[i] ?? 1;
-    const variation = Math.sin(label.length * 1.7) > 0 ? 1 : -1;
+    const selfVal       = snapshot.radar_values[i] ?? 1;
+    const variation     = Math.sin(label.length * 1.7) > 0 ? 1 : -1;
     const supervisorVal = Math.min(5, Math.max(1, selfVal + variation));
-    return { skill: label, self: selfVal, supervisor: supervisorVal };
+
+    const decayResult = decayMap?.[label];
+    const effectiveVal = decayResult
+      ? Math.min(selfVal, parseFloat(decayResult.effectiveScore.toFixed(2)))
+      : selfVal;
+
+    return { skill: label, self: selfVal, supervisor: supervisorVal, effective: effectiveVal };
   });
 }
 
-const CustomDot = (props: {
-  cx?: number;
-  cy?: number;
-  payload?: RadarDataPoint;
-  dataKey?: string;
-}) => {
+const CustomDot = (props: { cx?: number; cy?: number }) => {
   const { cx, cy } = props;
   if (cx === undefined || cy === undefined) return null;
   return <circle cx={cx} cy={cy} r={3} fill="#38bdf8" stroke="#0ea5e9" strokeWidth={1} />;
 };
 
-const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }> }) => {
+const DecayDot = (props: { cx?: number; cy?: number }) => {
+  const { cx, cy } = props;
+  if (cx === undefined || cy === undefined) return null;
+  return <circle cx={cx} cy={cy} r={3} fill="#f87171" stroke="#ef4444" strokeWidth={1} />;
+};
+
+const CustomTooltip = ({ active, payload }: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+}) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-slate-900/95 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-2 shadow-xl text-xs">
@@ -68,9 +84,24 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<
   );
 };
 
-export function CompetencyRadar({ profileName, snapshot }: Props) {
-  const [showSupervisor, setShowSupervisor] = useState(false);
-  const data = buildRadarData(snapshot);
+const DECAY_LEVEL_CONFIG = {
+  severe: { label: 'Ciddi Bozunma', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30', icon: '🔻' },
+  mild:   { label: 'Hafif Bozunma', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30', icon: '📉' },
+  none:   { label: 'Sağlıklı',      color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30', icon: '✓' },
+} as const;
+
+export function CompetencyRadar({ profileName, snapshot, decayMap }: Props) {
+  const [showSupervisor, setShowSupervisor]     = useState(false);
+  const [showDecayLayer, setShowDecayLayer]     = useState(true);
+  const [showDecayPanel, setShowDecayPanel]     = useState(false);
+
+  const data = buildRadarData(snapshot, decayMap);
+
+  const hasDecayData = !!decayMap && Object.keys(decayMap).length > 0;
+  const decayedSkills = hasDecayData
+    ? Object.values(decayMap!).filter((r) => r.decayLevel !== 'none')
+    : [];
+  const hasVisibleDecay = decayedSkills.length > 0;
 
   const gap = data.reduce((sum, d) => sum + Math.abs(d.self - d.supervisor), 0);
   const hasGap = gap > 0;
@@ -87,40 +118,58 @@ export function CompetencyRadar({ profileName, snapshot }: Props) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          {hasDecayData && (
+            <button
+              onClick={() => setShowDecayLayer((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                showDecayLayer
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                  : 'bg-slate-800/60 text-slate-400 border-white/8 hover:bg-slate-700/60 hover:text-white'
+              }`}
+            >
+              <TrendingDown className="w-3 h-3" />
+              Bozunma Katmanı
+            </button>
+          )}
+
           <button
             onClick={() => setShowSupervisor((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border
-              ${showSupervisor
-                ? 'bg-violet-500/20 text-violet-300 border-violet-500/40 hover:bg-violet-500/30'
-                : 'bg-slate-800/60 text-slate-400 border-white/8 hover:bg-slate-700/60 hover:text-white'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              showSupervisor
+                ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 hover:bg-sky-500/30'
+                : 'bg-slate-800/60 text-slate-400 border-white/8 hover:bg-slate-700/60 hover:text-white'
+            }`}
           >
             {showSupervisor ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            Süpervizör Görünümü
+            Süpervizör
           </button>
-
-          {showSupervisor && hasGap && (
-            <div className="text-[9px] text-slate-500 text-right">
-              Gap skoru: <span className="text-amber-400 font-mono font-bold">{gap}</span>
-            </div>
-          )}
         </div>
       </div>
+
+      {hasVisibleDecay && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+          <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+          <span className="text-[11px] text-rose-300 font-medium">
+            {decayedSkills.filter((s) => s.decayLevel === 'severe').length > 0
+              ? `${decayedSkills.filter((s) => s.decayLevel === 'severe').length} ciddi bozunma tespit edildi`
+              : `${decayedSkills.length} yetenek bozunuyor`}
+          </span>
+          <button
+            onClick={() => setShowDecayPanel((v) => !v)}
+            className="ml-auto text-[10px] text-rose-400 hover:text-rose-300 underline transition-colors"
+          >
+            {showDecayPanel ? 'Gizle' : 'Detay'}
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 min-h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} margin={{ top: 8, right: 20, bottom: 8, left: 20 }}>
-            <PolarGrid
-              gridType="polygon"
-              stroke="#1e293b"
-              strokeWidth={1}
-            />
+            <PolarGrid gridType="polygon" stroke="#1e293b" strokeWidth={1} />
             <PolarAngleAxis
               dataKey="skill"
-              tick={{
-                fill: '#94a3b8',
-                fontSize: 10,
-                fontFamily: 'sans-serif',
-              }}
+              tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'sans-serif' }}
               stroke="transparent"
             />
             <PolarRadiusAxis
@@ -153,21 +202,72 @@ export function CompetencyRadar({ profileName, snapshot }: Props) {
               dot={<CustomDot />}
             />
 
+            {hasDecayData && showDecayLayer && (
+              <Radar
+                name="Etkin Skor (Bozunma)"
+                dataKey="effective"
+                stroke="#f87171"
+                fill="#f87171"
+                fillOpacity={0.12}
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                dot={<DecayDot />}
+              />
+            )}
+
             <Tooltip content={<CustomTooltip />} />
 
-            {showSupervisor && (
+            {(showSupervisor || (hasDecayData && showDecayLayer)) && (
               <Legend
                 wrapperStyle={{ fontSize: 10, paddingTop: 8 }}
-                formatter={(value) => (
-                  <span style={{ color: '#94a3b8' }}>{value}</span>
-                )}
+                formatter={(value) => <span style={{ color: '#94a3b8' }}>{value}</span>}
               />
             )}
           </RadarChart>
         </ResponsiveContainer>
       </div>
 
-      {showSupervisor && (
+      {showDecayPanel && hasDecayData && (
+        <div className="mt-3 pt-3 border-t border-white/6">
+          <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mb-2">
+            Entropi Analizi
+          </p>
+          <div className="grid grid-cols-1 gap-1.5">
+            {Object.values(decayMap!).map((r) => {
+              const cfg = DECAY_LEVEL_CONFIG[r.decayLevel];
+              return (
+                <div
+                  key={r.skillId}
+                  className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 border ${cfg.bg}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px]">{cfg.icon}</span>
+                    <div>
+                      <span className="text-[11px] text-white font-medium">{r.skillName}</span>
+                      <span className="text-[10px] text-slate-500 ml-2">
+                        {r.daysInactive >= 9999 ? 'Hiç kullanılmadı' : `${r.daysInactive}g önce`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <span className="text-[11px] text-slate-400 font-mono">{r.originalScore.toFixed(1)}</span>
+                    {r.decayLevel !== 'none' && (
+                      <>
+                        <span className="text-[10px] text-slate-600 mx-1">→</span>
+                        <span className={`text-[11px] font-mono font-bold ${cfg.color}`}>
+                          {r.effectiveScore.toFixed(1)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showSupervisor && hasGap && !showDecayPanel && (
         <div className="mt-3 pt-3 border-t border-white/6">
           <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mb-2">
             Gap Analizi

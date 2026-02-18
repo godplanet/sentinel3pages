@@ -6,6 +6,7 @@ import type {
   CreateEngagementInput,
   UpdateEngagementDatesInput,
 } from './types';
+import { markSkillsUsedForEngagement } from '@/features/talent-os/lib/EntropyEngine';
 
 interface PlanningStore {
   plans: AuditPlan[];
@@ -102,6 +103,8 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
   },
 
   updateEngagementStatus: (engagementId, status) => {
+    const engagement = get().engagements.find((e) => e.id === engagementId);
+
     set((state) => ({
       engagements: state.engagements.map((eng) =>
         eng.id === engagementId
@@ -120,6 +123,13 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
           : eng
       ),
     }));
+
+    if (status === 'COMPLETED' && engagement?.assigned_auditor_id) {
+      markSkillsUsedForEngagement(
+        engagement.assigned_auditor_id,
+        engagement.audit_type,
+      ).catch(() => undefined);
+    }
   },
 
   updateActualHours: (engagementId, actualHours) => {

@@ -31,6 +31,10 @@ export interface TalentSkill {
   skill_name: string;
   proficiency_level: number;
   earned_xp: number;
+  last_used_date: string | null;
+  decay_factor: number;
+  effective_proficiency: number | null;
+  decay_applied_at: string | null;
   tenant_id: string;
   created_at: string;
   updated_at: string;
