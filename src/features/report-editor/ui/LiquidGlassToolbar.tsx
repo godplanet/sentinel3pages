@@ -1,5 +1,5 @@
-import { ArrowLeft, Sparkles, Download, Send, Zap, GitBranch, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Sparkles, Download, Send, Zap, GitBranch, Loader2, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import { useActiveReportStore } from '@/entities/report';
 import type { M6ReportStatus, FindingRefBlock } from '@/entities/report';
 import { useFindingStore } from '@/entities/finding/model/store';
 import { PresenceBar } from './PresenceBar';
+import { SearchPalette } from './SearchPalette';
 import type { CollabContext } from '../hooks/useCollaboration';
 
 const STATUS_CONFIG: Record<M6ReportStatus, { label: string; className: string }> = {
@@ -35,6 +36,18 @@ export function LiquidGlassToolbar({ collabCtx, traceabilityOpen, onTraceability
   const { activeReport, publishReport } = useActiveReportStore();
   const updateFindingScore = useFindingStore((s) => s.updateFindingScore);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handlePdfExport = async () => {
     if (!activeReport) return;
@@ -85,6 +98,8 @@ export function LiquidGlassToolbar({ collabCtx, traceabilityOpen, onTraceability
   };
 
   return (
+    <>
+    <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     <header className="no-print report-editor-toolbar sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200 shadow-sm">
       <div className="flex items-center justify-between h-14 px-4 gap-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -120,6 +135,18 @@ export function LiquidGlassToolbar({ collabCtx, traceabilityOpen, onTraceability
               <div className="w-px h-5 bg-slate-200" />
             </>
           )}
+
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-sans font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-transparent hover:border-slate-200"
+            title="Raporda ara (Cmd+K)"
+          >
+            <Search size={15} className="text-slate-500" />
+            <span className="hidden md:inline">Ara</span>
+            <kbd className="hidden lg:inline ml-1 px-1 py-0.5 text-[10px] font-mono bg-slate-100 border border-slate-200 rounded text-slate-400">⌘K</kbd>
+          </button>
+
+          <div className="w-px h-5 bg-slate-200" />
 
           <button
             onClick={handleSimulate}
@@ -176,5 +203,6 @@ export function LiquidGlassToolbar({ collabCtx, traceabilityOpen, onTraceability
         </div>
       </div>
     </header>
+    </>
   );
 }

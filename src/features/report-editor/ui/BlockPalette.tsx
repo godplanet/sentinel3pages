@@ -13,11 +13,12 @@ import {
   FileText,
   FolderPlus,
   Loader2,
+  TableProperties,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import { useFindingStore } from '@/entities/finding/model/store';
-import type { M6BlockType, M6ReportBlock, FindingRefBlock, TextBlock, LiveChartBlock } from '@/entities/report';
+import type { M6BlockType, M6ReportBlock, FindingRefBlock, TextBlock, LiveChartBlock, FinancialGridBlock } from '@/entities/report';
 import type { ComprehensiveFinding } from '@/entities/finding/model/types';
 
 interface PaletteItem {
@@ -34,6 +35,7 @@ const PALETTE_ITEMS: PaletteItem[] = [
   { type: 'paragraph', label: 'Paragraf', description: 'Zengin metin ve açıklama', icon: AlignLeft, iconColor: 'text-slate-600', bgColor: 'bg-slate-50' },
   { type: 'live_chart', label: 'Risk Isı Haritası', description: 'Canlı risk dağılım grafiği', icon: BarChart2, iconColor: 'text-blue-700', bgColor: 'bg-blue-50' },
   { type: 'ai_summary', label: 'AI Özeti', description: 'Sentinel Prime otomatik özet', icon: Sparkles, iconColor: 'text-blue-600', bgColor: 'bg-blue-50' },
+  { type: 'financial_grid', label: 'Finansal Tablo', description: 'Excel tarzı düzenlenebilir tablo', icon: TableProperties, iconColor: 'text-emerald-700', bgColor: 'bg-emerald-50' },
 ];
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -48,6 +50,17 @@ function buildBlock(type: M6BlockType): M6ReportBlock {
   if (type === 'heading') return { id, type: 'heading', orderIndex: 999, content: { html: '<h2>Yeni Başlık</h2>', level: 2 } } as TextBlock;
   if (type === 'ai_summary') return { id, type: 'ai_summary', orderIndex: 999, content: { html: '<p>Sentinel Prime AI özeti buraya gelecek...</p>' } } as TextBlock;
   if (type === 'live_chart') return { id, type: 'live_chart', orderIndex: 999, content: { chartType: 'severity_distribution', dataSourceFilter: {} } } as LiveChartBlock;
+  if (type === 'financial_grid') return {
+    id, type: 'financial_grid', orderIndex: 999,
+    content: {
+      columns: ['Kalem', 'Tutar (TL)', 'Bütçe (TL)'],
+      rows: [
+        { 'Kalem': 'Gelir', 'Tutar (TL)': '', 'Bütçe (TL)': '' },
+        { 'Kalem': 'Gider', 'Tutar (TL)': '', 'Bütçe (TL)': '' },
+        { 'Kalem': 'Net', 'Tutar (TL)': '', 'Bütçe (TL)': '' },
+      ],
+    },
+  } as FinancialGridBlock;
   return { id, type: 'paragraph', orderIndex: 999, content: { html: '<p>Yeni paragraf içeriğini buraya yazın...</p>' } } as TextBlock;
 }
 

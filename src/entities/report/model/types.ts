@@ -251,7 +251,8 @@ export type M6BlockType =
   | 'finding_ref'
   | 'live_chart'
   | 'dynamic_metric'
-  | 'ai_summary';
+  | 'ai_summary'
+  | 'financial_grid';
 
 export interface BaseBlock {
   id: string;
@@ -282,7 +283,15 @@ export interface LiveChartBlock extends BaseBlock {
   };
 }
 
-export type M6ReportBlock = TextBlock | FindingRefBlock | LiveChartBlock;
+export interface FinancialGridBlock extends BaseBlock {
+  type: 'financial_grid';
+  content: {
+    columns: string[];
+    rows: Record<string, string>[];
+  };
+}
+
+export type M6ReportBlock = TextBlock | FindingRefBlock | LiveChartBlock | FinancialGridBlock;
 
 export interface ReportSection {
   id: string;
