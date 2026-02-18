@@ -44,6 +44,7 @@ import ObjectivesPage from '@/pages/strategy/ObjectivesPage';
 import WorkpapersPage from '@/pages/execution/WorkpapersPage';
 import ReportLibraryPage from '@/pages/reporting/ReportLibraryPage';
 import ReportStudioPage from '@/pages/reporting/ReportStudioPage';
+import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
 import ReportViewerPage from '@/pages/reporting/ReportViewerPage';
 import TrendAnalysisPage from '@/pages/reporting/TrendAnalysisPage';
 import EntityScorecardPage from '@/pages/reporting/EntityScorecardPage';
@@ -169,6 +170,8 @@ export const AppRoutes = () => {
       <Route path="/monitoring/market" element={<ProtectedRoute><MarketMonitoringPage /></ProtectedRoute>} />
 
       <Route path="/reporting/library" element={<ProtectedRoute><ReportLibraryPage /></ProtectedRoute>} />
+      <Route path="/reporting/zen-editor" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
+      <Route path="/reporting/zen-editor/:id" element={<ProtectedRoute><ReportEditorPage /></ProtectedRoute>} />
 
       {/* REPORT STUDIO (New Universal Editor - Edit/View modes) */}
       <Route path="/reports/new" element={<ProtectedRoute><ReportStudioPage /></ProtectedRoute>} />

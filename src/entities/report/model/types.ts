@@ -195,6 +195,75 @@ export interface UpdateBlockData {
   content?: Partial<BlockContent>;
 }
 
+// ─── MODULE 6: Polymorphic Block Architecture ───────────────────────────────
+
+export type M6ReportStatus = 'draft' | 'in_review' | 'published' | 'archived';
+
+export interface ReportTheme {
+  paperStyle: 'zen_paper' | 'pure_white';
+  typography: 'merriweather_inter';
+}
+
+export type M6BlockType =
+  | 'heading'
+  | 'paragraph'
+  | 'finding_ref'
+  | 'live_chart'
+  | 'dynamic_metric'
+  | 'ai_summary';
+
+export interface BaseBlock {
+  id: string;
+  type: M6BlockType;
+  orderIndex: number;
+  snapshotData?: any | null;
+}
+
+export interface TextBlock extends BaseBlock {
+  type: 'heading' | 'paragraph' | 'ai_summary';
+  content: { html: string; level?: 1 | 2 | 3 };
+}
+
+export interface FindingRefBlock extends BaseBlock {
+  type: 'finding_ref';
+  content: {
+    findingId: string;
+    displayStyle: 'full_5c' | 'summary_card' | 'table_row';
+    blindMode: boolean;
+  };
+}
+
+export interface LiveChartBlock extends BaseBlock {
+  type: 'live_chart';
+  content: {
+    chartType: 'risk_heatmap' | 'severity_distribution' | 'wif_trend';
+    dataSourceFilter: Record<string, any>;
+  };
+}
+
+export type M6ReportBlock = TextBlock | FindingRefBlock | LiveChartBlock;
+
+export interface ReportSection {
+  id: string;
+  title: string;
+  orderIndex: number;
+  blocks: M6ReportBlock[];
+}
+
+export interface M6Report {
+  id: string;
+  engagementId: string;
+  title: string;
+  status: M6ReportStatus;
+  themeConfig: ReportTheme;
+  sections: ReportSection[];
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+}
+
+// ─── END MODULE 6 ────────────────────────────────────────────────────────────
+
 export type SignatureStatus = 'signed' | 'rejected' | 'signed_with_dissent';
 
 export type SignerRole = 'CREATOR' | 'MANAGER' | 'CAE';

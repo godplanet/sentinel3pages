@@ -1,4 +1,4 @@
-import type { Report, ReportBlock } from '../model/types';
+import type { Report, ReportBlock, M6Report } from '../model/types';
 
 const TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
@@ -216,6 +216,108 @@ export const mockReportBlocks: Record<string, ReportBlock[]> = {
       },
       created_at: '2026-02-01T09:05:00Z',
       updated_at: '2026-02-01T09:05:00Z',
+    },
+  ],
+};
+
+// ─── MODULE 6: Polymorphic Block Architecture Mock Data ──────────────────────
+
+export const mockReport: M6Report = {
+  id: 'report-m6-001',
+  engagementId: '10000000-0000-0000-0000-000000000003',
+  title: 'İstanbul Merkez Şube — 2026 Q1 Denetim Raporu',
+  status: 'draft',
+  themeConfig: { paperStyle: 'zen_paper', typography: 'merriweather_inter' },
+  createdAt: '2026-02-10T09:00:00Z',
+  updatedAt: '2026-02-15T14:30:00Z',
+  sections: [
+    {
+      id: 'sec-yonetici-ozeti',
+      title: 'Yönetici Özeti',
+      orderIndex: 0,
+      blocks: [
+        {
+          id: 'blk-yo-h1',
+          type: 'heading',
+          orderIndex: 0,
+          content: { html: '<h1>Yönetici Özeti</h1>', level: 1 },
+        },
+        {
+          id: 'blk-yo-p1',
+          type: 'paragraph',
+          orderIndex: 1,
+          content: {
+            html: '<p>2026 yılının ilk çeyreğinde gerçekleştirilen denetim faaliyetleri kapsamında toplam 12 denetim görevi tamamlanmış ve 23 bulgu tespit edilmiştir. Bulguların %35\'i yüksek ve kritik seviyede olup acil aksiyona ihtiyaç duymaktadır.</p>',
+          },
+        },
+        {
+          id: 'blk-yo-ai1',
+          type: 'ai_summary',
+          orderIndex: 2,
+          content: {
+            html: '<p>Sentinel Prime Analizi: Denetlenen dönemde operasyonel risk alanında yoğunlaşma gözlemlenmiş; kontrol etkinliği %62 olarak hesaplanmıştır. Kritik bulgu sayısı bir önceki çeyreğe kıyasla %40 artmıştır.</p>',
+          },
+        },
+        {
+          id: 'blk-yo-chart1',
+          type: 'live_chart',
+          orderIndex: 3,
+          content: {
+            chartType: 'severity_distribution',
+            dataSourceFilter: { quarter: 'Q1', year: 2026 },
+          },
+        },
+      ],
+    },
+    {
+      id: 'sec-detayli-bulgular',
+      title: 'Detaylı Bulgular',
+      orderIndex: 1,
+      blocks: [
+        {
+          id: 'blk-db-h1',
+          type: 'heading',
+          orderIndex: 0,
+          content: { html: '<h2>Detaylı Bulgular</h2>', level: 2 },
+        },
+        {
+          id: 'blk-db-p1',
+          type: 'paragraph',
+          orderIndex: 1,
+          content: {
+            html: '<p>Aşağıdaki bulgular, Modül 5 Bulgu Stüdyosu\'ndaki canlı kayıtlara bağlıdır. Rapor yayınlandığında veriler anlık olarak dondurulur (The Freezer mekanizması).</p>',
+          },
+        },
+        {
+          id: 'blk-db-fref1',
+          type: 'finding_ref',
+          orderIndex: 2,
+          content: {
+            findingId: 'find-001',
+            displayStyle: 'full_5c',
+            blindMode: false,
+          },
+        },
+        {
+          id: 'blk-db-fref2',
+          type: 'finding_ref',
+          orderIndex: 3,
+          content: {
+            findingId: 'find-002',
+            displayStyle: 'summary_card',
+            blindMode: false,
+          },
+        },
+        {
+          id: 'blk-db-chart1',
+          type: 'live_chart',
+          orderIndex: 4,
+          content: {
+            chartType: 'risk_heatmap',
+            dataSourceFilter: { engagementId: '10000000-0000-0000-0000-000000000003' },
+          },
+        },
+      ],
     },
   ],
 };

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Report, ReportBlock, ReportTemplate, ReportComment } from './types';
+import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, ReportSection } from './types';
 import { reportApi } from '../api';
 
 interface ReportState {
@@ -233,4 +233,115 @@ export const useReportStore = create<ReportState>((set, get) => ({
       error: null,
     });
   },
+}));
+
+// ─── MODULE 6: Active Report Store (Polymorphic Block Architecture) ──────────
+
+interface ActiveReportState {
+  activeReport: M6Report | null;
+  setActiveReport: (report: M6Report | null) => void;
+  updateReportMeta: (data: Partial<M6Report>) => void;
+  addBlock: (sectionId: string, block: M6ReportBlock) => void;
+  updateBlock: (sectionId: string, blockId: string, updates: Partial<M6ReportBlock>) => void;
+  removeBlock: (sectionId: string, blockId: string) => void;
+  reorderBlocks: (sectionId: string, startIndex: number, endIndex: number) => void;
+  publishReport: () => void;
+}
+
+const reindexBlocks = (blocks: M6ReportBlock[]): M6ReportBlock[] =>
+  blocks.map((b, i) => ({ ...b, orderIndex: i }));
+
+const mapSection = (
+  sections: ReportSection[],
+  sectionId: string,
+  fn: (blocks: M6ReportBlock[]) => M6ReportBlock[],
+): ReportSection[] =>
+  sections.map((s) => (s.id === sectionId ? { ...s, blocks: fn(s.blocks) } : s));
+
+export const useActiveReportStore = create<ActiveReportState>((set) => ({
+  activeReport: null,
+
+  setActiveReport: (report) => set({ activeReport: report }),
+
+  updateReportMeta: (data) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          ...data,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  addBlock: (sectionId, block) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
+            reindexBlocks([...blocks, block]),
+          ),
+        },
+      };
+    }),
+
+  updateBlock: (sectionId, blockId, updates) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
+            blocks.map((b) =>
+              b.id === blockId ? ({ ...b, ...updates } as M6ReportBlock) : b,
+            ),
+          ),
+        },
+      };
+    }),
+
+  removeBlock: (sectionId, blockId) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          sections: mapSection(state.activeReport.sections, sectionId, (blocks) =>
+            reindexBlocks(blocks.filter((b) => b.id !== blockId)),
+          ),
+        },
+      };
+    }),
+
+  reorderBlocks: (sectionId, startIndex, endIndex) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          sections: mapSection(state.activeReport.sections, sectionId, (blocks) => {
+            const result = [...blocks];
+            const [moved] = result.splice(startIndex, 1);
+            result.splice(endIndex, 0, moved);
+            return reindexBlocks(result);
+          }),
+        },
+      };
+    }),
+
+  publishReport: () =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          status: 'published',
+          publishedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
 }));
