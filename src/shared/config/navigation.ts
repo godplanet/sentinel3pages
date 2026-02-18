@@ -46,8 +46,9 @@ import {
   Zap,
   GitBranch,
   Database,
-  Sliders, // YENİ: Metodoloji ayarları için eklendi
-  GitMerge // YENİ: İş Akışı ayarları için eklendi
+  Sliders,
+  GitMerge,
+  PenLine,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -422,6 +423,12 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Rapor Kütüphanesi',
         path: '/reporting/library',
         icon: FileText,
+      },
+      {
+        id: 'zen-editor',
+        label: 'Zen Editör',
+        path: '/reporting/zen-editor',
+        icon: PenLine,
       },
       {
         id: 'entity-scorecard',

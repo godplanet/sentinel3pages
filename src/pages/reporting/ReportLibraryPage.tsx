@@ -82,11 +82,11 @@ export default function ReportLibraryPage() {
 
   const handleCreateReport = (templateId?: string) => {
     setShowTemplateModal(false);
-    navigate(`/reporting/editor/new${templateId ? `?template=${templateId}` : ''}`);
+    navigate(`/reporting/zen-editor${templateId ? `?template=${templateId}` : ''}`);
   };
 
   const handleReportClick = (reportId: string) => {
-    navigate(`/reporting/editor/${reportId}`);
+    navigate(`/reporting/zen-editor/${reportId}`);
   };
 
   const typeCounts = useMemo(() => {
@@ -364,7 +364,7 @@ export default function ReportLibraryPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-2 mt-3 pt-3 border-t border-slate-200">
                         <button
-                          onClick={() => navigate(`/reporting/view/${report.id}`)}
+                          onClick={() => navigate(`/reporting/zen-editor/${report.id}`)}
                           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                         >
                           <Eye size={16} />
