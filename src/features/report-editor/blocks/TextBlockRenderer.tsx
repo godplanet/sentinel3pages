@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import { MessageSquare, Check, X, Zap } from 'lucide-react';
@@ -31,6 +30,7 @@ const EMPTY_COMMENT: CommentState = {
 export function TextBlockRenderer({ block, readOnly = false }: TextBlockRendererProps) {
   const { addReviewNote } = useActiveReportStore();
   const [commentState, setCommentState] = useState<CommentState>(EMPTY_COMMENT);
+  const [hasSelection, setHasSelection] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const editor = useEditor({
@@ -40,6 +40,10 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
     ],
     content: block.content.html,
     editable: false,
+    onSelectionUpdate: ({ editor: ed }) => {
+      const { from, to } = ed.state.selection;
+      setHasSelection(from !== to);
+    },
   });
 
   const handleOpenComment = () => {
@@ -48,6 +52,7 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
     if (from === to) return;
     const selectedText = editor.state.doc.textBetween(from, to, ' ');
     setCommentState({ active: true, selectedText, from, to, draft: '' });
+    setHasSelection(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
@@ -76,11 +81,6 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
 
   if (!editor) return null;
 
-  const hasSelection = () => {
-    const { from, to } = editor.state.selection;
-    return from !== to && from > 0;
-  };
-
   if (block.type === 'heading') {
     const level = block.content.level ?? 2;
     const text = block.content.html.replace(/<[^>]+>/g, '');
@@ -106,80 +106,67 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
     );
   }
 
+  const showCommentBar = !readOnly && (hasSelection || commentState.active);
+
   return (
     <div className="relative mb-4 group">
-      {!readOnly && (
-        <BubbleMenu
-          editor={editor}
-          shouldShow={({ editor: ed }) => {
-            if (commentState.active) return true;
-            const { from, to } = ed.state.selection;
-            return from !== to;
-          }}
-          tippyOptions={{ duration: 100, placement: 'top-start' }}
-        >
-          <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-            {!commentState.active ? (
-              <button
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleOpenComment();
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors"
-                title="Seçili metne yorum ekle"
-              >
-                <MessageSquare size={13} className="text-amber-600" />
-                Yorum Ekle
-              </button>
-            ) : (
-              <div className="p-2 min-w-[260px]">
-                <p className="text-xs text-slate-500 font-sans mb-1.5 italic truncate">
-                  &ldquo;{commentState.selectedText}&rdquo;
-                </p>
-                <textarea
-                  ref={inputRef}
-                  value={commentState.draft}
-                  onChange={(e) => setCommentState((s) => ({ ...s, draft: e.target.value }))}
-                  placeholder="Yorumunuzu yazın..."
-                  rows={2}
-                  className="w-full text-xs font-sans border border-slate-300 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-amber-300"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveComment();
-                    if (e.key === 'Escape') handleCancelComment();
-                  }}
-                />
-                <div className="flex gap-1.5 mt-1.5 justify-end">
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); handleCancelComment(); }}
-                    className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                  >
-                    <X size={13} />
-                  </button>
-                  <button
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSaveComment();
-                    }}
-                    disabled={!commentState.draft.trim()}
-                    className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-sans font-semibold transition-colors"
-                  >
-                    <Check size={11} />
-                    Kaydet
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </BubbleMenu>
-      )}
-
-      <div
-        className={`font-serif text-slate-700 leading-relaxed text-base [&_.highlight]:bg-amber-200 [&_.highlight]:rounded-sm cursor-text ${
-          !readOnly && hasSelection() ? '' : ''
-        } [&_.ProseMirror]:outline-none [&_.ProseMirror]:cursor-text`}
-      >
+      <div className="font-serif text-slate-700 leading-relaxed text-base [&_.highlight]:bg-amber-200 [&_.highlight]:rounded-sm [&_.ProseMirror]:outline-none [&_.ProseMirror]:cursor-text">
         <EditorContent editor={editor} />
       </div>
+
+      {showCommentBar && (
+        <div className="mt-1.5 rounded-xl border border-slate-200 bg-white shadow-md overflow-hidden">
+          {!commentState.active ? (
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleOpenComment();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full"
+            >
+              <MessageSquare size={13} className="text-amber-600" />
+              Seçili Metne Yorum Ekle
+            </button>
+          ) : (
+            <div className="p-2">
+              <p className="text-xs text-slate-500 font-sans mb-1.5 italic truncate">
+                &ldquo;{commentState.selectedText}&rdquo;
+              </p>
+              <textarea
+                ref={inputRef}
+                value={commentState.draft}
+                onChange={(e) => setCommentState((s) => ({ ...s, draft: e.target.value }))}
+                placeholder="Yorumunuzu yazın..."
+                rows={2}
+                className="w-full text-xs font-sans border border-slate-300 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-amber-300"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveComment();
+                  if (e.key === 'Escape') handleCancelComment();
+                }}
+              />
+              <div className="flex gap-1.5 mt-1.5 justify-end">
+                <button
+                  onMouseDown={(e) => { e.preventDefault(); handleCancelComment(); }}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <X size={13} />
+                </button>
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSaveComment();
+                  }}
+                  disabled={!commentState.draft.trim()}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-sans font-semibold transition-colors"
+                >
+                  <Check size={11} />
+                  Kaydet
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
