@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, BookOpen, Layout, Monitor, MessageSquare, Plus } from 'lucide-react';
+import { Lock, BookOpen, Layout, Monitor, MessageSquare, Plus, Sun, Sunrise, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
 import { mockReport } from '@/entities/report/api/mock-data';
@@ -74,11 +74,95 @@ const FALLBACK_FINDINGS: ComprehensiveFinding[] = [
   },
 ];
 
+function WarmthControl({ warmth, onChange }: { warmth: number; onChange: (v: number) => void }) {
+  const [open, setOpen] = useState(false);
+
+  const warmthLabel = warmth === 0
+    ? 'Beyaz'
+    : warmth <= 3
+    ? 'Krem'
+    : warmth <= 6
+    ? 'Sıcak'
+    : 'Bej';
+
+  return (
+    <div className="fixed bottom-24 right-5 z-40 flex flex-col items-end gap-2">
+      {open && (
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-4 w-64 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sunrise size={15} className="text-slate-500" />
+              <span className="text-xs font-sans font-semibold text-slate-700">Kağıt Sıcaklığı</span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="p-0.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max="10"
+            step="1"
+            value={warmth}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-full h-2 bg-gradient-to-r from-slate-200 via-amber-100 to-amber-400 rounded-full appearance-none cursor-pointer
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+              [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-amber-300
+              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-amber-300"
+          />
+
+          <div className="flex items-center justify-between mt-2 text-xs">
+            <span className="text-slate-400">Beyaz</span>
+            <span className={clsx('font-semibold', warmth > 5 ? 'text-amber-600' : 'text-slate-600')}>
+              {warmthLabel}
+            </span>
+            <span className="text-amber-500">Bej</span>
+          </div>
+
+          <p className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+            {warmth === 0
+              ? 'Dijital beyaz — klasik ekran'
+              : warmth <= 3
+              ? 'Hafif krem — gündüz okuma'
+              : warmth <= 6
+              ? 'Orta sıcak — göz dostu'
+              : warmth <= 8
+              ? 'Sıcak bej — akşam okuma'
+              : 'Kindle modu — gece okuma'}
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Kağıt sıcaklığını ayarla"
+        className={clsx(
+          'w-10 h-10 rounded-full flex items-center justify-center shadow-lg border transition-all',
+          open
+            ? 'bg-amber-500 border-amber-400 text-white'
+            : warmth > 5
+            ? 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100'
+            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50',
+        )}
+      >
+        <Sun size={17} />
+      </button>
+    </div>
+  );
+}
+
 export default function ReportEditorPage() {
   const { activeReport, setActiveReport } = useActiveReportStore();
   const setFindings = useFindingStore((s) => s.setFindings);
   const [activeTab, setActiveTab] = useState<TabId>('executive');
   const [rightPanel, setRightPanel] = useState<'blocks' | 'notes'>('blocks');
+  const [warmth, setWarmth] = useState(2);
 
   useEffect(() => {
     setActiveReport(mockReport);
@@ -101,7 +185,7 @@ export default function ReportEditorPage() {
   const isEditable = !isLocked;
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-[#FDFBF7]">
+    <div className="h-screen overflow-hidden flex flex-col bg-slate-100">
       <LiquidGlassToolbar />
 
       {isLocked && (
@@ -113,14 +197,14 @@ export default function ReportEditorPage() {
         </div>
       )}
 
-      <div className="bg-white border-b border-slate-200 px-6 flex-shrink-0">
-        <div className="flex gap-1">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 flex-shrink-0 overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={clsx(
-                'flex items-center gap-2 px-4 py-3 text-sm font-sans font-medium border-b-2 transition-colors',
+                'flex items-center gap-2 px-4 py-3 text-sm font-sans font-medium border-b-2 transition-colors whitespace-nowrap',
                 activeTab === tab.id
                   ? 'border-blue-600 text-blue-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300',
@@ -133,18 +217,22 @@ export default function ReportEditorPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {activeTab === 'executive' && (
-          <ExecutiveSummaryStudio readOnly={!isEditable} />
+          <div className="h-full overflow-y-auto pb-20">
+            <ExecutiveSummaryStudio readOnly={!isEditable} warmth={warmth} />
+          </div>
         )}
 
         {activeTab === 'canvas' && (
           <div className="flex h-full overflow-hidden">
-            <SectionNavigator />
-            <div className="flex-1 overflow-y-auto">
-              <ZenCanvas readOnly={!isEditable} />
+            <div className="hidden lg:block flex-shrink-0">
+              <SectionNavigator />
             </div>
-            <div className="flex flex-col border-l border-slate-200 flex-shrink-0">
+            <div className="flex-1 min-w-0 overflow-y-auto pb-20">
+              <ZenCanvas readOnly={!isEditable} warmth={warmth} />
+            </div>
+            <div className="hidden sm:flex flex-col border-l border-slate-200 flex-shrink-0 w-56 xl:w-64">
               <div className="flex items-center bg-white border-b border-slate-200 px-2 py-1.5 gap-1">
                 {isEditable && (
                   <button
@@ -178,20 +266,25 @@ export default function ReportEditorPage() {
                   )}
                 </button>
               </div>
-              {rightPanel === 'blocks' && isEditable ? (
-                <BlockPalette />
-              ) : (
-                <ReviewNotesSidebar />
-              )}
+              <div className="flex-1 overflow-y-auto">
+                {rightPanel === 'blocks' && isEditable ? (
+                  <BlockPalette />
+                ) : (
+                  <ReviewNotesSidebar />
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'board' && activeReport && (
-          <BoardBriefingCard report={activeReport} />
+          <div className="h-full overflow-y-auto pb-20">
+            <BoardBriefingCard report={activeReport} warmth={warmth} />
+          </div>
         )}
       </div>
 
+      <WarmthControl warmth={warmth} onChange={setWarmth} />
       <WorkflowActionBar />
     </div>
   );

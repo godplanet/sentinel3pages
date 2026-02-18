@@ -1,8 +1,17 @@
 import { TrendingUp, TrendingDown, Minus, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import type { M6Report } from '@/entities/report';
 
+function warmthToBg(w: number): string {
+  const t = w / 10;
+  const r = Math.round(255 - 5 * t);
+  const g = Math.round(255 - 20 * t);
+  const b = Math.round(255 - 60 * t);
+  return `rgb(${r},${g},${b})`;
+}
+
 interface Props {
   report: M6Report;
+  warmth?: number;
 }
 
 function gradeStyle(grade: string): { bg: string; color: string } {
@@ -62,7 +71,7 @@ function SectionCard({ title, html }: SectionCardProps) {
   );
 }
 
-export function BoardBriefingCard({ report }: Props) {
+export function BoardBriefingCard({ report, warmth = 2 }: Props) {
   const { executiveSummary: es, title } = report;
 
   const currentGradeStyle = gradeStyle(es.grade);
@@ -70,11 +79,17 @@ export function BoardBriefingCard({ report }: Props) {
   const assStyle = assuranceStyle(es.assuranceLevel);
   const trendPositive = es.trend > 0;
   const trendNeutral = es.trend === 0;
+  const paperBg = warmthToBg(warmth);
 
   return (
-    <div className="bg-[#FDFBF7] min-h-screen py-10 px-6">
+    <div className="bg-slate-100 min-h-screen py-8 px-4 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div
+          className="rounded-sm border border-slate-200/60 overflow-hidden
+            shadow-[0_8px_48px_rgba(0,0,0,0.13),0_2px_12px_rgba(0,0,0,0.07)]
+            transition-colors duration-300"
+          style={{ backgroundColor: paperBg }}
+        >
           <div className="flex items-start justify-between px-8 pt-8 pb-6 border-b border-slate-100">
             <div>
               <p className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-400 mb-1">
@@ -94,14 +109,14 @@ export function BoardBriefingCard({ report }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-slate-100 border-b border-slate-100">
-            <div className="bg-[#fafafa] px-5 py-4 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-slate-200/50 border-b border-slate-100">
+            <div className="bg-white/70 px-5 py-4 text-center">
               <p className="text-xs text-slate-500 font-sans mb-1">Hassas Skor</p>
               <p className="text-2xl font-bold font-serif text-slate-900">{es.score.toFixed(1)}</p>
               <p className="text-xs text-slate-400 font-sans">/ 100</p>
             </div>
 
-            <div className="bg-[#fafafa] px-5 py-4 text-center">
+            <div className="bg-white/70 px-5 py-4 text-center">
               <p className="text-xs text-slate-500 font-sans mb-1">Trend</p>
               <div className="flex items-center justify-center gap-1">
                 {trendNeutral ? (
@@ -122,7 +137,7 @@ export function BoardBriefingCard({ report }: Props) {
               <p className="text-xs text-slate-400 font-sans">önceki döneme göre</p>
             </div>
 
-            <div className="bg-[#fafafa] px-5 py-4 text-center">
+            <div className="bg-white/70 px-5 py-4 text-center">
               <p className="text-xs text-slate-500 font-sans mb-1">Önceki Not</p>
               <span
                 className="inline-block rounded-lg px-3 py-1 text-lg font-bold font-serif"
@@ -133,7 +148,7 @@ export function BoardBriefingCard({ report }: Props) {
               <p className="text-xs text-slate-400 font-sans mt-1">{gradeLabel(es.previousGrade)}</p>
             </div>
 
-            <div className="bg-[#fafafa] px-5 py-4 text-center">
+            <div className="bg-white/70 px-5 py-4 text-center">
               <p className="text-xs text-slate-500 font-sans mb-1">Bulgu Sayısı</p>
               <p className="text-2xl font-bold font-serif text-slate-900">
                 {Object.values(es.findingCounts).reduce((a, b) => a + b, 0)}
@@ -141,7 +156,7 @@ export function BoardBriefingCard({ report }: Props) {
               <p className="text-xs text-slate-400 font-sans">toplam bulgu</p>
             </div>
 
-            <div className="bg-[#fafafa] px-5 py-4 text-center">
+            <div className="bg-white/70 px-5 py-4 text-center">
               <p className="text-xs text-slate-500 font-sans mb-2">Güvence Seviyesi</p>
               <span
                 className="inline-flex items-center rounded-lg px-3 py-1 text-xs font-sans font-semibold"
@@ -183,7 +198,7 @@ export function BoardBriefingCard({ report }: Props) {
             <SectionCard title="IV. Yönetim Eylemi ve Taahhütler" html={es.sections.managementAction} />
           </div>
 
-          <div className="px-8 py-6 mt-6 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
+          <div className="px-8 py-6 mt-6 border-t border-slate-100 bg-white/40 flex items-center justify-between">
             <p className="text-xs text-slate-400 font-sans">
               Bu belge Sentinel v3.0 tarafından oluşturulmuştur. GIAS 2024 · BDDK Uyumlu.
             </p>

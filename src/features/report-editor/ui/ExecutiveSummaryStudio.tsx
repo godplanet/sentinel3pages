@@ -6,6 +6,14 @@ import { Sparkles, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useActiveReportStore } from '@/entities/report';
 import type { ExecutiveSummarySections } from '@/entities/report';
 
+function warmthToBg(w: number): string {
+  const t = w / 10;
+  const r = Math.round(255 - 5 * t);
+  const g = Math.round(255 - 20 * t);
+  const b = Math.round(255 - 60 * t);
+  return `rgb(${r},${g},${b})`;
+}
+
 const GRADE_OPTIONS = ['A+', 'A', 'B+', 'B', 'C', 'D'];
 const ASSURANCE_OPTIONS = ['Tam Güvence', 'Kısmi Güvence', 'Güvence Verilmedi'];
 
@@ -63,7 +71,7 @@ function TiptapField({ label, fieldKey, content, placeholder, readOnly = false, 
       <div
         className={`min-h-[120px] rounded-xl border px-4 py-3 font-serif text-slate-800 text-sm leading-relaxed transition-colors ${
           readOnly
-            ? 'bg-[#FDFBF7] border-slate-200 cursor-not-allowed'
+            ? 'bg-white/60 border-slate-200 cursor-not-allowed'
             : 'bg-white border-slate-300 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-100'
         }`}
       >
@@ -88,13 +96,15 @@ function SkeletonBlock({ lines = 3 }: { lines?: number }) {
 
 interface ExecutiveSummaryStudioProps {
   readOnly?: boolean;
+  warmth?: number;
 }
 
-export function ExecutiveSummaryStudio({ readOnly = false }: ExecutiveSummaryStudioProps) {
+export function ExecutiveSummaryStudio({ readOnly = false, warmth = 2 }: ExecutiveSummaryStudioProps) {
   const { activeReport, updateExecutiveSummary } = useActiveReportStore();
   const [aiLoading, setAiLoading] = useState(false);
 
   const es = activeReport?.executiveSummary;
+  const paperBg = warmthToBg(warmth);
 
   const handleAIDraft = useCallback(async () => {
     setAiLoading(true);
@@ -117,166 +127,173 @@ export function ExecutiveSummaryStudio({ readOnly = false }: ExecutiveSummaryStu
   const trendNeutral = es.trend === 0;
 
   return (
-    <div className="max-w-3xl mx-auto py-10 px-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-slate-900">Yönetici Özeti Stüdyosu</h2>
-          <p className="text-sm text-slate-500 mt-1 font-sans">GIAS 2024 · Standart 2400 uyumlu</p>
+    <div className="min-h-full bg-slate-100 overflow-y-auto p-6 lg:p-10">
+      <div
+        className="max-w-5xl mx-auto rounded-sm
+          shadow-[0_8px_48px_rgba(0,0,0,0.13),0_2px_12px_rgba(0,0,0,0.07)]
+          ring-1 ring-slate-200/40 transition-colors duration-300 px-8 lg:px-14 py-10"
+        style={{ backgroundColor: paperBg }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-slate-900">Yönetici Özeti Stüdyosu</h2>
+            <p className="text-sm text-slate-500 mt-1 font-sans">GIAS 2024 · Standart 2400 uyumlu</p>
+          </div>
+          {!readOnly && (
+            <button
+              onClick={handleAIDraft}
+              disabled={aiLoading}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-sm font-sans font-semibold transition-colors shadow-sm flex-shrink-0"
+            >
+              <Sparkles size={16} />
+              {aiLoading ? 'Sentinel Prime Yazıyor...' : 'AI ile İlk Taslağı Oluştur'}
+            </button>
+          )}
         </div>
-        {!readOnly && (
-          <button
-            onClick={handleAIDraft}
-            disabled={aiLoading}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-sm font-sans font-semibold transition-colors shadow-sm"
-          >
-            <Sparkles size={16} />
-            {aiLoading ? 'Sentinel Prime Yazıyor...' : '✨ AI ile İlk Taslağı Oluştur'}
-          </button>
-        )}
-      </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
-        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
-          Skor ve Değerlendirme
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Güncel Skor</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              value={es.score}
-              disabled={readOnly}
-              onChange={(e) => updateExecutiveSummary({ score: parseFloat(e.target.value) || 0 })}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Not</label>
-            <select
-              value={es.grade}
-              disabled={readOnly}
-              onChange={(e) => updateExecutiveSummary({ grade: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
-            >
-              {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Önceki Not</label>
-            <select
-              value={es.previousGrade}
-              disabled={readOnly}
-              onChange={(e) => updateExecutiveSummary({ previousGrade: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
-            >
-              {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Trend (%)</label>
-            <div className="relative">
+        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
+          <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
+            Skor ve Değerlendirme
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Güncel Skor</label>
               <input
                 type="number"
+                min={0}
+                max={100}
                 step={0.1}
-                value={es.trend}
+                value={es.score}
                 disabled={readOnly}
-                onChange={(e) => updateExecutiveSummary({ trend: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed pr-8"
+                onChange={(e) => updateExecutiveSummary({ score: parseFloat(e.target.value) || 0 })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2">
-                {trendNeutral ? (
-                  <Minus size={14} className="text-slate-400" />
-                ) : trendPositive ? (
-                  <TrendingUp size={14} className="text-green-600" />
-                ) : (
-                  <TrendingDown size={14} className="text-red-500" />
-                )}
-              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Not</label>
+              <select
+                value={es.grade}
+                disabled={readOnly}
+                onChange={(e) => updateExecutiveSummary({ grade: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+              >
+                {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Önceki Not</label>
+              <select
+                value={es.previousGrade}
+                disabled={readOnly}
+                onChange={(e) => updateExecutiveSummary({ previousGrade: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+              >
+                {GRADE_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Trend (%)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step={0.1}
+                  value={es.trend}
+                  disabled={readOnly}
+                  onChange={(e) => updateExecutiveSummary({ trend: parseFloat(e.target.value) || 0 })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed pr-8 bg-white"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                  {trendNeutral ? (
+                    <Minus size={14} className="text-slate-400" />
+                  ) : trendPositive ? (
+                    <TrendingUp size={14} className="text-green-600" />
+                  ) : (
+                    <TrendingDown size={14} className="text-red-500" />
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Güvence Seviyesi</label>
+              <select
+                value={es.assuranceLevel}
+                disabled={readOnly}
+                onChange={(e) => updateExecutiveSummary({ assuranceLevel: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+              >
+                {ASSURANCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Güvence Seviyesi</label>
-            <select
-              value={es.assuranceLevel}
-              disabled={readOnly}
-              onChange={(e) => updateExecutiveSummary({ assuranceLevel: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-sans font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-slate-50 disabled:cursor-not-allowed"
-            >
-              {ASSURANCE_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8 shadow-sm">
-        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
-          YK Bilgilendirme Notu
-        </h3>
-        <textarea
-          value={es.briefingNote}
-          disabled={readOnly}
-          onChange={(e) => updateExecutiveSummary({ briefingNote: e.target.value })}
-          rows={3}
-          placeholder="Yönetim Kurulu'na iletilecek kısa özet notu..."
-          className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed"
-        />
-      </div>
+        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
+          <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-4">
+            YK Bilgilendirme Notu
+          </h3>
+          <textarea
+            value={es.briefingNote}
+            disabled={readOnly}
+            onChange={(e) => updateExecutiveSummary({ briefingNote: e.target.value })}
+            rows={3}
+            placeholder="Yönetim Kurulu'na iletilecek kısa özet notu..."
+            className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm font-sans text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none disabled:bg-slate-50 disabled:cursor-not-allowed bg-white"
+          />
+        </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-6">
-          Detaylı Bölümler
-        </h3>
+        <div className="bg-white/80 rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h3 className="text-xs font-sans font-semibold uppercase tracking-widest text-slate-500 mb-6">
+            Detaylı Bölümler
+          </h3>
 
-        {aiLoading ? (
-          <>
-            <SkeletonBlock lines={4} />
-            <SkeletonBlock lines={5} />
-            <SkeletonBlock lines={4} />
-            <SkeletonBlock lines={3} />
-          </>
-        ) : (
-          <>
-            <TiptapField
-              label="I. Denetim Görüşü"
-              fieldKey="auditOpinion"
-              content={es.sections.auditOpinion}
-              placeholder="Denetim görüşünüzü buraya yazın (GIAS 2400 çerçevesinde)..."
-              readOnly={readOnly}
-              onChange={handleSectionChange}
-            />
-            <TiptapField
-              label="II. Kritik Risk Alanları"
-              fieldKey="criticalRisks"
-              content={es.sections.criticalRisks}
-              placeholder="Kritik ve yüksek öncelikli risk tespitlerini açıklayın..."
-              readOnly={readOnly}
-              onChange={handleSectionChange}
-            />
-            <TiptapField
-              label="III. Stratejik Öneriler"
-              fieldKey="strategicRecommendations"
-              content={es.sections.strategicRecommendations}
-              placeholder="Yönetime yönelik stratejik tavsiyeler ve aksiyon önerilerini yazın..."
-              readOnly={readOnly}
-              onChange={handleSectionChange}
-            />
-            <TiptapField
-              label="IV. Yönetim Eylemi ve Taahhütler"
-              fieldKey="managementAction"
-              content={es.sections.managementAction}
-              placeholder="Yönetimin bulgulara verdiği yanıtlar ve taahhütleri belirtin..."
-              readOnly={readOnly}
-              onChange={handleSectionChange}
-            />
-          </>
-        )}
+          {aiLoading ? (
+            <>
+              <SkeletonBlock lines={4} />
+              <SkeletonBlock lines={5} />
+              <SkeletonBlock lines={4} />
+              <SkeletonBlock lines={3} />
+            </>
+          ) : (
+            <>
+              <TiptapField
+                label="I. Denetim Görüşü"
+                fieldKey="auditOpinion"
+                content={es.sections.auditOpinion}
+                placeholder="Denetim görüşünüzü buraya yazın (GIAS 2400 çerçevesinde)..."
+                readOnly={readOnly}
+                onChange={handleSectionChange}
+              />
+              <TiptapField
+                label="II. Kritik Risk Alanları"
+                fieldKey="criticalRisks"
+                content={es.sections.criticalRisks}
+                placeholder="Kritik ve yüksek öncelikli risk tespitlerini açıklayın..."
+                readOnly={readOnly}
+                onChange={handleSectionChange}
+              />
+              <TiptapField
+                label="III. Stratejik Öneriler"
+                fieldKey="strategicRecommendations"
+                content={es.sections.strategicRecommendations}
+                placeholder="Yönetime yönelik stratejik tavsiyeler ve aksiyon önerilerini yazın..."
+                readOnly={readOnly}
+                onChange={handleSectionChange}
+              />
+              <TiptapField
+                label="IV. Yönetim Eylemi ve Taahhütler"
+                fieldKey="managementAction"
+                content={es.sections.managementAction}
+                placeholder="Yönetimin bulgulara verdiği yanıtlar ve taahhütleri belirtin..."
+                readOnly={readOnly}
+                onChange={handleSectionChange}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
