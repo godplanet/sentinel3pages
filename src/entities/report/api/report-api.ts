@@ -75,6 +75,9 @@ function mapDbExecutiveSummary(dbSummary: any): ExecutiveSummary {
       managementAction: '',
     },
     managementResponse: dbSummary.managementResponse,
+    layoutType: dbSummary.layoutType ?? undefined,
+    dynamicMetrics: dbSummary.dynamicMetrics ?? undefined,
+    dynamicSections: dbSummary.dynamicSections ?? undefined,
   };
 }
 

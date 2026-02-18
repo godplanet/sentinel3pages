@@ -50,6 +50,7 @@ export function useCollaboration(reportId: string): CollabContext {
   }
 
   useEffect(() => {
+    if (!reportId) return;
     const ydoc = ydocRef.current!;
     let provider: WebrtcProvider | null = null;
 
