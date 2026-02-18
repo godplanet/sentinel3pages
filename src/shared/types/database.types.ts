@@ -124,3 +124,47 @@ export interface SystemIntegrationRow {
   created_at: string;
   updated_at: string;
 }
+
+export type {
+  SurveyTemplateRow,
+  SurveyAssignmentRow,
+  SurveyResponseRow,
+  SurveySchema,
+  SurveySection,
+  SurveyQuestion,
+  SurveyAnswer,
+  SurveyAnswers,
+  SurveyModule,
+  SurveyAssignmentStatus,
+  SurveyAssignmentWithTemplate,
+  SurveyAssignmentWithResponse,
+  FullSurveyContext,
+  CreateSurveyTemplateInput,
+  CreateSurveyAssignmentInput,
+  SubmitSurveyResponseInput,
+} from './survey';
+
+export type {
+  TalentProfileRow,
+  TalentSkillRow,
+  UserCertificationRow,
+  SuccessionPlanRow,
+  KudosTransactionRow,
+  QaipReviewExtendedRow,
+  SkillSnapshot,
+  SkillSnapshotEntry,
+  TalentProfileWithSkills,
+  SuccessionPlanWithProfiles,
+  KudosLeaderboardEntry,
+  BurnoutZone,
+  AuditorTitle,
+  CertificationStatus,
+  ReadinessLevel,
+  KudosCategory,
+  QaipReviewType,
+  QaipReviewStatus,
+  CreateUserCertificationInput,
+  CreateSuccessionPlanInput,
+  SendKudosInput,
+  UpdateSkillSnapshotInput,
+} from './talent';
