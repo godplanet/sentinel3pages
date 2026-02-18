@@ -18,6 +18,8 @@ export interface TalentProfile {
   active_hours_last_3_weeks: number;
   travel_load: number;
   is_available: boolean;
+  hourly_rate: number;
+  currency: string;
   tenant_id: string;
   created_at: string;
   updated_at: string;

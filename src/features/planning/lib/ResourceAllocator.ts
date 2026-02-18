@@ -1,5 +1,7 @@
 import type { TalentProfileWithSkills } from '@/features/talent-os/types';
 
+export type SortMode = 'best_match' | 'best_value';
+
 export interface AllocationResult {
   auditor: TalentProfileWithSkills;
   matchScore: number;
@@ -7,11 +9,16 @@ export interface AllocationResult {
   missingSkills: string[];
   blocked: boolean;
   blockReason?: string;
+  projectedCost: number;
+  currency: string;
+  valueRatio: number;
 }
 
 export interface AllocatorOptions {
   maxFatigueScore?: number;
   topN?: number;
+  estimatedHours?: number;
+  sortMode?: SortMode;
 }
 
 export interface TeamFatigueStats {
@@ -30,14 +37,20 @@ function scoreAuditor(
   auditor: TalentProfileWithSkills,
   requiredSkills: string[],
   maxFatigueScore: number,
+  estimatedHours: number,
 ): AllocationResult {
   const auditorSkillNames = auditor.skills.map((s) => s.skill_name.toLowerCase());
 
   const matched = requiredSkills.filter((req) =>
-    auditorSkillNames.some((s) => s.includes(req.toLowerCase()) || req.toLowerCase().includes(s)),
+    auditorSkillNames.some(
+      (s) => s.includes(req.toLowerCase()) || req.toLowerCase().includes(s),
+    ),
   );
-  const missing = requiredSkills.filter((req) =>
-    !auditorSkillNames.some((s) => s.includes(req.toLowerCase()) || req.toLowerCase().includes(s)),
+  const missing = requiredSkills.filter(
+    (req) =>
+      !auditorSkillNames.some(
+        (s) => s.includes(req.toLowerCase()) || req.toLowerCase().includes(s),
+      ),
   );
 
   const blocked = auditor.fatigue_score > maxFatigueScore || !auditor.is_available;
@@ -49,21 +62,28 @@ function scoreAuditor(
 
   const skillRatio = requiredSkills.length > 0 ? matched.length / requiredSkills.length : 1;
   const skillScore = skillRatio * 70;
-
   const fatigueHeadroom = Math.max(0, maxFatigueScore - auditor.fatigue_score);
   const fatigueScore = Math.min(20, (fatigueHeadroom / maxFatigueScore) * 20);
-
   const availabilityScore = auditor.is_available ? 10 : 0;
+  const rawMatchScore = Math.round(skillScore + fatigueScore + availabilityScore);
+  const matchScore = blocked ? Math.round(rawMatchScore * 0.4) : rawMatchScore;
 
-  const matchScore = Math.round(skillScore + fatigueScore + availabilityScore);
+  const hourlyRate = auditor.hourly_rate ?? 1500;
+  const projectedCost = Math.round(hourlyRate * estimatedHours);
+  const currency = auditor.currency ?? 'TRY';
+
+  const valueRatio = projectedCost > 0 ? parseFloat((matchScore / projectedCost * 10000).toFixed(4)) : 0;
 
   return {
     auditor,
-    matchScore: blocked ? matchScore * 0.4 : matchScore,
+    matchScore,
     matchedSkills: matched,
     missingSkills: missing,
     blocked,
     blockReason,
+    projectedCost,
+    currency,
+    valueRatio,
   };
 }
 
@@ -72,33 +92,61 @@ export function suggestAuditors(
   allAuditors: TalentProfileWithSkills[],
   options: AllocatorOptions = {},
 ): AllocationResult[] {
-  const { maxFatigueScore = 80, topN } = options;
+  const {
+    maxFatigueScore = 80,
+    topN,
+    estimatedHours = 0,
+    sortMode = 'best_match',
+  } = options;
 
-  const results = allAuditors.map((a) => scoreAuditor(a, requiredSkills, maxFatigueScore));
+  const results = allAuditors.map((a) =>
+    scoreAuditor(a, requiredSkills, maxFatigueScore, estimatedHours),
+  );
 
   results.sort((a, b) => {
     if (a.blocked !== b.blocked) return a.blocked ? 1 : -1;
+    if (sortMode === 'best_value') {
+      return b.valueRatio - a.valueRatio;
+    }
     return b.matchScore - a.matchScore;
   });
 
   return topN ? results.slice(0, topN) : results;
 }
 
-export function getTeamFatigueStats(auditors: TalentProfileWithSkills[]): TeamFatigueStats {
-  if (auditors.length === 0) return { average: 0, critical: 0, inGreenZone: 0 };
-
-  const total = auditors.reduce((sum, a) => sum + a.fatigue_score, 0);
-  const average = Math.round(total / auditors.length);
-  const critical = auditors.filter((a) => a.fatigue_score > 80).length;
-  const inGreenZone = auditors.filter((a) => a.burnout_zone === 'GREEN').length;
-
-  return { average, critical, inGreenZone };
+export function formatCost(amount: number, currency = 'TRY'): string {
+  if (currency === 'TRY') {
+    return `₺${amount.toLocaleString('tr-TR')}`;
+  }
+  if (currency === 'USD') {
+    return `$${amount.toLocaleString('en-US')}`;
+  }
+  if (currency === 'EUR') {
+    return `€${amount.toLocaleString('de-DE')}`;
+  }
+  return `${currency} ${amount.toLocaleString()}`;
 }
 
-export function getSkillGaps(
-  auditors: TalentProfileWithSkills[],
-  topN = 5,
-): SkillGap[] {
+export const HIGH_COST_THRESHOLD_TRY = 100_000;
+
+export function isHighCost(cost: number, currency = 'TRY'): boolean {
+  if (currency === 'TRY') return cost > HIGH_COST_THRESHOLD_TRY;
+  if (currency === 'USD') return cost > 3000;
+  if (currency === 'EUR') return cost > 2800;
+  return false;
+}
+
+export function getTeamFatigueStats(auditors: TalentProfileWithSkills[]): TeamFatigueStats {
+  if (auditors.length === 0) return { average: 0, critical: 0, inGreenZone: 0 };
+  const total = auditors.reduce((sum, a) => sum + a.fatigue_score, 0);
+  return {
+    average: Math.round(total / auditors.length),
+    critical: auditors.filter((a) => a.fatigue_score > 80).length,
+    inGreenZone: auditors.filter((a) => a.burnout_zone === 'GREEN').length,
+  };
+}
+
+export function getSkillGaps(auditors: TalentProfileWithSkills[], topN = 5): SkillGap[] {
   const allSkills = new Set(auditors.flatMap((a) => a.skills.map((s) => s.skill_name)));
   const gaps: SkillGap[] = [];
 

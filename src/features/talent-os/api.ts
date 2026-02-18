@@ -54,3 +54,16 @@ export async function fetchProfilesWithSkills(): Promise<TalentProfileWithSkills
     skills: skillsByAuditor.get(p.id) || [],
   }));
 }
+
+export async function updateHourlyRate(
+  auditorId: string,
+  hourlyRate: number,
+  currency = 'TRY',
+): Promise<void> {
+  const { error } = await supabase
+    .from('talent_profiles')
+    .update({ hourly_rate: hourlyRate, currency })
+    .eq('id', auditorId);
+
+  if (error) throw error;
+}

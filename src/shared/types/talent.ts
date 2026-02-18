@@ -44,6 +44,8 @@ export interface TalentProfileRow {
   travel_load: number;
   is_available: boolean;
   skills_snapshot: SkillSnapshot;
+  hourly_rate: number;
+  currency: string;
   tenant_id: string;
   created_at: string;
   updated_at: string;

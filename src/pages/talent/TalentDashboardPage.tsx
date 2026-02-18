@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Zap, Award, Activity, ChevronRight, X, Send, AlertTriangle } from 'lucide-react';
+import { Users, Zap, Award, Activity, ChevronRight, X, Send, AlertTriangle, DollarSign, ShieldCheck, Check, Loader2 } from 'lucide-react';
 import { useTalentData, type TalentProfileEnriched } from '@/features/talent-os/hooks/useTalentData';
 import { AuditorProfileCard } from '@/features/talent-os/components/AuditorProfileCard';
 import { CompetencyRadar } from '@/features/talent-os/components/CompetencyRadar';
+import { updateHourlyRate } from '@/features/talent-os/api';
+import { formatCost } from '@/features/planning/lib/ResourceAllocator';
 
 const KUDOS_CATEGORIES = [
   { value: 'QUALITY',      label: 'Kalite',     color: 'border-sky-500/40 bg-sky-500/10 text-sky-300' },
@@ -199,10 +201,146 @@ function KudosModal({ profiles, defaultReceiver, onClose }: KudosModalProps) {
   );
 }
 
+const CURRENCY_OPTIONS = ['TRY', 'USD', 'EUR'] as const;
+
+function HourlyRateRow({ profile, onSaved }: { profile: TalentProfileEnriched; onSaved: () => void }) {
+  const [rate, setRate] = useState<number>(profile.hourly_rate ?? 1500);
+  const [currency, setCurrency] = useState<string>(profile.currency ?? 'TRY');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const dirty = rate !== (profile.hourly_rate ?? 1500) || currency !== (profile.currency ?? 'TRY');
+
+  const handleSave = async () => {
+    if (!dirty) return;
+    try {
+      setSaving(true);
+      await updateHourlyRate(profile.id, rate, currency);
+      setSaved(true);
+      onSaved();
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // no-op
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const TITLE_COLORS: Record<string, string> = {
+    Expert:  'text-amber-400',
+    Manager: 'text-sky-400',
+    Senior:  'text-emerald-400',
+    Junior:  'text-slate-400',
+  };
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 hover:bg-white/3 transition-colors">
+      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+        {profile.full_name.charAt(0)}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-medium truncate">{profile.full_name}</p>
+        <p className={`text-[11px] font-semibold ${TITLE_COLORS[profile.title] ?? 'text-slate-400'}`}>
+          {profile.title}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="bg-slate-700 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-sky-500/50 transition-colors"
+        >
+          {CURRENCY_OPTIONS.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <input
+          type="number"
+          min={100}
+          max={50000}
+          step={100}
+          value={rate}
+          onChange={(e) => setRate(Math.max(100, parseFloat(e.target.value) || 100))}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          className="w-28 bg-slate-700 border border-white/10 text-white text-sm font-mono font-semibold rounded-lg px-3 py-1.5 text-right focus:outline-none focus:border-sky-500/50 transition-colors"
+        />
+
+        <button
+          onClick={handleSave}
+          disabled={!dirty || saving}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0 ${
+            saved
+              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+              : dirty
+                ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400 hover:bg-sky-500/30 cursor-pointer'
+                : 'bg-slate-700/50 border border-white/6 text-slate-600 cursor-not-allowed'
+          }`}
+        >
+          {saving ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : saved ? (
+            <Check className="w-3.5 h-3.5" />
+          ) : (
+            <DollarSign className="w-3.5 h-3.5" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HourlyRatePanel({ profiles, onRefresh }: { profiles: TalentProfileEnriched[]; onRefresh: () => void }) {
+  const totalBudget80h = profiles.reduce((sum, p) => sum + (p.hourly_rate ?? 1500) * 80, 0);
+  const avgRate = profiles.length
+    ? Math.round(profiles.reduce((sum, p) => sum + (p.hourly_rate ?? 1500), 0) / profiles.length)
+    : 0;
+
+  return (
+    <div className="bg-slate-900/60 border border-white/8 rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-amber-500/20 border border-amber-500/30 rounded-lg flex items-center justify-center">
+            <DollarSign className="w-4 h-4 text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm">Ücret Yönetimi</h3>
+            <p className="text-slate-500 text-[10px]">Yalnızca Yönetici & CAE rolü görebilir</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-right">
+          <div>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">Ort. Saat Ücreti</p>
+            <p className="text-white font-bold font-mono text-sm">{formatCost(avgRate)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">80 Saatlik Bütçe</p>
+            <p className="text-amber-300 font-bold font-mono text-sm">{formatCost(totalBudget80h)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {profiles.map((p) => (
+          <HourlyRateRow key={p.id} profile={p} onSaved={onRefresh} />
+        ))}
+      </div>
+
+      <div className="px-5 py-3 bg-slate-800/30 flex items-center gap-2 text-[11px] text-slate-500">
+        <ShieldCheck className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+        Ücret verileri şifrelenmiş olarak saklanır · Sadece yetkili kullanıcılar görüntüleyebilir
+      </div>
+    </div>
+  );
+}
+
 export default function TalentDashboardPage() {
-  const { profiles, loading, error, teamStats } = useTalentData();
+  const { profiles, loading, error, teamStats, refetch } = useTalentData();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [kudosTarget, setKudosTarget] = useState<TalentProfileEnriched | null>(null);
+  const [adminMode, setAdminMode] = useState(false);
 
   const selectedProfile = profiles.find((p) => p.id === selectedId) ?? null;
 
@@ -235,6 +373,20 @@ export default function TalentDashboardPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => setAdminMode((v) => !v)}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+            adminMode
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+              : 'bg-slate-800/60 border-white/8 text-slate-500 hover:border-white/20 hover:text-slate-400'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          {adminMode ? 'Yönetici Modu Açık' : 'Yönetici Modu'}
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           icon={Users}
@@ -326,6 +478,19 @@ export default function TalentDashboardPage() {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {adminMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+          >
+            <HourlyRatePanel profiles={profiles} onRefresh={refetch} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {kudosTarget && (
