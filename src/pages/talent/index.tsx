@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { PageHeader } from '@/shared/ui';
 import { TalentDashboard } from '@/widgets/TalentDashboard';
 import { SkillMatrix } from '@/widgets/SkillMatrix';
-import { Users, Award, GraduationCap, TrendingUp, Grid3x3 } from 'lucide-react';
+import TalentDashboardPage from './TalentDashboardPage';
+import { Users, Award, GraduationCap, TrendingUp, Grid3x3, Gamepad2 } from 'lucide-react';
 
 export default function TalentPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'skills'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'rpg'>('rpg');
 
   return (
     <div className="space-y-6">
@@ -67,10 +68,26 @@ export default function TalentPage() {
             <Grid3x3 className="w-4 h-4" />
             Yetenek Matrisi
           </button>
+          <button
+            onClick={() => setActiveTab('rpg')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'rpg'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Gamepad2 className="w-4 h-4" />
+            RPG Dashboard
+          </button>
         </div>
 
         {activeTab === 'overview' && <TalentDashboard />}
         {activeTab === 'skills' && <SkillMatrix />}
+        {activeTab === 'rpg' && (
+          <div className="rounded-2xl bg-slate-950 p-6 border border-slate-800">
+            <TalentDashboardPage />
+          </div>
+        )}
       </div>
     </div>
   );
