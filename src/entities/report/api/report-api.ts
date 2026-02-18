@@ -139,6 +139,21 @@ export async function fetchFirstDraftReport(): Promise<string | null> {
   return data?.id ?? null;
 }
 
+export async function createSectionDb(
+  reportId: string,
+  title: string,
+  orderIndex: number,
+): Promise<{ id: string; title: string; orderIndex: number }> {
+  const { data, error } = await supabase
+    .from('m6_report_sections')
+    .insert({ report_id: reportId, title, order_index: orderIndex })
+    .select('id, title, order_index')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Bölüm oluşturulamadı.');
+  return { id: data.id, title: data.title, orderIndex: data.order_index };
+}
+
 export async function updateReportMetaDb(reportId: string, payload: Record<string, any>): Promise<void> {
   const { error } = await supabase
     .from('m6_reports')

@@ -9,6 +9,7 @@ import {
   updateBlockOrdersDb,
   deleteBlockDb,
   publishReportApi,
+  createSectionDb,
 } from '../api/report-api';
 import { generateSHA256Hash } from '@/shared/lib/crypto';
 
@@ -260,6 +261,7 @@ interface ActiveReportState {
   updateSmartVariable: (id: string, value: string | number) => void;
   addReviewNote: (note: Omit<M6ReviewNote, 'id' | 'createdAt' | 'status'>) => void;
   resolveReviewNote: (noteId: string) => void;
+  addSection: (title: string) => Promise<string | null>;
   addBlock: (sectionId: string, block: M6ReportBlock) => void;
   updateBlock: (sectionId: string, blockId: string, updates: Partial<M6ReportBlock>) => void;
   removeBlock: (sectionId: string, blockId: string) => void;
@@ -395,6 +397,27 @@ export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
         },
       };
     }),
+
+  addSection: async (title) => {
+    const { activeReport } = get();
+    if (!activeReport) return null;
+    try {
+      const orderIndex = activeReport.sections.length;
+      const created = await createSectionDb(activeReport.id, title, orderIndex);
+      const newSection: ReportSection = { id: created.id, title: created.title, orderIndex: created.orderIndex, blocks: [] };
+      set({
+        activeReport: {
+          ...activeReport,
+          sections: [...activeReport.sections, newSection],
+          updatedAt: new Date().toISOString(),
+        },
+      });
+      return created.id;
+    } catch (err: any) {
+      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Bölüm oluşturulamadı.');
+      return null;
+    }
+  },
 
   addBlock: (sectionId, block) => {
     const { activeReport } = get();

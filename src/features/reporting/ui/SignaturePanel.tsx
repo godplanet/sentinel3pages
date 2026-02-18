@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, AlertTriangle, Lock, Shield, FileCheck, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { ReportSignature, SignatureStep } from '@/entities/report/model/types';
 import {
   getReportSignatures,
@@ -33,6 +34,8 @@ export function SignaturePanel({
   const [actionLoading, setActionLoading] = useState(false);
   const [showDissentModal, setShowDissentModal] = useState(false);
   const [dissentComment, setDissentComment] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [canSign, setCanSign] = useState(false);
   const [nextStep, setNextStep] = useState<SignatureStep | null>(null);
 
@@ -82,7 +85,7 @@ export function SignaturePanel({
       onStatusChange?.();
     } catch (error) {
       console.error('Error approving report:', error);
-      alert('Onaylama hatası: ' + (error as Error).message);
+      toast.error('Onaylama hatası: ' + (error as Error).message);
     } finally {
       setActionLoading(false);
     }
@@ -107,18 +110,20 @@ export function SignaturePanel({
       onStatusChange?.();
     } catch (error) {
       console.error('Error approving with dissent:', error);
-      alert('Şerhli onaylama hatası: ' + (error as Error).message);
+      toast.error('Şerhli onaylama hatası: ' + (error as Error).message);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = () => {
     if (!nextStep || !canSign) return;
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
 
-    const reason = prompt('Red nedeni:');
-    if (!reason) return;
-
+  const handleRejectConfirm = async () => {
+    if (!nextStep || !canSign || !rejectReason.trim()) return;
     try {
       setActionLoading(true);
       await rejectReport(
@@ -127,13 +132,15 @@ export function SignaturePanel({
         nextStep.role,
         nextStep.title,
         nextStep.order_index,
-        reason
+        rejectReason
       );
+      setShowRejectModal(false);
+      setRejectReason('');
       await loadSignatures();
       onStatusChange?.();
     } catch (error) {
       console.error('Error rejecting report:', error);
-      alert('Red hatası: ' + (error as Error).message);
+      toast.error('Red hatası: ' + (error as Error).message);
     } finally {
       setActionLoading(false);
     }
@@ -389,6 +396,63 @@ export function SignaturePanel({
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showRejectModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowRejectModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <X size={18} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Raporu Reddet</h3>
+                  <p className="text-xs text-slate-500">Red nedeninizi belirtin</p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Red Nedeni:</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Örn: Bulgular yeterince belgelenmiş değil, ek inceleme gerekiyor..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  rows={4}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRejectModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-semibold text-sm hover:bg-slate-200 transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={!rejectReason.trim() || actionLoading}
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+                  Reddet
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showDissentModal && (

@@ -26,19 +26,23 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className={cn(
-      "flex min-h-screen bg-background text-foreground font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden transition-colors duration-500",
+      "flex min-h-screen bg-background text-foreground font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden transition-colors duration-500 print:overflow-visible",
       isVDI && "perf-low"
     )}>
-      <Sidebar />
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
 
       <main className={cn(
         "flex-1 flex flex-col relative min-w-0 transition-all duration-300",
         isSidebarOpen ? "ml-64 print:ml-0" : "ml-20 print:ml-0"
       )}>
-        <Header />
+        <div className="print:hidden">
+          <Header />
+        </div>
 
-        <div className="flex-1 overflow-auto px-4 py-5 lg:px-6 relative scroll-smooth">
-          <div className="relative z-10 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex-1 overflow-auto px-4 py-5 lg:px-6 relative scroll-smooth print:overflow-visible print:p-0">
+          <div className="relative z-10 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 print:animate-none">
             {children}
           </div>
         </div>
