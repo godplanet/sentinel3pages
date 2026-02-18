@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
 import { mockReport } from '@/entities/report/api/mock-data';
 import { useFindingStore } from '@/entities/finding/model/store';
+import { fetchFindingsByEngagement } from '@/entities/finding/api/supabase-api';
 import type { ComprehensiveFinding } from '@/entities/finding/model/types';
 import { LiquidGlassToolbar } from '@/features/report-editor/ui/LiquidGlassToolbar';
 import { SectionNavigator } from '@/features/report-editor/ui/SectionNavigator';
@@ -22,7 +23,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'board', label: 'YK Sunumu', icon: <Monitor size={15} /> },
 ];
 
-const MOCK_FINDINGS: ComprehensiveFinding[] = [
+const FALLBACK_FINDINGS: ComprehensiveFinding[] = [
   {
     id: 'find-001',
     tenant_id: 'mock-tenant',
@@ -81,7 +82,15 @@ export default function ReportEditorPage() {
 
   useEffect(() => {
     setActiveReport(mockReport);
-    setFindings(MOCK_FINDINGS);
+    const engagementId = mockReport.engagementId;
+    (async () => {
+      try {
+        const data = await fetchFindingsByEngagement(engagementId);
+        setFindings(data.length > 0 ? data : FALLBACK_FINDINGS);
+      } catch {
+        setFindings(FALLBACK_FINDINGS);
+      }
+    })();
     return () => {
       setActiveReport(null);
     };
