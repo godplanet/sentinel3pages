@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, BookOpen, Layout, Monitor } from 'lucide-react';
+import { Lock, BookOpen, Layout, Monitor, MessageSquare, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { useActiveReportStore } from '@/entities/report';
 import { mockReport } from '@/entities/report/api/mock-data';
@@ -12,6 +12,7 @@ import { BlockPalette } from '@/features/report-editor/ui/BlockPalette';
 import { ExecutiveSummaryStudio } from '@/features/report-editor/ui/ExecutiveSummaryStudio';
 import { BoardBriefingCard } from '@/features/report-editor/ui/BoardBriefingCard';
 import { WorkflowActionBar } from '@/features/report-editor/ui/WorkflowActionBar';
+import { ReviewNotesSidebar } from '@/features/report-editor/ui/ReviewNotesSidebar';
 
 type TabId = 'executive' | 'canvas' | 'board';
 
@@ -76,6 +77,7 @@ export default function ReportEditorPage() {
   const { activeReport, setActiveReport } = useActiveReportStore();
   const setFindings = useFindingStore((s) => s.setFindings);
   const [activeTab, setActiveTab] = useState<TabId>('executive');
+  const [rightPanel, setRightPanel] = useState<'blocks' | 'notes'>('blocks');
 
   useEffect(() => {
     setActiveReport(mockReport);
@@ -133,7 +135,46 @@ export default function ReportEditorPage() {
             <div className="flex-1 overflow-y-auto">
               <ZenCanvas readOnly={!isEditable} />
             </div>
-            {isEditable && <BlockPalette />}
+            <div className="flex flex-col border-l border-slate-200 flex-shrink-0">
+              <div className="flex items-center bg-white border-b border-slate-200 px-2 py-1.5 gap-1">
+                {isEditable && (
+                  <button
+                    onClick={() => setRightPanel('blocks')}
+                    className={clsx(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans font-medium transition-colors',
+                      rightPanel === 'blocks'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-500 hover:bg-slate-100',
+                    )}
+                  >
+                    <Plus size={12} />
+                    Bloklar
+                  </button>
+                )}
+                <button
+                  onClick={() => setRightPanel('notes')}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans font-medium transition-colors',
+                    rightPanel === 'notes'
+                      ? 'bg-amber-500 text-white'
+                      : 'text-slate-500 hover:bg-slate-100',
+                  )}
+                >
+                  <MessageSquare size={12} />
+                  Notlar
+                  {(activeReport?.reviewNotes ?? []).filter((n) => n.status === 'open').length > 0 && (
+                    <span className="ml-0.5 bg-amber-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                      {(activeReport?.reviewNotes ?? []).filter((n) => n.status === 'open').length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              {rightPanel === 'blocks' && isEditable ? (
+                <BlockPalette />
+              ) : (
+                <ReviewNotesSidebar />
+              )}
+            </div>
           </div>
         )}
 

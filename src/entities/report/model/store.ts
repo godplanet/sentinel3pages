@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, M6ReportStatus, ReportSection, ExecutiveSummary } from './types';
+import type { Report, ReportBlock, ReportTemplate, ReportComment, M6Report, M6ReportBlock, M6ReportStatus, M6ReviewNote, ReportSection, ExecutiveSummary } from './types';
 import { reportApi } from '../api';
 
 interface ReportState {
@@ -243,6 +243,8 @@ interface ActiveReportState {
   updateReportMeta: (data: Partial<M6Report>) => void;
   updateExecutiveSummary: (data: Partial<ExecutiveSummary>) => void;
   changeReportStatus: (status: M6ReportStatus) => void;
+  addReviewNote: (note: Omit<M6ReviewNote, 'id' | 'createdAt' | 'status'>) => void;
+  resolveReviewNote: (noteId: string) => void;
   addBlock: (sectionId: string, block: M6ReportBlock) => void;
   updateBlock: (sectionId: string, blockId: string, updates: Partial<M6ReportBlock>) => void;
   removeBlock: (sectionId: string, blockId: string) => void;
@@ -298,6 +300,40 @@ export const useActiveReportStore = create<ActiveReportState>((set) => ({
         activeReport: {
           ...state.activeReport,
           ...data,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  addReviewNote: (note) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      const newNote: M6ReviewNote = {
+        ...note,
+        id: `rnote-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      };
+      return {
+        activeReport: {
+          ...state.activeReport,
+          reviewNotes: [...(state.activeReport.reviewNotes ?? []), newNote],
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
+  resolveReviewNote: (noteId) =>
+    set((state) => {
+      if (!state.activeReport) return state;
+      return {
+        activeReport: {
+          ...state.activeReport,
+          reviewNotes: (state.activeReport.reviewNotes ?? []).map((n) =>
+            n.id === noteId
+              ? { ...n, status: 'resolved' as const, resolvedAt: new Date().toISOString() }
+              : n,
+          ),
           updatedAt: new Date().toISOString(),
         },
       };

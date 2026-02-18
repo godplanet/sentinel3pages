@@ -284,6 +284,17 @@ export interface ReportSection {
   blocks: M6ReportBlock[];
 }
 
+export interface M6ReviewNote {
+  id: string;
+  blockId: string;
+  selectedText: string;
+  comment: string;
+  status: 'open' | 'resolved';
+  createdBy: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 export interface M6Report {
   id: string;
   engagementId: string;
@@ -293,6 +304,7 @@ export interface M6Report {
   sections: ReportSection[];
   executiveSummary: ExecutiveSummary;
   workflow: ReportWorkflow;
+  reviewNotes?: M6ReviewNote[];
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
