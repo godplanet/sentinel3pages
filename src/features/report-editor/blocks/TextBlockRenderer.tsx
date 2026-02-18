@@ -38,7 +38,7 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
       StarterKit,
       Highlight.configure({ multicolor: true }),
     ],
-    content: block.content.html,
+    content: block.content.html ?? '',
     editable: false,
     onSelectionUpdate: ({ editor: ed }) => {
       const { from, to } = ed.state.selection;
@@ -83,7 +83,7 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
 
   if (block.type === 'heading') {
     const level = block.content.level ?? 2;
-    const text = block.content.html.replace(/<[^>]+>/g, '');
+    const text = (block.content.html ?? '').replace(/<[^>]+>/g, '');
     if (level === 1) return <h1 className="font-serif text-3xl font-bold mb-6 text-slate-900">{text}</h1>;
     if (level === 2) return <h2 className="font-serif text-2xl font-bold mb-4 text-slate-800">{text}</h2>;
     return <h3 className="font-serif text-xl font-semibold mb-3 text-slate-700">{text}</h3>;
@@ -100,7 +100,7 @@ export function TextBlockRenderer({ block, readOnly = false }: TextBlockRenderer
         </div>
         <div
           className="font-sans text-sm text-blue-900 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: block.content.html }}
+          dangerouslySetInnerHTML={{ __html: block.content.html ?? '' }}
         />
       </div>
     );
