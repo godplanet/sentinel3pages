@@ -49,6 +49,9 @@ import {
   Sliders,
   GitMerge,
   PenLine,
+  ClipboardCheck,
+  ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -185,6 +188,37 @@ export const navigationConfig: NavigationItem[] = [
         icon: FlaskConical,
         badge: 'BETA',
         badgeColor: 'blue',
+      },
+    ],
+  },
+
+  // PILLAR 2b: TALENT & QUALITY
+  {
+    id: 'talent-quality',
+    label: 'YETENEK & KALİTE',
+    icon: GraduationCap,
+    badge: 'YENİ',
+    badgeColor: 'emerald',
+    children: [
+      {
+        id: 'talent-os-main',
+        label: 'Talent OS',
+        path: '/talent',
+        icon: UserCheck,
+        badge: 'RPG',
+        badgeColor: 'blue',
+      },
+      {
+        id: 'assessment-center',
+        label: 'Değerlendirme Merkezi',
+        path: '/surveys',
+        icon: ClipboardCheck,
+      },
+      {
+        id: 'qaip-cockpit',
+        label: 'QAIP Kokpit',
+        path: '/qaip',
+        icon: ShieldCheck,
       },
     ],
   },

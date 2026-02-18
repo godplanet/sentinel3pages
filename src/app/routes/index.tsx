@@ -157,6 +157,9 @@ export const AppRoutes = () => {
       <Route path="/execution/sprint-board/:id" element={<ProtectedRoute><SprintBoardPage /></ProtectedRoute>} />
       <Route path="/execution/field-agent" element={<ProtectedRoute><FieldAgentPage /></ProtectedRoute>} />
 
+      <Route path="/talent" element={<ProtectedRoute><TalentPage /></ProtectedRoute>} />
+      <Route path="/surveys" element={<ProtectedRoute><SurveysPage /></ProtectedRoute>} />
+
       <Route path="/resources" element={<ProtectedRoute><ResourceManagementPage /></ProtectedRoute>} />
       <Route path="/resources/talent-os" element={<ProtectedRoute><TalentOSPage /></ProtectedRoute>} />
 

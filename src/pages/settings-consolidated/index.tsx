@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
 import { fetchSystemParameters } from '@/entities/settings/api';
-import { Settings, Database, Users as UsersIcon, FileText, Palette, Radio, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { Settings, Database, Users as UsersIcon, FileText, Palette, Radio, RefreshCcw, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { SidebarColorPicker } from '@/features/theme-switcher';
 import { DataSignalsPanel } from '@/widgets/DataSignals';
 import { UniversalSeeder } from '@/shared/data/seed';
+import { SurveyBuilder } from '@/features/survey/components/SurveyBuilder';
 
-type TabKey = 'parameters' | 'signals' | 'appearance' | 'users' | 'logs';
+type TabKey = 'parameters' | 'signals' | 'appearance' | 'users' | 'logs' | 'surveys';
 
 const TABS = [
   { key: 'parameters' as TabKey, label: 'Sistem Parametreleri', icon: Database },
   { key: 'signals' as TabKey, label: 'Entegrasyon & Sinyaller', icon: Radio },
+  { key: 'surveys' as TabKey, label: 'Anket Tasarımı', icon: ClipboardCheck },
   { key: 'appearance' as TabKey, label: 'Gorunum', icon: Palette },
   { key: 'users' as TabKey, label: 'Kullanici Yonetimi', icon: UsersIcon },
   { key: 'logs' as TabKey, label: 'Sistem Loglari', icon: FileText },
@@ -235,6 +237,15 @@ export default function SettingsConsolidatedPage() {
         {activeTab === 'signals' && (
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
             <DataSignalsPanel />
+          </div>
+        )}
+
+        {activeTab === 'surveys' && (
+          <div className="rounded-lg shadow-sm border border-slate-200 overflow-hidden" style={{ height: '75vh' }}>
+            <SurveyBuilder
+              onSave={() => {}}
+              onCancel={() => setActiveTab('parameters')}
+            />
           </div>
         )}
 
