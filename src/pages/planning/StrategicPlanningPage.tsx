@@ -7,6 +7,8 @@ import { fetchEngagementsList, fetchEntitiesSimple, fetchActivePlan } from '@/en
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import NewEngagementModal from '@/features/planning/ui/NewEngagementModal';
+import { usePlanningStore } from '@/entities/planning/model/store';
+import toast from 'react-hot-toast';
 import {
   LayoutGrid,
   Target,
@@ -16,6 +18,9 @@ import {
   Eye,
   Edit2,
   Gauge,
+  Lock,
+  Loader2,
+  ShieldAlert,
 } from 'lucide-react';
 
 type TabId = 'universe' | 'annual' | 'list' | 'adherence';
@@ -36,8 +41,37 @@ interface AuditEngagement {
 export default function StrategicPlanningPage() {
   const [activeTab, setActiveTab] = useState<TabId>('universe');
   const [showAddEngagementModal, setShowAddEngagementModal] = useState(false);
+  const [closingId, setClosingId] = useState<string | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { closeAuditEngagement } = usePlanningStore();
+
+  const handleCloseEngagement = async (engagementId: string, engagementTitle: string) => {
+    setClosingId(engagementId);
+    const toastId = toast.loading(`"${engagementTitle}" kapatılıyor — QAIP kontrolü...`);
+    try {
+      const result = await closeAuditEngagement(engagementId, null);
+      toast.dismiss(toastId);
+
+      if (!result.success) {
+        toast.error(result.message, { duration: 6000, icon: '🚫' });
+        return;
+      }
+
+      if (result.gateResult.status === 'WARN') {
+        toast(result.message, { icon: '⚠️', duration: 5000 });
+      } else {
+        toast.success(result.message, { duration: 5000 });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['audit-engagements-list'] });
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error('Kapatma işlemi başarısız oldu. Lütfen tekrar deneyin.');
+    } finally {
+      setClosingId(null);
+    }
+  };
 
   const tabs = [
     { id: 'universe' as const, label: 'Risk Evreni & Puanlama', icon: Target, color: 'blue' },
@@ -207,13 +241,19 @@ export default function StrategicPlanningPage() {
                     <tbody className="divide-y divide-slate-100">
                       {engagements.map((engagement) => {
                         const statusColor =
-                          engagement.status === 'COMPLETED'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : engagement.status === 'IN_PROGRESS'
-                              ? 'bg-blue-100 text-blue-700'
-                              : engagement.status === 'PLANNED'
-                                ? 'bg-slate-100 text-slate-700'
-                                : 'bg-amber-100 text-amber-700';
+                          engagement.status === 'CLOSED'
+                            ? 'bg-slate-200 text-slate-600'
+                            : engagement.status === 'FINALIZED'
+                              ? 'bg-teal-100 text-teal-700'
+                              : engagement.status === 'COMPLETED'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : engagement.status === 'IN_PROGRESS'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : engagement.status === 'PLANNED'
+                                    ? 'bg-slate-100 text-slate-700'
+                                    : 'bg-amber-100 text-amber-700';
+                        const isClosable = ['COMPLETED', 'FINALIZED', 'IN_PROGRESS'].includes(engagement.status);
+                        const isBeingClosed = closingId === engagement.id;
 
                         return (
                           <tr
@@ -287,6 +327,29 @@ export default function StrategicPlanningPage() {
                                 >
                                   <Edit2 size={16} />
                                 </button>
+                                {isClosable && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCloseEngagement(engagement.id, engagement.title);
+                                    }}
+                                    disabled={isBeingClosed}
+                                    className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-800 text-white rounded hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="GIAS 8.3 — Denetimi Kapat (QAIP kontrolü çalıştır)"
+                                  >
+                                    {isBeingClosed
+                                      ? <Loader2 size={12} className="animate-spin" />
+                                      : <Lock size={12} />
+                                    }
+                                    {isBeingClosed ? '...' : 'Kapat'}
+                                  </button>
+                                )}
+                                {engagement.status === 'CLOSED' && (
+                                  <span className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-slate-400 border border-slate-200 rounded">
+                                    <ShieldAlert size={11} />
+                                    Kapalı
+                                  </span>
+                                )}
                               </div>
                             </td>
                           </tr>

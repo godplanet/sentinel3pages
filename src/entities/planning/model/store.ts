@@ -7,6 +7,10 @@ import type {
   UpdateEngagementDatesInput,
 } from './types';
 import { markSkillsUsedForEngagement } from '@/features/talent-os/lib/EntropyEngine';
+import {
+  executeAuditClosureProtocol,
+  type AuditClosureResult,
+} from '@/features/finding-workflow/workflow';
 
 interface PlanningStore {
   plans: AuditPlan[];
@@ -30,6 +34,11 @@ interface PlanningStore {
   getEngagementsByPlan: (planId: string) => AuditEngagement[];
   getPlanById: (planId: string) => AuditPlan | undefined;
   getEngagementById: (engagementId: string) => AuditEngagement | undefined;
+
+  closeAuditEngagement: (
+    engagementId: string,
+    auditeeId?: string | null,
+  ) => Promise<AuditClosureResult>;
 }
 
 export const usePlanningStore = create<PlanningStore>((set, get) => ({
@@ -114,17 +123,17 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
               actual_start_date: status === 'IN_PROGRESS' && !eng.actual_start_date
                 ? new Date().toISOString()
                 : eng.actual_start_date,
-              actual_end_date: status === 'COMPLETED'
+              actual_end_date: (status === 'COMPLETED' || status === 'FINALIZED' || status === 'CLOSED')
                 ? new Date().toISOString()
                 : eng.actual_end_date,
-              progress_percentage: status === 'COMPLETED' ? 100 : eng.progress_percentage,
+              progress_percentage: (status === 'COMPLETED' || status === 'CLOSED') ? 100 : eng.progress_percentage,
               updated_at: new Date().toISOString(),
             }
           : eng
       ),
     }));
 
-    if (status === 'COMPLETED' && engagement?.assigned_auditor_id) {
+    if ((status === 'COMPLETED' || status === 'CLOSED') && engagement?.assigned_auditor_id) {
       markSkillsUsedForEngagement(
         engagement.assigned_auditor_id,
         engagement.audit_type,
@@ -205,6 +214,22 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
           : eng
       ),
     }));
+  },
+
+  closeAuditEngagement: async (engagementId, auditeeId) => {
+    const engagement = get().engagements.find((e) => e.id === engagementId);
+    const result = await executeAuditClosureProtocol(
+      engagementId,
+      auditeeId ?? null,
+      engagement?.tenant_id ?? 'default',
+      { engagementTitle: engagement?.title, auditType: engagement?.audit_type },
+    );
+
+    if (result.success) {
+      get().updateEngagementStatus(engagementId, 'CLOSED');
+    }
+
+    return result;
   },
 
   getEngagementsByPlan: (planId) => {

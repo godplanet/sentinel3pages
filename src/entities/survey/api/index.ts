@@ -1,5 +1,13 @@
 import { supabase } from '@/shared/api/supabase';
-import type { Survey, SurveyResponse, CreateSurveyInput, SubmitSurveyResponseInput, SurveyWithStats } from '../model/types';
+import type {
+  Survey,
+  SurveyResponse,
+  CreateSurveyInput,
+  SubmitSurveyResponseInput,
+  SurveyWithStats,
+  SurveyAssignment,
+  CreateSurveyAssignmentInput,
+} from '../model/types';
 
 export async function fetchSurveys(filters?: { target_audience?: string; is_active?: boolean }): Promise<Survey[]> {
   let query = supabase.from('surveys').select('*');
@@ -119,4 +127,54 @@ function calculateScore(answers: Record<string, any>): number | null {
   const sum = ratings.reduce((acc, val) => acc + val, 0);
   const max = ratings.length * 5;
   return (sum / max) * 100;
+}
+
+export async function findStakeholderSatisfactionTemplate(): Promise<Survey | null> {
+  const { data, error } = await supabase
+    .from('surveys')
+    .select('*')
+    .or(
+      'title.ilike.%Stakeholder Satisfaction%,' +
+      'title.ilike.%Paydaş Memnuniyet%,' +
+      'title.ilike.%satisfaction%'
+    )
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) return null;
+  return data;
+}
+
+export async function createSurveyAssignment(
+  input: CreateSurveyAssignmentInput,
+): Promise<SurveyAssignment> {
+  const { data, error } = await supabase
+    .from('survey_assignments')
+    .insert([{
+      survey_id:     input.survey_id,
+      engagement_id: input.engagement_id  ?? null,
+      auditee_id:    input.auditee_id     ?? null,
+      triggered_by:  input.triggered_by   ?? 'AUDIT_CLOSED',
+      metadata:      input.metadata       ?? {},
+      tenant_id:     input.tenant_id      ?? 'default',
+      status:        'PENDING',
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as SurveyAssignment;
+}
+
+export async function fetchSurveyAssignments(
+  engagementId: string,
+): Promise<SurveyAssignment[]> {
+  const { data, error } = await supabase
+    .from('survey_assignments')
+    .select('*')
+    .eq('engagement_id', engagementId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as SurveyAssignment[];
 }

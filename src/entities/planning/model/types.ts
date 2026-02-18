@@ -1,6 +1,6 @@
 export type PlanStatus = 'DRAFT' | 'APPROVED' | 'LOCKED';
 
-export type EngagementStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type EngagementStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'FINALIZED' | 'CLOSED' | 'CANCELLED';
 
 export type AuditType = 'COMPREHENSIVE' | 'TARGETED' | 'FOLLOW_UP';
 

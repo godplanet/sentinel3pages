@@ -17,6 +17,10 @@
  */
 
 import { supabase } from '@/shared/api/supabase';
+import {
+  findStakeholderSatisfactionTemplate,
+  createSurveyAssignment,
+} from '@/entities/survey/api';
 
 export type FindingWorkflowState =
   | 'DRAFT'
@@ -445,4 +449,131 @@ export function getAvailableActions(state: FindingWorkflowState): Array<{
   };
 
   return actionMap[state] || [];
+}
+
+// ─── GIAS 8.3 IRON GATE ──────────────────────────────────────────────────────
+
+const QAIP_MINIMUM_SCORE = 70;
+
+export type QAIPGateStatus = 'PASS' | 'WARN' | 'BLOCK';
+
+export interface QAIPGateResult {
+  status: QAIPGateStatus;
+  score: number | null;
+  message: string;
+  reviewId: string | null;
+}
+
+/**
+ * Fetches the latest QAIP review for a given audit engagement and determines
+ * whether the closure transition is permitted.
+ *
+ * Gate Rules (GIAS 8.3):
+ *  - No QAIP review found          → WARN  (transition allowed with warning)
+ *  - score < QAIP_MINIMUM_SCORE    → BLOCK (transition forbidden)
+ *  - score >= QAIP_MINIMUM_SCORE   → PASS
+ */
+export async function checkQAIPGate(
+  engagementId: string,
+): Promise<QAIPGateResult> {
+  const { data: reviews, error } = await supabase
+    .from('qaip_reviews')
+    .select('id, compliance_score, total_score, status')
+    .or(`engagement_id.eq.${engagementId},target_audit_id.eq.${engagementId}`)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error || !reviews || reviews.length === 0) {
+    return {
+      status: 'WARN',
+      score: null,
+      message: 'QAIP Değerlendirmesi Eksik. Kapanış onaylandı ancak kayıt oluşturulması tavsiye edilir.',
+      reviewId: null,
+    };
+  }
+
+  const latest = reviews[0];
+  const score: number = latest.compliance_score ?? latest.total_score ?? 0;
+
+  if (score < QAIP_MINIMUM_SCORE) {
+    return {
+      status: 'BLOCK',
+      score,
+      message: `Kalite Puanı Yetersiz (Mevcut: ${score}). Minimum ${QAIP_MINIMUM_SCORE} gereklidir.`,
+      reviewId: latest.id,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    score,
+    message: `QAIP kontrolü geçildi. Puan: ${score}/100.`,
+    reviewId: latest.id,
+  };
+}
+
+export interface AuditClosureResult {
+  success: boolean;
+  gateResult: QAIPGateResult;
+  surveyDispatched: boolean;
+  surveyAssignmentId: string | null;
+  message: string;
+}
+
+/**
+ * Full GIAS 8.3 audit-closure protocol:
+ * 1. Iron Gate — QAIP score check.
+ * 2. Feedback Loop — auto-dispatch stakeholder satisfaction survey.
+ *
+ * Returns a structured result; never throws. The caller is responsible for
+ * surfacing errors/toasts to the user.
+ */
+export async function executeAuditClosureProtocol(
+  engagementId: string,
+  auditeeId: string | null,
+  tenantId: string,
+  metadata?: Record<string, unknown>,
+): Promise<AuditClosureResult> {
+  const gateResult = await checkQAIPGate(engagementId);
+
+  if (gateResult.status === 'BLOCK') {
+    return {
+      success: false,
+      gateResult,
+      surveyDispatched: false,
+      surveyAssignmentId: null,
+      message: gateResult.message,
+    };
+  }
+
+  let surveyAssignmentId: string | null = null;
+  let surveyDispatched = false;
+
+  try {
+    const template = await findStakeholderSatisfactionTemplate();
+    if (template) {
+      const assignment = await createSurveyAssignment({
+        survey_id:     template.id,
+        engagement_id: engagementId,
+        auditee_id:    auditeeId ?? undefined,
+        triggered_by:  'AUDIT_CLOSED',
+        tenant_id:     tenantId,
+        metadata:      metadata ?? {},
+      });
+      surveyAssignmentId = assignment.id;
+      surveyDispatched   = true;
+    }
+  } catch {
+    // Survey dispatch failure is non-fatal — log but do not block closure
+  }
+
+  return {
+    success: true,
+    gateResult,
+    surveyDispatched,
+    surveyAssignmentId,
+    message: surveyDispatched
+      ? 'Denetim kapatıldı. Memnuniyet anketi denetlenen birime gönderildi.'
+      : 'Denetim kapatıldı. (Anket şablonu bulunamadı — manuel gönderim gerekli.)',
+  };
 }

@@ -49,3 +49,30 @@ export interface SurveyWithStats extends Survey {
   response_count: number;
   average_score: number | null;
 }
+
+export type SurveyAssignmentStatus = 'PENDING' | 'SENT' | 'COMPLETED' | 'EXPIRED';
+
+export interface SurveyAssignment {
+  id: string;
+  survey_id: string;
+  engagement_id: string | null;
+  auditee_id: string | null;
+  status: SurveyAssignmentStatus;
+  triggered_by: string;
+  triggered_at: string;
+  completed_at: string | null;
+  expires_at: string;
+  metadata: Record<string, unknown>;
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateSurveyAssignmentInput {
+  survey_id: string;
+  engagement_id?: string;
+  auditee_id?: string;
+  triggered_by?: string;
+  metadata?: Record<string, unknown>;
+  tenant_id?: string;
+}
