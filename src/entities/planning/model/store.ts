@@ -98,6 +98,7 @@ interface PlanningStore {
   ) => void;
   removeDraftEngagement: (id: string) => void;
   pullToSprint: (engagementId: string) => void;
+  injectCCMTrigger: (engagement: DraftEngagement) => void;
 
   createPlan: (input: CreatePlanInput) => AuditPlan;
   addEngagement: (input: CreateEngagementInput) => AuditEngagement;
@@ -169,6 +170,12 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
         qSprint: [...state.qSprint, item],
       };
     });
+  },
+
+  injectCCMTrigger: (engagement) => {
+    set((state) => ({
+      backlog: [engagement, ...state.backlog],
+    }));
   },
 
   createPlan: (input) => {

@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/ui';
 import { UniverseScoring } from '@/widgets/UniverseScoring';
 import { PlanAdherence } from '@/widgets/PlanAdherence';
 import { RollingPlanBoard } from '@/features/planning/ui/RollingPlanBoard';
+import { CCMSignalSimulator } from '@/features/ccm/ui/CCMSignalSimulator';
 import { fetchEngagementsList, fetchEntitiesSimple, fetchActivePlan } from '@/entities/planning/api/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -155,8 +156,8 @@ export default function StrategicPlanningPage() {
           )}
 
           {activeTab === 'rolling' && (
-            <div className="p-6">
-              <div className="mb-6 flex items-start justify-between">
+            <div className="p-6 flex flex-col gap-8">
+              <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 mb-1">Bimodal Rolling Plan</h2>
                   <p className="text-sm text-slate-500">
@@ -168,6 +169,7 @@ export default function StrategicPlanningPage() {
                   3+9 Model
                 </div>
               </div>
+              <CCMSignalSimulator />
               <RollingPlanBoard />
             </div>
           )}

@@ -1,4 +1,4 @@
-import { ArrowRight, Leaf, ShieldCheck, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowRight, Leaf, ShieldCheck, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 import type { DraftEngagement, RiskVelocity } from '@/entities/planning/model/types';
 import { usePlanningStore } from '@/entities/planning/model/store';
 
@@ -25,11 +25,28 @@ export function PlanCard({ engagement, isBacklog = false }: PlanCardProps) {
   const risk = riskLabel(engagement.baseRisk);
   const vel = velocityConfig[engagement.velocity];
   const VelIcon = vel.icon;
+  const isCCM = engagement.isCCMTriggered === true;
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 flex flex-col gap-3">
+    <div
+      className={[
+        'bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-4 flex flex-col gap-3',
+        isCCM
+          ? 'border-2 border-red-400/60 ring-2 ring-red-300/40 animate-pulse'
+          : 'border border-slate-200/80',
+      ].join(' ')}
+    >
+      {isCCM && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded-lg">
+          <Zap size={12} className="text-red-500 shrink-0" />
+          <span className="text-xs font-bold text-red-700 leading-none">
+            KCI Breach — Auto-Triggered
+          </span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-800 leading-snug flex-1">
+        <h3 className={`text-sm font-semibold leading-snug flex-1 ${isCCM ? 'text-red-900' : 'text-slate-800'}`}>
           {engagement.universeNodeName}
         </h3>
         <span className="text-xs font-bold text-slate-500 tabular-nums shrink-0">

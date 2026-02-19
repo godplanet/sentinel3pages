@@ -79,4 +79,5 @@ export interface DraftEngagement {
   velocity: RiskVelocity;
   shariah: boolean;
   esg: boolean;
+  isCCMTriggered?: boolean;
 }
