@@ -276,8 +276,10 @@ export const navigationConfig: NavigationItem[] = [
       {
         id: 'actions',
         label: 'Aksiyon Takip',
-        path: '/execution/actions',
+        path: '/actions',
         icon: CheckSquare,
+        badge: 'M7',
+        badgeColor: 'amber',
       },
       {
         id: 'pbc-requests',
