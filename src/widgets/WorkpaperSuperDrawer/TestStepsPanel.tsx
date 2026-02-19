@@ -1,11 +1,18 @@
-import { useState, useRef } from 'react';
-import { Check, MessageSquare, Plus, ChevronDown, ChevronRight, Loader2, Calculator, Library, CornerDownLeft } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import {
+  Check, MessageSquare, Plus, ChevronDown, ChevronRight,
+  Loader2, Calculator, Library, CornerDownLeft, AlertTriangle, FileWarning,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import type { TestStep } from '@/entities/workpaper/model/detail-types';
+import { useFindingStore } from '@/entities/finding/model/store';
 
 interface TestStepsPanelProps {
   steps: TestStep[];
   loading: boolean;
+  workpaperId?: string;
   onToggleStep: (stepId: string, completed: boolean) => void;
   onUpdateComment: (stepId: string, comment: string) => void;
   onAddStep: (description: string) => void;
@@ -14,13 +21,27 @@ interface TestStepsPanelProps {
   sampleSize?: number | null;
 }
 
-export function TestStepsPanel({ steps, loading, onToggleStep, onUpdateComment, onAddStep, onOpenSampling, onOpenLibrary, sampleSize }: TestStepsPanelProps) {
+export function TestStepsPanel({
+  steps,
+  loading,
+  workpaperId,
+  onToggleStep,
+  onUpdateComment,
+  onAddStep,
+  onOpenSampling,
+  onOpenLibrary,
+  sampleSize,
+}: TestStepsPanelProps) {
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState<Record<string, string>>({});
   const [newStepText, setNewStepText] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [quickText, setQuickText] = useState('');
+  const [exceptionStepIds, setExceptionStepIds] = useState<Set<string>>(new Set());
+  const [draftingStepId, setDraftingStepId] = useState<string | null>(null);
   const quickRef = useRef<HTMLInputElement>(null);
+
+  const draftFindingFromWorkpaper = useFindingStore((s) => s.draftFindingFromWorkpaper);
 
   const completed = steps.filter(s => s.is_completed).length;
   const total = steps.length;
@@ -44,6 +65,47 @@ export function TestStepsPanel({ steps, loading, onToggleStep, onUpdateComment, 
     setNewStepText('');
     setShowAddForm(false);
   };
+
+  const toggleException = useCallback((stepId: string) => {
+    setExceptionStepIds(prev => {
+      const next = new Set(prev);
+      if (next.has(stepId)) {
+        next.delete(stepId);
+      } else {
+        next.add(stepId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleDraftFinding = useCallback(
+    async (step: TestStep) => {
+      if (!workpaperId) {
+        toast.error('Workpaper ID bulunamadı.');
+        return;
+      }
+      setDraftingStepId(step.id);
+      await new Promise((r) => setTimeout(r, 350));
+
+      const observation =
+        editingComment[step.id] ??
+        step.auditor_comment ??
+        `Test adımı başarısız: ${step.description}`;
+
+      const draft = draftFindingFromWorkpaper(workpaperId, step.description, observation);
+
+      toast.success(
+        `İzlenebilirlik bağlantısı kuruldu — Taslak Bulgu oluşturuldu\nToken: ${draft.traceabilityToken}`,
+        {
+          duration: 4500,
+          style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155' },
+          icon: '🔗',
+        },
+      );
+      setDraftingStepId(null);
+    },
+    [workpaperId, editingComment, draftFindingFromWorkpaper],
+  );
 
   if (loading) {
     return (
@@ -136,15 +198,19 @@ export function TestStepsPanel({ steps, loading, onToggleStep, onUpdateComment, 
         {steps.map((step, idx) => {
           const isExpanded = expandedStep === step.id;
           const commentValue = editingComment[step.id] ?? step.auditor_comment;
+          const isException = exceptionStepIds.has(step.id);
+          const isDrafting = draftingStepId === step.id;
 
           return (
             <div
               key={step.id}
               className={clsx(
                 'border rounded-xl transition-all duration-200',
-                step.is_completed
-                  ? 'bg-emerald-50/50 border-emerald-200'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
+                isException
+                  ? 'bg-red-950/20 border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.1)]'
+                  : step.is_completed
+                    ? 'bg-emerald-50/50 border-emerald-200'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
               )}
             >
               <div className="flex items-start gap-3 p-4">
@@ -164,17 +230,35 @@ export function TestStepsPanel({ steps, loading, onToggleStep, onUpdateComment, 
                   <div className="flex items-start justify-between gap-2">
                     <p className={clsx(
                       'text-sm leading-relaxed',
-                      step.is_completed ? 'text-emerald-800 line-through opacity-70' : 'text-slate-800 font-medium'
+                      isException
+                        ? 'text-red-200 font-medium'
+                        : step.is_completed
+                          ? 'text-emerald-800 line-through opacity-70'
+                          : 'text-slate-800 font-medium'
                     )}>
                       <span className="text-xs font-bold text-slate-400 mr-2">#{idx + 1}</span>
                       {step.description}
                     </p>
-                    <button
-                      onClick={() => setExpandedStep(isExpanded ? null : step.id)}
-                      className="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
-                    >
-                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => toggleException(step.id)}
+                        title={isException ? 'İstisna işaretini kaldır' : 'İstisna olarak işaretle'}
+                        className={clsx(
+                          'p-1 rounded-lg transition-all',
+                          isException
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                            : 'text-slate-400 hover:text-red-400 hover:bg-red-50'
+                        )}
+                      >
+                        <AlertTriangle size={13} />
+                      </button>
+                      <button
+                        onClick={() => setExpandedStep(isExpanded ? null : step.id)}
+                        className="shrink-0 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                      >
+                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      </button>
+                    </div>
                   </div>
 
                   {step.auditor_comment && !isExpanded && (
@@ -199,6 +283,55 @@ export function TestStepsPanel({ steps, loading, onToggleStep, onUpdateComment, 
                   />
                 </div>
               )}
+
+              <AnimatePresence>
+                {isException && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 pl-[52px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-px flex-1 bg-red-500/20" />
+                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                          İstisna Tespit Edildi
+                        </span>
+                        <div className="h-px flex-1 bg-red-500/20" />
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => handleDraftFinding(step)}
+                        disabled={isDrafting || !workpaperId}
+                        className={clsx(
+                          'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
+                          'text-sm font-bold transition-all',
+                          'bg-gradient-to-r from-red-600 to-rose-600',
+                          'text-white shadow-[0_0_16px_rgba(239,68,68,0.35)]',
+                          'hover:from-red-500 hover:to-rose-500 hover:shadow-[0_0_22px_rgba(239,68,68,0.5)]',
+                          'disabled:opacity-60 disabled:cursor-not-allowed',
+                          'border border-red-500/40',
+                        )}
+                      >
+                        {isDrafting ? (
+                          <>
+                            <Loader2 size={15} className="animate-spin" />
+                            İzlenebilirlik bağlantısı kuruluyor...
+                          </>
+                        ) : (
+                          <>
+                            <FileWarning size={15} />
+                            Bu İstisna İçin Taslak Bulgu Oluştur
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}

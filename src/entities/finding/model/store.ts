@@ -9,12 +9,22 @@ import type {
   Assignment,
   ActionStep,
   FindingWithAssignment,
+  DraftFinding,
 } from './types';
 
 interface FindingStore {
   findings: ComprehensiveFinding[];
   selectedFinding: ComprehensiveFinding | null;
   isLoading: boolean;
+  draftFindings: DraftFinding[];
+
+  // Draft Finding (Golden Thread Traceability)
+  draftFindingFromWorkpaper: (
+    workpaperId: string,
+    testStepTitle: string,
+    initialObservation: string,
+  ) => DraftFinding;
+  promoteDraftFinding: (draftId: string) => void;
 
   // CRUD Operations
   setFindings: (findings: ComprehensiveFinding[]) => void;
@@ -53,7 +63,33 @@ export const useFindingStore = create<FindingStore>((set) => ({
   findings: [],
   selectedFinding: null,
   isLoading: false,
+  draftFindings: [],
   legacyFindings: [],
+
+  draftFindingFromWorkpaper: (workpaperId, testStepTitle, initialObservation) => {
+    const id = crypto.randomUUID();
+    const traceabilityToken = `GT-${workpaperId.slice(0, 8).toUpperCase()}-${id.slice(0, 6).toUpperCase()}`;
+    const draft: DraftFinding = {
+      id,
+      workpaperId,
+      testStepId: `step-${crypto.randomUUID().slice(0, 8)}`,
+      testStepTitle,
+      initialObservation,
+      traceabilityToken,
+      status: 'DRAFT',
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ draftFindings: [...state.draftFindings, draft] }));
+    return draft;
+  },
+
+  promoteDraftFinding: (draftId) => {
+    set((state) => ({
+      draftFindings: state.draftFindings.map((d) =>
+        d.id === draftId ? { ...d, status: 'PROMOTED' } : d,
+      ),
+    }));
+  },
 
   setFindings: (findings) => set({ findings }),
 

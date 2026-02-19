@@ -308,6 +308,23 @@ export interface ComprehensiveFinding extends Finding {
 }
 
 // ============================================================================
+// DRAFT FINDING — GOLDEN THREAD TRACEABILITY (GIAS 2024)
+// ============================================================================
+
+export type DraftFindingStatus = 'DRAFT' | 'PROMOTED';
+
+export interface DraftFinding {
+  id: string;
+  workpaperId: string;
+  testStepId: string;
+  testStepTitle: string;
+  initialObservation: string;
+  traceabilityToken: string;
+  status: DraftFindingStatus;
+  createdAt: string;
+}
+
+// ============================================================================
 // LEGACY (GERİYE DÖNÜK UYUMLULUK İÇİN KORUNAN TİPLER)
 // ============================================================================
 export type PortalStatus = 'PENDING' | 'AGREED' | 'DISAGREED';
