@@ -8,6 +8,7 @@ interface Props {
   isSelected: boolean;
   onSelect: () => void;
   onGiveKudos: () => void;
+  isDiminishingActive?: boolean;
 }
 
 const LEVEL_GRADIENTS: Record<number, string> = {
@@ -131,7 +132,11 @@ function FatigueMeter({ score }: { score: number }) {
   );
 }
 
-function XPBar({ current, next, level }: { current: number; next: number; level: number }) {
+function XPBar({
+  current, next, level, showShield = false,
+}: {
+  current: number; next: number; level: number; showShield?: boolean;
+}) {
   const thresholds: Record<number, number> = { 1: 0, 2: 500, 3: 1500, 4: 3500, 5: 7000 };
   const levelStart = thresholds[level] ?? 0;
   const levelRange = next - levelStart;
@@ -141,7 +146,18 @@ function XPBar({ current, next, level }: { current: number; next: number; level:
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">XP</span>
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">XP</span>
+          {showShield && (
+            <span
+              title="Diminishing Returns active — XP yield reduced for OBSERVATION / KUDOS"
+              className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40"
+            >
+              <Shield size={8} className="text-amber-400" />
+              <span className="text-[8px] text-amber-400 font-semibold tracking-wide">DR</span>
+            </span>
+          )}
+        </div>
         <span className="text-[10px] text-slate-300 font-mono">
           {current.toLocaleString()} / {next.toLocaleString()}
         </span>
@@ -162,7 +178,7 @@ function XPBar({ current, next, level }: { current: number; next: number; level:
   );
 }
 
-export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos }: Props) {
+export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos, isDiminishingActive = false }: Props) {
   const gradient   = LEVEL_GRADIENTS[profile.current_level] ?? LEVEL_GRADIENTS[1];
   const levelLabel = LEVEL_LABELS[profile.current_level] ?? `Lv ${profile.current_level}`;
   const initials   = getInitials(profile.full_name);
@@ -232,7 +248,12 @@ export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos 
       </div>
 
       <div className="mb-4">
-        <XPBar current={profile.total_xp} next={profile.next_level_xp} level={profile.current_level} />
+        <XPBar
+          current={profile.total_xp}
+          next={profile.next_level_xp}
+          level={profile.current_level}
+          showShield={isDiminishingActive}
+        />
       </div>
 
       <div className="flex items-start gap-3 mb-4">

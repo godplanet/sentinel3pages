@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BookOpen, FlaskConical, Wallet, Plus, Award, Clock, Star,
   Trash2, CheckCircle2, XCircle, Clock3, RefreshCw, Trophy,
-  BarChart2, Zap,
+  BarChart2, Zap, BarChart3,
 } from 'lucide-react';
+import { ManagerDashboard } from '@/features/academy/components/ManagerDashboard';
 import { supabase } from '@/shared/api/supabase';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { CPEProgressBar } from '@/features/academy/components/CPETracker/CPEProgressBar';
@@ -22,12 +23,13 @@ import type { UserCpeRecord } from '@/features/academy/types';
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 const DEMO_USER_NAME = 'Ahmet Yılmaz';
 
-type Tab = 'learning' | 'exams' | 'cpe';
+type Tab = 'learning' | 'exams' | 'cpe' | 'manager';
 
 const TABS: { id: Tab; label: string; icon: typeof BookOpen }[] = [
   { id: 'learning', label: 'My Learning',  icon: BookOpen },
   { id: 'exams',    label: 'Exam Center',  icon: FlaskConical },
   { id: 'cpe',      label: 'CPE Wallet',   icon: Wallet },
+  { id: 'manager',  label: 'Manager View', icon: BarChart3 },
 ];
 
 interface PassedAttempt {
@@ -182,6 +184,7 @@ export default function AcademyPage() {
                 }
               />
             )}
+            {activeTab === 'manager' && <ManagerDashboard />}
             {activeTab === 'cpe' && (
               <CPEWalletTab
                 records={cpeRecords}
