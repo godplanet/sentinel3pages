@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/ui';
 import { UniverseScoring } from '@/widgets/UniverseScoring';
 import { PlanAdherence } from '@/widgets/PlanAdherence';
 import { RollingPlanBoard } from '@/features/planning/ui/RollingPlanBoard';
+import { PlanListView } from '@/features/planning/ui/PlanListView';
 import { CCMSignalSimulator } from '@/features/ccm/ui/CCMSignalSimulator';
 import { fetchEngagementsList, fetchEntitiesSimple, fetchActivePlan } from '@/entities/planning/api/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,9 +23,13 @@ import {
   Lock,
   Loader2,
   ShieldAlert,
+  List,
+  Kanban,
+  Calendar,
 } from 'lucide-react';
 
 type TabId = 'universe' | 'rolling' | 'list' | 'adherence';
+type PlanMode = 'mode1_core' | 'mode2_agile';
 
 interface AuditEngagement {
   id: string;
@@ -41,6 +46,7 @@ interface AuditEngagement {
 
 export default function StrategicPlanningPage() {
   const [activeTab, setActiveTab] = useState<TabId>('rolling');
+  const [planMode, setPlanMode] = useState<PlanMode>('mode2_agile');
   const [showAddEngagementModal, setShowAddEngagementModal] = useState(false);
   const [closingId, setClosingId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -66,7 +72,7 @@ export default function StrategicPlanningPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['audit-engagements-list'] });
-    } catch (err) {
+    } catch {
       toast.dismiss(toastId);
       toast.error('Kapatma işlemi başarısız oldu. Lütfen tekrar deneyin.');
     } finally {
@@ -76,7 +82,7 @@ export default function StrategicPlanningPage() {
 
   const tabs = [
     { id: 'universe' as const, label: 'Risk Evreni & Puanlama', icon: Target, color: 'blue' },
-    { id: 'rolling' as const, label: 'Bimodal Rolling Plan', icon: GitBranch, color: 'emerald' },
+    { id: 'rolling' as const, label: 'Bimodal Rolling Plan', icon: GitBranch, color: 'indigo' },
     { id: 'list' as const, label: 'Denetim Listesi', icon: FileText, color: 'teal' },
     { id: 'adherence' as const, label: 'Plan Uyumu', icon: Gauge, color: 'amber' },
   ];
@@ -125,8 +131,8 @@ export default function StrategicPlanningPage() {
                     isActive
                       ? tab.color === 'blue'
                         ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
-                        : tab.color === 'emerald'
-                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                        : tab.color === 'indigo'
+                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
                           : tab.color === 'amber'
                             ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
                             : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
@@ -156,21 +162,60 @@ export default function StrategicPlanningPage() {
           )}
 
           {activeTab === 'rolling' && (
-            <div className="p-6 flex flex-col gap-8">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1">Bimodal Rolling Plan</h2>
-                  <p className="text-sm text-slate-500">
-                    9 aylık dinamik havuzdan 3 aylık kilitli Q-Sprint'e görev çekin.
-                  </p>
+            <div className="flex flex-col">
+              {/* Mode Toggle Action Bar */}
+              <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                  <button
+                    onClick={() => setPlanMode('mode1_core')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                      planMode === 'mode1_core'
+                        ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <List size={15} />
+                    Mode 1: Core Assurance
+                  </button>
+                  <button
+                    onClick={() => setPlanMode('mode2_agile')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                      planMode === 'mode2_agile'
+                        ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Kanban size={15} />
+                    Mode 2: Agile Sprints
+                  </button>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  <GitBranch size={12} className="text-slate-400" />
-                  3+9 Model
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                    <GitBranch size={12} className="text-slate-400" />
+                    3+9 Model
+                  </div>
+                  <button
+                    onClick={() => setShowAddEngagementModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-150"
+                  >
+                    <Plus size={15} />
+                    Yeni Görev
+                  </button>
                 </div>
               </div>
-              <CCMSignalSimulator />
-              <RollingPlanBoard />
+
+              {/* Mode Content */}
+              <div className="p-6 flex flex-col gap-8">
+                {planMode === 'mode1_core' ? (
+                  <PlanListView />
+                ) : (
+                  <>
+                    <CCMSignalSimulator />
+                    <RollingPlanBoard />
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -197,7 +242,7 @@ export default function StrategicPlanningPage() {
                 </div>
                 <button
                   onClick={() => setShowAddEngagementModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all font-medium"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all font-medium"
                 >
                   <Plus size={18} />
                   <span>Yeni Denetim Planla</span>
@@ -206,7 +251,7 @@ export default function StrategicPlanningPage() {
 
               {loadingEngagements ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600" />
                   <span className="ml-3 text-slate-600">Loading engagements...</span>
                 </div>
               ) : engagements.length === 0 ? (
@@ -216,38 +261,22 @@ export default function StrategicPlanningPage() {
                   <p className="text-sm text-slate-500 mt-1">Click "Yeni Denetim Planla" to add your first engagement</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
                   <table className="w-full">
-                    <thead className="bg-slate-50 border-b-2 border-slate-200">
+                    <thead className="bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Title
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Start Date
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          End Date
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Est. Hours
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Risk Score
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Actions
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Title</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Start Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">End Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Est. Hours</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">Risk Score</th>
+                        <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {engagements.map((engagement) => {
+                      {engagements.map((engagement, idx) => {
                         const statusColor =
                           engagement.status === 'CLOSED'
                             ? 'bg-slate-200 text-slate-600'
@@ -266,11 +295,11 @@ export default function StrategicPlanningPage() {
                         return (
                           <tr
                             key={engagement.id}
-                            className="hover:bg-slate-50 transition-colors cursor-pointer"
+                            className={`hover:bg-indigo-50/30 transition-colors cursor-pointer ${idx % 2 !== 0 ? 'bg-slate-50/50' : 'bg-white'}`}
                             onClick={() => navigate(`/execution/my-engagements/${engagement.id}`)}
                           >
                             <td className="px-4 py-3">
-                              <div className="font-medium text-slate-900">{engagement.title}</div>
+                              <div className="font-semibold text-slate-800">{engagement.title}</div>
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-sm text-slate-600">{engagement.audit_type}</span>
@@ -292,11 +321,9 @@ export default function StrategicPlanningPage() {
                             <td className="px-4 py-3">
                               {engagement.risk_snapshot_score ? (
                                 <div className="flex items-center gap-2">
-                                  <div
-                                    className={`w-16 h-2 rounded-full overflow-hidden bg-slate-200`}
-                                  >
+                                  <div className="w-16 h-1.5 rounded-full overflow-hidden bg-slate-200">
                                     <div
-                                      className={`h-full ${
+                                      className={`h-full rounded-full ${
                                         engagement.risk_snapshot_score >= 70
                                           ? 'bg-red-500'
                                           : engagement.risk_snapshot_score >= 40
@@ -327,9 +354,7 @@ export default function StrategicPlanningPage() {
                                   <Eye size={16} />
                                 </button>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  }}
+                                  onClick={(e) => e.stopPropagation()}
                                   className="p-1.5 text-slate-600 hover:bg-slate-50 rounded transition-colors"
                                   title="Edit"
                                 >
@@ -375,22 +400,16 @@ export default function StrategicPlanningPage() {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      <span>
-                        {engagements.filter((e) => e.status === 'IN_PROGRESS').length} In Progress
-                      </span>
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span>{engagements.filter((e) => e.status === 'IN_PROGRESS').length} In Progress</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-slate-500"></div>
-                      <span>
-                        {engagements.filter((e) => e.status === 'PLANNED').length} Planned
-                      </span>
+                      <div className="w-2 h-2 rounded-full bg-slate-500" />
+                      <span>{engagements.filter((e) => e.status === 'PLANNED').length} Planned</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                      <span>
-                        {engagements.filter((e) => e.status === 'COMPLETED').length} Completed
-                      </span>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>{engagements.filter((e) => e.status === 'COMPLETED').length} Completed</span>
                     </div>
                   </div>
                 </div>
@@ -400,7 +419,6 @@ export default function StrategicPlanningPage() {
         </div>
       </div>
 
-      {/* Add Engagement Modal */}
       {showAddEngagementModal && activePlan && (
         <NewEngagementModal
           isOpen={showAddEngagementModal}
