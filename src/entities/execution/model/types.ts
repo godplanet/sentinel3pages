@@ -3,6 +3,27 @@
  */
 
 export type WorkpaperStatus = 'draft' | 'review' | 'finalized';
+
+export type ActiveEngagementStatus = 'ACTIVE' | 'IN_PROGRESS' | 'COMPLETED';
+
+export interface ActiveEngagement {
+  id: string;
+  draftEngagementId: string;
+  planningEngagementId?: string;
+  title: string;
+  entityId: string;
+  entityName: string;
+  auditType: string;
+  assignedAuditorIds: string[];
+  requiredSkills: string[];
+  riskScore: number;
+  startDate: string;
+  endDate: string;
+  status: ActiveEngagementStatus;
+  launchedAt: string;
+  workpaperIds: string[];
+  tenantId: string;
+}
 export type TestResult = 'pass' | 'fail' | 'na';
 
 export interface WorkpaperComment {

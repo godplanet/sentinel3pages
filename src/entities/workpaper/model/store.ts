@@ -30,6 +30,11 @@ interface WorkpaperStore {
   updateWorkpaperData: (input: UpdateWorkpaperDataInput) => void;
   updateWorkpaperStatus: (input: UpdateWorkpaperStatusInput) => void;
   deleteWorkpaper: (workpaperId: string) => void;
+  initializeWorkpapersForEngagement: (
+    engagementId: string,
+    stepConfigs: Array<{ code: string; title: string; description: string; risk_weight: number }>,
+    auditorId?: string,
+  ) => { steps: AuditStep[]; workpapers: Workpaper[] };
 
   addEvidence: (input: CreateEvidenceInput) => EvidenceItem;
 
@@ -115,6 +120,37 @@ export const useWorkpaperStore = create<WorkpaperStore>((set, get) => ({
       evidence: state.evidence.filter((ev) => ev.workpaper_id !== workpaperId),
       findings: state.findings.filter((f) => f.workpaper_id !== workpaperId),
     }));
+  },
+
+  initializeWorkpapersForEngagement: (engagementId, stepConfigs, auditorId) => {
+    const now = new Date().toISOString();
+    const newSteps: AuditStep[] = stepConfigs.map((cfg) => ({
+      id: crypto.randomUUID(),
+      engagement_id: engagementId,
+      step_code: cfg.code,
+      title: cfg.title,
+      description: cfg.description,
+      risk_weight: cfg.risk_weight,
+      required_evidence_types: [],
+      created_at: now,
+    }));
+
+    const newWorkpapers: Workpaper[] = newSteps.map((step) => ({
+      id: crypto.randomUUID(),
+      step_id: step.id,
+      assigned_auditor_id: auditorId,
+      status: 'draft' as const,
+      data: {},
+      version: 1,
+      updated_at: now,
+    }));
+
+    set((state) => ({
+      auditSteps: [...state.auditSteps, ...newSteps],
+      workpapers: [...state.workpapers, ...newWorkpapers],
+    }));
+
+    return { steps: newSteps, workpapers: newWorkpapers };
   },
 
   addEvidence: (input) => {

@@ -10,6 +10,7 @@ import type {
   WorkpaperFinding,
   UserPresence,
   TestResult,
+  ActiveEngagement,
 } from './types';
 
 interface WorkpaperStore {
@@ -19,6 +20,7 @@ interface WorkpaperStore {
   evidence: Evidence[];
   findings: WorkpaperFinding[];
   presences: UserPresence[];
+  activeEngagements: ActiveEngagement[];
   loading: boolean;
   error: string | null;
 
@@ -30,6 +32,9 @@ interface WorkpaperStore {
   setPresences: (presences: UserPresence[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  addActiveEngagement: (engagement: ActiveEngagement) => void;
+  updateActiveEngagementStatus: (engagementId: string, status: ActiveEngagement['status']) => void;
+  getActiveEngagementById: (id: string) => ActiveEngagement | undefined;
 
   updateWorkpaperData: (workpaperId: string, data: Partial<Workpaper['data']>) => void;
   updateTestResult: (workpaperId: string, testKey: string, result: TestResult) => void;
@@ -41,15 +46,31 @@ interface WorkpaperStore {
   removePresence: (userId: string) => void;
 }
 
-export const useWorkpaperStore = create<WorkpaperStore>((set) => ({
+export const useWorkpaperStore = create<WorkpaperStore>((set, get) => ({
   workpapers: [],
   activeWorkpaper: null,
   auditSteps: [],
   evidence: [],
   findings: [],
   presences: [],
+  activeEngagements: [],
   loading: false,
   error: null,
+
+  addActiveEngagement: (engagement) =>
+    set((state) => ({
+      activeEngagements: [...state.activeEngagements, engagement],
+    })),
+
+  updateActiveEngagementStatus: (engagementId, status) =>
+    set((state) => ({
+      activeEngagements: state.activeEngagements.map((e) =>
+        e.id === engagementId ? { ...e, status } : e
+      ),
+    })),
+
+  getActiveEngagementById: (id) =>
+    get().activeEngagements.find((e) => e.id === id),
 
   setWorkpapers: (workpapers) => set({ workpapers }),
   setActiveWorkpaper: (workpaper) => set({ activeWorkpaper: workpaper }),
