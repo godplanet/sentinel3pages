@@ -189,7 +189,7 @@ export default function StrategicPlanningPage() {
                 </div>
                 <button
                   onClick={() => setShowAddEngagementModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 shadow-md hover:shadow-lg transition-all font-medium"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all font-medium"
                 >
                   <Plus size={18} />
                   <span>Yeni Denetim Planla</span>

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Download, BookOpen, Shield, CheckCircle2, AlertCircle, X, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/shared/api/supabase';
+import toast from 'react-hot-toast';
 import {
   useLibraryProcesses,
   useLibraryRisks,
@@ -66,16 +69,19 @@ export function RKMLibrary() {
   const handleImport = async (engagementId: string) => {
     if (selectedControls.length === 0) return;
 
+    const toastId = toast.loading('Kontroller içe aktarılıyor...');
     try {
       const result = await importToEngagement.mutateAsync({
         engagementId,
         controlIds: selectedControls,
       });
-      alert(`Successfully imported ${result.imported} controls to engagement`);
+      toast.dismiss(toastId);
+      toast.success(`${result.imported} kontrol denetim görevine başarıyla aktarıldı`);
       setSelectedControls([]);
       setShowImportModal(false);
     } catch (error) {
-      alert('Failed to import controls: ' + (error as Error).message);
+      toast.dismiss(toastId);
+      toast.error('İçe aktarma başarısız: ' + (error as Error).message);
     }
   };
 
@@ -861,6 +867,20 @@ function ImportModal({
 }) {
   const [engagementId, setEngagementId] = useState('');
 
+  const { data: engagements = [], isLoading } = useQuery({
+    queryKey: ['engagements-for-import'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_engagements')
+        .select('id, title, status, start_date')
+        .in('status', ['PLANNING', 'IN_PROGRESS', 'FIELDWORK'])
+        .order('start_date', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (engagementId) {
@@ -868,45 +888,86 @@ function ImportModal({
     }
   };
 
+  const statusLabel: Record<string, string> = {
+    PLANNING: 'Planlama',
+    IN_PROGRESS: 'Devam Ediyor',
+    FIELDWORK: 'Saha Çalışması',
+  };
+
+  const statusColor: Record<string, string> = {
+    PLANNING: 'bg-blue-100 text-blue-700',
+    IN_PROGRESS: 'bg-amber-100 text-amber-700',
+    FIELDWORK: 'bg-emerald-100 text-emerald-700',
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Import Controls to Engagement</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Denetim Görevine İçe Aktar</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            <strong>{controlCount}</strong> kontrol seçili
+          </p>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm text-slate-600">
-            You are about to import <strong>{controlCount}</strong> control(s) into the audit engagement's work program.
-          </p>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Engagement ID *
+              Denetim Görevi *
             </label>
-            <input
-              type="text"
-              value={engagementId}
-              onChange={(e) => setEngagementId(e.target.value)}
-              placeholder="Enter engagement/audit ID"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+            {isLoading ? (
+              <div className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-500">
+                Görevler yükleniyor...
+              </div>
+            ) : engagements.length === 0 ? (
+              <div className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-500 bg-slate-50">
+                Aktif denetim görevi bulunamadı
+              </div>
+            ) : (
+              <select
+                value={engagementId}
+                onChange={(e) => setEngagementId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              >
+                <option value="">— Denetim görevi seçin —</option>
+                {engagements.map((eng) => (
+                  <option key={eng.id} value={eng.id}>
+                    {eng.title} [{statusLabel[eng.status] ?? eng.status}]
+                  </option>
+                ))}
+              </select>
+            )}
+            {engagementId && (() => {
+              const selected = engagements.find(e => e.id === engagementId);
+              return selected ? (
+                <div className="mt-2 flex items-center gap-2 text-xs">
+                  <span className={`px-2 py-0.5 rounded font-medium ${statusColor[selected.status] ?? 'bg-slate-100 text-slate-700'}`}>
+                    {statusLabel[selected.status] ?? selected.status}
+                  </span>
+                  <span className="text-slate-500">
+                    {selected.start_date ? new Date(selected.start_date).toLocaleDateString('tr-TR') : ''}
+                  </span>
+                </div>
+              ) : null;
+            })()}
             <p className="mt-1 text-xs text-slate-500">
-              Controls will be added to the audit_steps table for this engagement
+              Kontroller bu görevin çalışma programına eklenecektir
             </p>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors text-sm"
             >
-              Cancel
+              İptal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
+              disabled={!engagementId}
+              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Import Controls
+              Kontrolleri Aktar
             </button>
           </div>
         </form>
