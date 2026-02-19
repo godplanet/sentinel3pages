@@ -1,5 +1,35 @@
 import type { TalentProfile, BurnoutZone } from './types';
 
+// ============================================================
+// Sentiment Multiplier (Phase 13 — Pulse Engine)
+// Formula: Final_Fatigue = Mathematical_Fatigue * Sentiment_Multiplier
+// ============================================================
+
+export type SentimentLevel = 1 | 2 | 3 | 4 | 5;
+
+export function getSentimentMultiplier(energyLevel: SentimentLevel | number): number {
+  if (energyLevel <= 2) return 1.3;
+  if (energyLevel >= 5) return 0.8;
+  return 1.0;
+}
+
+export function applyPulseSentiment(
+  mathFatigue:  number,
+  energyLevel?: number,
+): number {
+  if (energyLevel == null) return mathFatigue;
+  const multiplier = getSentimentMultiplier(energyLevel);
+  return Math.min(Math.round(mathFatigue * multiplier * 10) / 10, 100);
+}
+
+export function detectQuietQuittingRisk(
+  fatigue:      number,
+  energyLevel:  number,
+  stressFactor: 'LOW' | 'NORMAL' | 'HIGH',
+): boolean {
+  return fatigue < 45 && energyLevel <= 2 && stressFactor === 'HIGH';
+}
+
 const HOURS_WEIGHT = 0.45;
 const TRAVEL_WEIGHT = 0.25;
 const STRESS_STREAK_WEIGHT = 0.20;
