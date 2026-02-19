@@ -5,6 +5,7 @@ import { PageHeader } from '@/shared/ui';
 import { fetchAgileEngagement } from '@/features/audit-creation/api';
 import type { AgileEngagement } from '@/features/audit-creation/types';
 import { SprintBoard } from '@/widgets/SprintBoard';
+import { BudgetTrackerCard } from '@/features/execution/ui/BudgetTrackerCard';
 
 const SQUAD = [
   { initials: 'AK', bg: 'bg-blue-100', text: 'text-blue-700',   name: 'Ahmet Kaya' },
@@ -140,9 +141,14 @@ export default function SprintBoardPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
-        <SprintMissionHeader />
-        <SprintBoard engagementId={engagement.id} />
+      <div className="flex-1 overflow-hidden flex gap-0">
+        <div className="flex-1 overflow-auto p-6">
+          <SprintMissionHeader />
+          <SprintBoard engagementId={engagement.id} />
+        </div>
+        <div className="w-72 flex-shrink-0 border-l border-slate-200 bg-slate-50 overflow-y-auto p-4">
+          <BudgetTrackerCard />
+        </div>
       </div>
     </div>
   );

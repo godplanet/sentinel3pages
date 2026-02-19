@@ -2,16 +2,16 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
-  Star,
-  Shield,
-  Trophy,
-  Zap,
-  Lock,
   ArrowUp,
   BookOpen,
   CheckCircle2,
-  Loader2,
   ExternalLink,
+  Loader2,
+  Lock,
+  Shield,
+  Star,
+  Trophy,
+  Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { TalentProfileEnriched } from '../hooks/useTalentData';
@@ -29,11 +29,11 @@ interface Props {
 }
 
 const LEVEL_GRADIENTS: Record<number, string> = {
-  1: 'from-slate-600 to-slate-500',
-  2: 'from-emerald-700 to-emerald-500',
-  3: 'from-sky-700 to-sky-500',
-  4: 'from-amber-700 to-amber-500',
-  5: 'from-rose-700 via-orange-500 to-amber-400',
+  1: 'from-slate-500 to-slate-400',
+  2: 'from-emerald-600 to-emerald-400',
+  3: 'from-sky-600 to-sky-400',
+  4: 'from-amber-600 to-amber-400',
+  5: 'from-rose-600 via-orange-500 to-amber-400',
 };
 
 const TITLE_MAP: Record<string, string> = {
@@ -44,15 +44,15 @@ const TITLE_MAP: Record<string, string> = {
 };
 
 const CERT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  CIA:   { bg: 'bg-blue-500/20',    text: 'text-blue-300',    border: 'border-blue-500/40'   },
-  CISA:  { bg: 'bg-cyan-500/20',    text: 'text-cyan-300',    border: 'border-cyan-500/40'   },
-  CRISC: { bg: 'bg-amber-500/20',   text: 'text-amber-300',   border: 'border-amber-500/40'  },
-  CFE:   { bg: 'bg-rose-500/20',    text: 'text-rose-300',    border: 'border-rose-500/40'   },
-  SMMM:  { bg: 'bg-teal-500/20',    text: 'text-teal-300',    border: 'border-teal-500/40'   },
-  SPK:   { bg: 'bg-sky-500/20',     text: 'text-sky-300',     border: 'border-sky-500/40'    },
-  TKBB:  { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/40'},
+  CIA:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200'   },
+  CISA:  { bg: 'bg-cyan-50',    text: 'text-cyan-700',    border: 'border-cyan-200'   },
+  CRISC: { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200'  },
+  CFE:   { bg: 'bg-rose-50',    text: 'text-rose-700',    border: 'border-rose-200'   },
+  SMMM:  { bg: 'bg-teal-50',    text: 'text-teal-700',    border: 'border-teal-200'   },
+  SPK:   { bg: 'bg-sky-50',     text: 'text-sky-700',     border: 'border-sky-200'    },
+  TKBB:  { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200'},
 };
-const DEFAULT_CERT_COLOR = { bg: 'bg-slate-500/20', text: 'text-slate-300', border: 'border-slate-500/40' };
+const DEFAULT_CERT_COLOR = { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
 
 function getInitials(name: string) {
   return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
@@ -77,16 +77,11 @@ function FatigueMeter({ score }: { score: number }) {
     x: CX + (R - 6) * Math.cos(needleAngle),
     y: CY - (R - 6) * Math.sin(needleAngle),
   };
-  const color  = score >= 80 ? '#f87171' : score >= 40 ? '#fbbf24' : '#34d399';
-  const glow   = score >= 80
-    ? 'drop-shadow(0 0 4px #f87171)'
-    : score >= 40
-    ? 'drop-shadow(0 0 4px #fbbf24)'
-    : 'drop-shadow(0 0 4px #34d399)';
+  const color = score >= 80 ? '#ef4444' : score >= 40 ? '#f59e0b' : '#10b981';
   const TICKS = [0, 0.25, 0.5, 0.75, 1];
   return (
-    <svg viewBox="0 0 100 58" className="w-full max-w-[130px] mx-auto" style={{ filter: glow }}>
-      <path d={bgPath} fill="none" stroke="#1e293b" strokeWidth="9" strokeLinecap="round" />
+    <svg viewBox="0 0 100 58" className="w-full max-w-[130px] mx-auto">
+      <path d={bgPath} fill="none" stroke="#e2e8f0" strokeWidth="9" strokeLinecap="round" />
       {fillPath && <path d={fillPath} fill="none" stroke={color} strokeWidth="9" strokeLinecap="round" opacity={0.9} />}
       {TICKS.map((t) => {
         const a = Math.PI - t * Math.PI;
@@ -94,14 +89,14 @@ function FatigueMeter({ score }: { score: number }) {
           <line key={t}
             x1={CX + (R + 2) * Math.cos(a)} y1={CY - (R + 2) * Math.sin(a)}
             x2={CX + (R + 8) * Math.cos(a)} y2={CY - (R + 8) * Math.sin(a)}
-            stroke="#334155" strokeWidth="1.5" strokeLinecap="round"
+            stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round"
           />
         );
       })}
       <line x1={CX} y1={CY} x2={needleTip.x} y2={needleTip.y} stroke={color} strokeWidth="2" strokeLinecap="round" />
       <circle cx={CX} cy={CY} r="3" fill={color} />
       <text x="50" y="50" textAnchor="middle" fontSize="13" fontWeight="bold" fill={color} fontFamily="monospace">{score}</text>
-      <text x="50" y="57" textAnchor="middle" fontSize="6.5" fill="#64748b" fontFamily="sans-serif" letterSpacing="0.5">YORGUNLUK</text>
+      <text x="50" y="57" textAnchor="middle" fontSize="6.5" fill="#94a3b8" fontFamily="sans-serif" letterSpacing="0.5">YORGUNLUK</text>
     </svg>
   );
 }
@@ -121,36 +116,30 @@ function XPBar({
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">XP</span>
           {showShield && (
-            <span title="Diminishing Returns active" className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40">
-              <Shield size={8} className="text-amber-400" />
-              <span className="text-[8px] text-amber-400 font-semibold tracking-wide">DR</span>
+            <span title="Azalan Getiri aktif" className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-amber-50 border border-amber-200">
+              <Shield size={8} className="text-amber-600" />
+              <span className="text-[8px] text-amber-700 font-semibold tracking-wide">AG</span>
             </span>
           )}
           {isGated && (
-            <span title="Memory Gate: Playbook'a girdi ekleyin" className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-slate-600/40 border border-slate-500/40">
-              <Lock size={8} className="text-slate-400" />
-              <span className="text-[8px] text-slate-400 font-semibold tracking-wide">LV5</span>
+            <span title="Hafıza Kapısı: Playbook'a girdi ekleyin" className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-slate-100 border border-slate-300">
+              <Lock size={8} className="text-slate-500" />
+              <span className="text-[8px] text-slate-500 font-semibold tracking-wide">LV5</span>
             </span>
           )}
         </div>
-        <span className="text-[10px] text-slate-300 font-mono">{current.toLocaleString()} / {next.toLocaleString()}</span>
+        <span className="text-[10px] text-slate-500 font-mono">{current.toLocaleString()} / {next.toLocaleString()}</span>
       </div>
-      <div className="h-2 bg-slate-800 rounded-full overflow-hidden relative">
+      <div className="h-2 bg-slate-200 rounded-full overflow-hidden relative">
         <motion.div
-          className={`h-full rounded-full bg-gradient-to-r ${isGated ? 'from-slate-600 to-slate-500' : gradient}`}
+          className={`h-full rounded-full bg-gradient-to-r ${isGated ? 'from-slate-400 to-slate-300' : gradient}`}
           initial={{ width: 0 }}
           animate={{ width: `${progress * 100}%` }}
           transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
         />
-        {!isGated && (
-          <div
-            className={`absolute inset-0 rounded-full bg-gradient-to-r ${gradient} opacity-30 blur-sm`}
-            style={{ width: `${progress * 100}%` }}
-          />
-        )}
       </div>
       {isGated && (
-        <p className="text-[9px] text-slate-500 flex items-center gap-1">
+        <p className="text-[9px] text-slate-400 flex items-center gap-1">
           <Lock size={7} />
           Seviye 5 için Playbook&apos;a girdi ekleyin
         </p>
@@ -187,7 +176,7 @@ export function AuditorProfileCard({
     setIsLeveling(true);
     setGateResult(null);
     try {
-      const result = await XPEngine.attemptLevelUp(profile.id);
+      const result = await XPEngine.attemptLevelUp(profile.id, 0);
       setGateResult(result);
       if (result.success) setLeveledUp(true);
     } catch {
@@ -205,18 +194,18 @@ export function AuditorProfileCard({
       onClick={onSelect}
       className={`
         relative rounded-2xl p-5 cursor-pointer transition-all duration-300
-        bg-slate-900/80 backdrop-blur-xl border
+        bg-white border shadow-sm hover:shadow-md
         ${isSelected
-          ? 'border-sky-500/60 shadow-lg shadow-sky-500/10 ring-1 ring-sky-500/30'
+          ? 'border-sky-400 ring-1 ring-sky-300 shadow-sky-100'
           : isGateBlocked
-          ? 'border-red-500/30 shadow-lg shadow-red-500/5'
-          : 'border-white/8 hover:border-white/16'}
+          ? 'border-rose-200 shadow-rose-50'
+          : 'border-slate-200 hover:border-slate-300'}
       `}
     >
       {isBurnout && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-red-500/20 border border-red-500/40 rounded-full px-2 py-0.5">
-          <AlertTriangle className="w-3 h-3 text-red-400" />
-          <span className="text-[9px] text-red-400 font-semibold tracking-wide uppercase">Burnout</span>
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+          <AlertTriangle className="w-3 h-3 text-red-500" />
+          <span className="text-[9px] text-red-600 font-semibold tracking-wide uppercase">Yorgunluk</span>
         </div>
       )}
 
@@ -225,27 +214,27 @@ export function AuditorProfileCard({
           <motion.div
             animate={leveledUp ? { scale: [1, 1.15, 1] } : {}}
             transition={{ duration: 0.5 }}
-            className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}
+            className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow`}
           >
             <span className="text-white font-bold text-lg tracking-tight">{initials}</span>
           </motion.div>
-          <div className={`absolute -bottom-1.5 -right-1.5 bg-gradient-to-br ${gradient} rounded-md px-1.5 py-0.5 border border-black/20 shadow`}>
+          <div className={`absolute -bottom-1.5 -right-1.5 bg-gradient-to-br ${gradient} rounded-md px-1.5 py-0.5 border border-white shadow`}>
             <span className="text-white text-[9px] font-black tracking-widest">LV{profile.current_level}</span>
           </div>
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold text-sm leading-tight truncate">{profile.full_name}</h3>
-          <p className="text-slate-400 text-xs mt-0.5">{TITLE_MAP[profile.title] ?? profile.title}</p>
-          <p className="text-slate-500 text-[10px] mt-0.5 truncate">{profile.department}</p>
+          <h3 className="text-slate-900 font-semibold text-sm leading-tight truncate">{profile.full_name}</h3>
+          <p className="text-slate-500 text-xs mt-0.5">{TITLE_MAP[profile.title] ?? profile.title}</p>
+          <p className="text-slate-400 text-[10px] mt-0.5 truncate">{profile.department}</p>
           <div className="flex items-center gap-2 mt-1.5">
             <div className="flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-amber-400" />
-              <span className="text-[10px] text-amber-400 font-mono font-semibold">{levelLabel}</span>
+              <Trophy className="w-3 h-3 text-amber-500" />
+              <span className="text-[10px] text-amber-600 font-mono font-semibold">{levelLabel}</span>
             </div>
             {profile.is_available
-              ? <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-1.5 py-0.5">Müsait</span>
-              : <span className="text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full px-1.5 py-0.5">Dolu</span>}
+              ? <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-1.5 py-0.5">Müsait</span>
+              : <span className="text-[9px] bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-1.5 py-0.5">Dolu</span>}
           </div>
         </div>
       </div>
@@ -269,31 +258,29 @@ export function AuditorProfileCard({
             transition={{ duration: 0.3 }}
             className="mb-4 overflow-hidden"
           >
-            <div className="rounded-xl border border-red-500/40 bg-red-500/8 p-3">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
               <div className="flex items-start gap-2 mb-2">
-                <Lock className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
-                <div>
-                  <p className="text-[10px] font-black font-mono text-red-300 uppercase tracking-widest leading-tight">
-                    LEVEL UP BLOCKED — The Memory Gate
-                  </p>
-                </div>
+                <Lock className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5 animate-pulse" />
+                <p className="text-[10px] font-black font-mono text-rose-800 uppercase tracking-widest leading-tight">
+                  TERFİ ENGELLENDİ (Hafıza Kapısı)
+                </p>
               </div>
-              <p className="text-[10px] text-slate-300 leading-relaxed mb-1.5">
-                You have <span className="font-bold text-red-300">0 contributions</span> to the Corporate Playbook.
-                You must institutionalize your knowledge before advancing.
-              </p>
-              <p className="text-[9px] text-slate-500 italic mb-3">
-                Sentinel Gamification Rule: Knowledge hoarding blocks progression.
+              <p className="text-[10px] text-rose-800 leading-relaxed mb-3">
+                Kurumsal Playbook kütüphanesine hiç denetim rehberi yazmadınız.
+                Tecrübenizi kuruma aktarmadan bir üst seviyeye geçemezsiniz.
+                <span className="block mt-1 text-[9px] text-rose-600 italic">
+                  (Sentinel Oyunlaştırma Kuralı)
+                </span>
               </p>
               <button
                 onClick={(e) => { e.stopPropagation(); navigate('/playbook'); }}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-lg
-                  bg-slate-800/80 border border-slate-600/50 text-slate-200 text-[10px] font-semibold
-                  hover:bg-slate-700/80 hover:border-slate-500/60 transition-all"
+                  bg-white border border-rose-200 text-rose-700 text-[10px] font-semibold
+                  hover:bg-rose-100 transition-all"
               >
                 <BookOpen className="w-3 h-3" />
-                Write to Playbook
-                <ExternalLink className="w-3 h-3 text-slate-400" />
+                Playbook'a Yaz
+                <ExternalLink className="w-3 h-3 text-rose-400" />
               </button>
             </div>
           </motion.div>
@@ -304,14 +291,14 @@ export function AuditorProfileCard({
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/8 p-3 flex items-center gap-2"
+            className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-center gap-2"
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <div>
-              <p className="text-[10px] font-black font-mono text-emerald-300 uppercase tracking-widest">
-                Level Up! — Lv.{gateResult.newLevel}
+              <p className="text-[10px] font-black font-mono text-emerald-700 uppercase tracking-widest">
+                Seviye Atlandı! → Lv.{gateResult.newLevel}
               </p>
-              <p className="text-[9px] text-emerald-500">Knowledge institutionalized. Well done.</p>
+              <p className="text-[9px] text-emerald-600">Kurumsal bilgi aktarımı tamamlandı. Tebrikler.</p>
             </div>
           </motion.div>
         )}
@@ -323,15 +310,15 @@ export function AuditorProfileCard({
         </div>
         {topSkills.length > 0 && (
           <div className="flex-1 space-y-1.5">
-            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-semibold">Top Beceriler</p>
+            <p className="text-[9px] text-slate-400 uppercase tracking-widest font-semibold">Top Beceriler</p>
             {topSkills.map((s) => (
               <div key={s.skill_name} className="flex items-center gap-1.5">
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < s.proficiency_level ? 'bg-sky-400' : 'bg-slate-700'}`} />
+                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < s.proficiency_level ? 'bg-sky-400' : 'bg-slate-200'}`} />
                   ))}
                 </div>
-                <span className="text-[9px] text-slate-400 truncate">{s.skill_name}</span>
+                <span className="text-[9px] text-slate-500 truncate">{s.skill_name}</span>
               </div>
             ))}
           </div>
@@ -351,18 +338,18 @@ export function AuditorProfileCard({
             );
           })}
           {profile.certifications.length > 4 && (
-            <span className="text-[9px] text-slate-500 self-center">+{profile.certifications.length - 4}</span>
+            <span className="text-[9px] text-slate-400 self-center">+{profile.certifications.length - 4}</span>
           )}
         </div>
       )}
 
-      <div className="flex gap-2 pt-3 border-t border-white/6">
+      <div className="flex gap-2 pt-3 border-t border-slate-200">
         <button
           onClick={(e) => { e.stopPropagation(); onSelect(); }}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all
             ${isSelected
-              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30'
-              : 'bg-slate-800/60 text-slate-300 border border-white/8 hover:bg-slate-700/60 hover:text-white'}`}
+              ? 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100'
+              : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:text-slate-900'}`}
         >
           <Star className="w-3 h-3" />
           Radar
@@ -371,7 +358,7 @@ export function AuditorProfileCard({
         <button
           onClick={(e) => { e.stopPropagation(); onGiveKudos(); }}
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all
-            bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-300"
+            bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
         >
           <Zap className="w-3 h-3" />
           Kudos
@@ -384,15 +371,15 @@ export function AuditorProfileCard({
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all
               disabled:opacity-60
               ${isGateBlocked
-                ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/15'
-                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:text-emerald-300'}`}
+                ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'}`}
           >
             {isLeveling
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : isGateBlocked
               ? <Lock className="w-3 h-3" />
               : <ArrowUp className="w-3 h-3" />}
-            {isLeveling ? 'Checking...' : 'Level Up'}
+            {isLeveling ? 'Kontrol ediliyor...' : '🚀 Seviye Atla (Level Up)'}
           </button>
         )}
       </div>

@@ -352,7 +352,14 @@ export class XPEngine {
    * advancing to the next level. Without institutional knowledge sharing,
    * the system hard-blocks the level-up.
    */
-  static async attemptLevelUp(auditorId: string): Promise<LevelUpResult> {
+  static async attemptLevelUp(auditorId: string, playbookContributions?: number): Promise<LevelUpResult> {
+    if (playbookContributions !== undefined) {
+      if (playbookContributions === 0) {
+        return { success: false, reason: 'MEMORY_GATE_BLOCKED', playbookContributions: 0 };
+      }
+      return { success: true, reason: null, playbookContributions };
+    }
+
     const { data: profile, error } = await supabase
       .from('talent_profiles')
       .select('current_level, total_xp, next_level_xp, playbook_contributions')
