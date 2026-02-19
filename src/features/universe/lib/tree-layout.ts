@@ -47,6 +47,7 @@ export const getLayoutedElements = (
       type: 'entityNode',
       position: { x: 0, y: 0 },
       data: {
+        id: entity.id,
         name: entity.name,
         type: entity.type,
         risk_score: entity.risk_score,

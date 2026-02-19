@@ -1,5 +1,60 @@
 import type { TalentProfileWithSkills } from '@/features/talent-os/types';
 
+export interface AuditorProfile {
+  id: string;
+  name: string;
+  fatigueScore: number;
+  skills: string[];
+}
+
+export interface AssessmentResult {
+  isAllowed: boolean;
+  fatigueScore: number;
+  missingSkills: string[];
+  blockReason: string | null;
+}
+
+const FATIGUE_CRITICAL_THRESHOLD = 85;
+
+export function evaluateAssignment(
+  auditor: AuditorProfile,
+  requiredSkills: string[],
+): AssessmentResult {
+  const missingSkills = requiredSkills.filter(
+    (req) =>
+      !auditor.skills.some(
+        (s) =>
+          s.toLowerCase().includes(req.toLowerCase()) ||
+          req.toLowerCase().includes(s.toLowerCase()),
+      ),
+  );
+
+  if (auditor.fatigueScore > FATIGUE_CRITICAL_THRESHOLD) {
+    return {
+      isAllowed: false,
+      fatigueScore: auditor.fatigueScore,
+      missingSkills,
+      blockReason: 'FATIGUE_CRITICAL',
+    };
+  }
+
+  if (missingSkills.length > 0) {
+    return {
+      isAllowed: false,
+      fatigueScore: auditor.fatigueScore,
+      missingSkills,
+      blockReason: 'SKILL_GAP',
+    };
+  }
+
+  return {
+    isAllowed: true,
+    fatigueScore: auditor.fatigueScore,
+    missingSkills: [],
+    blockReason: null,
+  };
+}
+
 export type SortMode = 'best_match' | 'best_value';
 
 export interface AllocationResult {

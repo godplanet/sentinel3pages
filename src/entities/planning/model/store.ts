@@ -5,6 +5,7 @@ import type {
   CreatePlanInput,
   CreateEngagementInput,
   UpdateEngagementDatesInput,
+  DraftEngagement,
 } from './types';
 import { markSkillsUsedForEngagement } from '@/features/talent-os/lib/EntropyEngine';
 import {
@@ -15,11 +16,19 @@ import {
 interface PlanningStore {
   plans: AuditPlan[];
   engagements: AuditEngagement[];
+  draftEngagements: DraftEngagement[];
   loading: boolean;
   error: string | null;
 
   setPlans: (plans: AuditPlan[]) => void;
   setEngagements: (engagements: AuditEngagement[]) => void;
+  addNodeToPlan: (
+    nodeId: string,
+    nodeName: string,
+    cascadeRisk: number,
+    requiredSkills: string[],
+  ) => void;
+  removeDraftEngagement: (id: string) => void;
 
   createPlan: (input: CreatePlanInput) => AuditPlan;
   addEngagement: (input: CreateEngagementInput) => AuditEngagement;
@@ -44,12 +53,37 @@ interface PlanningStore {
 export const usePlanningStore = create<PlanningStore>((set, get) => ({
   plans: [],
   engagements: [],
+  draftEngagements: [],
   loading: false,
   error: null,
 
   setPlans: (plans) => set({ plans }),
 
   setEngagements: (engagements) => set({ engagements }),
+
+  addNodeToPlan: (nodeId, nodeName, cascadeRisk, requiredSkills) => {
+    set((state) => {
+      const alreadyAdded = state.draftEngagements.some(
+        (d) => d.universeNodeId === nodeId,
+      );
+      if (alreadyAdded) return state;
+      const draft: DraftEngagement = {
+        id: crypto.randomUUID(),
+        universeNodeId: nodeId,
+        universeNodeName: nodeName,
+        cascadeRisk,
+        requiredSkills,
+        addedAt: new Date().toISOString(),
+      };
+      return { draftEngagements: [...state.draftEngagements, draft] };
+    });
+  },
+
+  removeDraftEngagement: (id) => {
+    set((state) => ({
+      draftEngagements: state.draftEngagements.filter((d) => d.id !== id),
+    }));
+  },
 
   createPlan: (input) => {
     const newPlan: AuditPlan = {

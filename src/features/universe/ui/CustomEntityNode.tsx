@@ -1,11 +1,14 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Building2, Building, Network, Box, Workflow, TrendingUp, MapPin, Briefcase, Landmark, Server, Truck, Factory } from 'lucide-react';
+import { Building2, Building, Network, Box, Workflow, TrendingUp, MapPin, Briefcase, Landmark, Server, Truck, Factory, PlusCircle, CheckCircle2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { EntityType } from '@/entities/universe';
 import { useRiskConstitution } from '@/features/risk-constitution';
 import { getRiskColor, getRiskLabel } from '@/shared/lib/constitution-utils';
+import { usePlanningStore } from '@/entities/planning';
 
 export interface EntityNodeData {
+  id: string;
   name: string;
   type: EntityType;
   risk_score: number;
@@ -71,15 +74,52 @@ const getTypeColor = (type: EntityType) => {
   }
 };
 
+function getRequiredSkills(type: string): string[] {
+  switch (type) {
+    case 'IT_ASSET':
+    case 'SERVER':
+      return ['IT Audit', 'Cybersecurity'];
+    case 'BANK':
+    case 'HOLDING':
+    case 'SUBSIDIARY':
+    case 'HEADQUARTERS':
+      return ['Financial Audit', 'Banking'];
+    case 'DEPARTMENT':
+    case 'UNIT':
+      return ['Operational Audit'];
+    case 'VENDOR':
+      return ['TPRM', 'Vendor Audit'];
+    default:
+      return ['General Audit'];
+  }
+}
+
 export const CustomEntityNode = memo(({ data }: NodeProps) => {
   const nodeData = data as unknown as EntityNodeData;
   const { constitution } = useRiskConstitution();
+  const { addNodeToPlan, draftEngagements } = usePlanningStore();
   const Icon = getTypeIcon(nodeData.type);
   const typeColor = getTypeColor(nodeData.type);
 
   const riskColor = constitution ? getRiskColor(nodeData.effective_risk, constitution.risk_ranges) : '#64748b';
   const riskLabel = constitution ? getRiskLabel(nodeData.effective_risk, constitution.risk_ranges) : 'N/A';
   const isHighVelocity = nodeData.velocity_multiplier > 1.2;
+
+  const alreadyInPlan = draftEngagements.some((d) => d.universeNodeId === nodeData.id);
+
+  const handleAddToPlan = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (alreadyInPlan) return;
+      const skills = getRequiredSkills(nodeData.type);
+      addNodeToPlan(nodeData.id, nodeData.name, nodeData.effective_risk, skills);
+      toast.success(`"${nodeData.name}" yıllık plana eklendi`, {
+        icon: '📋',
+        style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155' },
+      });
+    },
+    [addNodeToPlan, alreadyInPlan, nodeData],
+  );
 
   return (
     <div className="relative group">
@@ -145,11 +185,35 @@ export const CustomEntityNode = memo(({ data }: NodeProps) => {
 
           <div className="pt-2 border-t border-white/30">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600">Base Risk:</span>
+              <span className="text-slate-600">Cascade Risk:</span>
               <span className="font-bold text-slate-700">
                 {nodeData.risk_score.toFixed(1)}
               </span>
             </div>
+            <button
+              onClick={handleAddToPlan}
+              title={alreadyInPlan ? 'Zaten planda' : 'Plana ekle'}
+              className={`
+                mt-2 w-full flex items-center justify-center gap-1.5
+                px-2 py-1.5 rounded-lg text-[10px] font-bold
+                transition-all duration-200
+                ${alreadyInPlan
+                  ? 'bg-emerald-100 text-emerald-700 cursor-default'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm'}
+              `}
+            >
+              {alreadyInPlan ? (
+                <>
+                  <CheckCircle2 size={10} />
+                  Planda
+                </>
+              ) : (
+                <>
+                  <PlusCircle size={10} />
+                  Plana Ekle
+                </>
+              )}
+            </button>
           </div>
         </div>
 

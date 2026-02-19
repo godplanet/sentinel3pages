@@ -65,3 +65,12 @@ export interface UpdateEngagementDatesInput {
   start_date: string;
   end_date: string;
 }
+
+export interface DraftEngagement {
+  id: string;
+  universeNodeId: string;
+  universeNodeName: string;
+  cascadeRisk: number;
+  requiredSkills: string[];
+  addedAt: string;
+}
