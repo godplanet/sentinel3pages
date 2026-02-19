@@ -130,7 +130,7 @@ export default function AcademyPage() {
       <PageHeader
         title="Academy & Competency"
         description="Professional development, exams, and CPE tracking"
-        icon={<BookOpen size={20} />}
+        icon={BookOpen}
       />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
