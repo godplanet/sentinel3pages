@@ -30,6 +30,21 @@ export interface XPAwardResult {
   reductionTier: 0 | 1 | 2 | 3;
 }
 
+export type MemoryGateBlockReason =
+  | 'MEMORY_GATE_BLOCKED'
+  | 'INSUFFICIENT_XP'
+  | 'MAX_LEVEL'
+  | 'PROFILE_NOT_FOUND';
+
+export interface LevelUpResult {
+  success:               boolean;
+  reason:                MemoryGateBlockReason | null;
+  newLevel?:             number;
+  playbookContributions?: number;
+  xpRequired?:           number;
+  currentXp?:            number;
+}
+
 export interface LedgerEntry {
   id:               string;
   user_id:          string;
@@ -328,6 +343,70 @@ export class XPEngine {
     let newLevel = currentLevel;
     while (currentXp >= newLevel * XP_PER_LEVEL) newLevel++;
     return { newLevel, leveledUp: newLevel > currentLevel, levelsGained: newLevel - currentLevel };
+  }
+
+  /**
+   * Memory Gate: Attempt to level up an auditor.
+   *
+   * Golden Rule — the auditor MUST have at least one Playbook contribution before
+   * advancing to the next level. Without institutional knowledge sharing,
+   * the system hard-blocks the level-up.
+   */
+  static async attemptLevelUp(auditorId: string): Promise<LevelUpResult> {
+    const { data: profile, error } = await supabase
+      .from('talent_profiles')
+      .select('current_level, total_xp, next_level_xp, playbook_contributions')
+      .eq('id', auditorId)
+      .maybeSingle();
+
+    if (error || !profile) {
+      return { success: false, reason: 'PROFILE_NOT_FOUND' };
+    }
+
+    const level          = (profile.current_level as number) ?? 1;
+    const totalXp        = (profile.total_xp as number) ?? 0;
+    const nextLevelXp    = (profile.next_level_xp as number) ?? 1000;
+    const contributions  = (profile.playbook_contributions as number) ?? 0;
+
+    if (level >= 5) {
+      return { success: false, reason: 'MAX_LEVEL', newLevel: 5, currentXp: totalXp };
+    }
+
+    if (totalXp < nextLevelXp) {
+      return {
+        success: false,
+        reason: 'INSUFFICIENT_XP',
+        xpRequired: nextLevelXp,
+        currentXp: totalXp,
+        playbookContributions: contributions,
+      };
+    }
+
+    if (contributions === 0) {
+      return {
+        success: false,
+        reason: 'MEMORY_GATE_BLOCKED',
+        xpRequired: nextLevelXp,
+        currentXp: totalXp,
+        playbookContributions: 0,
+      };
+    }
+
+    const newLevel = level + 1;
+    const { error: updateError } = await supabase
+      .from('talent_profiles')
+      .update({ current_level: newLevel })
+      .eq('id', auditorId);
+
+    if (updateError) throw updateError;
+
+    return {
+      success: true,
+      reason: null,
+      newLevel,
+      playbookContributions: contributions,
+      currentXp: totalXp,
+    };
   }
 
   static xpForNextLevel(currentLevel: number): number {

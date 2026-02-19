@@ -46,6 +46,7 @@ export interface TalentProfileRow {
   skills_snapshot: SkillSnapshot;
   hourly_rate: number;
   currency: string;
+  playbook_contributions: number;
   tenant_id: string;
   created_at: string;
   updated_at: string;
