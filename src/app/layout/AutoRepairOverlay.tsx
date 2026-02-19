@@ -35,7 +35,7 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
             </motion.div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Sentinel v3.0</h1>
-          <p className="text-blue-300 text-sm">AI-Native Internal Audit Platform</p>
+          <p className="text-blue-300 text-sm">Yapay Zeka Destekli İç Denetim Platformu</p>
         </motion.div>
 
         {/* Status Card */}
@@ -52,8 +52,8 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
                   <Wrench className="w-5 h-5 text-red-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Repair Failed</h2>
-                  <p className="text-sm text-red-300">Database initialization error</p>
+                  <h2 className="text-lg font-semibold text-white">Onarım Başarısız</h2>
+                  <p className="text-sm text-red-300">Veritabanı başlatma hatası</p>
                 </div>
               </div>
               <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-4">
@@ -63,7 +63,7 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
                 onClick={() => window.location.reload()}
                 className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
               >
-                Retry
+                Tekrar Dene
               </button>
             </>
           ) : (
@@ -73,35 +73,35 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
                   <Wrench className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">System Initialization</h2>
-                  <p className="text-sm text-blue-300">Preparing database...</p>
+                  <h2 className="text-lg font-semibold text-white">Sistem Başlatılıyor</h2>
+                  <p className="text-sm text-blue-300">Veritabanı hazırlanıyor...</p>
                 </div>
               </div>
 
               {/* Progress Steps */}
               <div className="space-y-3 mb-6">
                 <ProgressStep
-                  label="Nuclear Wipe (FK-Safe Cleanup)"
+                  label="Mevcut Veriler Temizleniyor"
                   status="in_progress"
                 />
                 <ProgressStep
-                  label="Creating Users & Profiles"
+                  label="Kullanıcılar ve Profiller Oluşturuluyor"
                   status="pending"
                 />
                 <ProgressStep
-                  label="Building Audit Universe"
+                  label="Denetim Evreni Kuruluyor"
                   status="pending"
                 />
                 <ProgressStep
-                  label="Seeding Risk Library"
+                  label="Risk Kütüphanesi Yükleniyor"
                   status="pending"
                 />
                 <ProgressStep
-                  label="Deploying Active Engagement"
+                  label="Aktif Görevler Yükleniyor"
                   status="pending"
                 />
                 <ProgressStep
-                  label="Generating Findings & Actions"
+                  label="Bulgular ve Aksiyonlar Oluşturuluyor"
                   status="pending"
                 />
               </div>
@@ -114,7 +114,7 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
               </div>
 
               <p className="text-center text-blue-300 text-sm mt-4">
-                This will take approximately 5-10 seconds...
+                Bu işlem yaklaşık 5–10 saniye sürecektir...
               </p>
             </>
           )}
@@ -127,7 +127,7 @@ export function AutoRepairOverlay({ isRepairing, error }: AutoRepairOverlayProps
           transition={{ delay: 0.6 }}
           className="text-center mt-6 text-blue-400 text-sm"
         >
-          <p>Powered by Supabase + React + AI</p>
+          <p>Supabase + React + Yapay Zeka ile güçlendirilmiştir</p>
         </motion.div>
       </div>
     </div>

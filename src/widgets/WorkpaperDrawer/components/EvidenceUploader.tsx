@@ -174,7 +174,7 @@ export const EvidenceUploader = ({ workpaperId }: EvidenceUploaderProps) => {
         {isUploading && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-            <p className="text-sm font-medium text-gray-700">Generating SHA-256 Hash...</p>
+            <p className="text-sm font-medium text-gray-700">SHA-256 Özeti Hesaplanıyor...</p>
             <div className="w-48 h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
               <motion.div
                 className="h-full bg-indigo-600"
@@ -214,7 +214,7 @@ export const EvidenceUploader = ({ workpaperId }: EvidenceUploaderProps) => {
                       </p>
                       <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 rounded-full">
                         <Check className="w-3 h-3 text-emerald-600" />
-                        <span className="text-xs font-medium text-emerald-700">Verified</span>
+                        <span className="text-xs font-medium text-emerald-700">Doğrulandı</span>
                       </div>
                     </div>
 

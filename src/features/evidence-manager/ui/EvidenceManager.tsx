@@ -68,7 +68,7 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
   return (
     <div className="bg-white/80 backdrop-blur-xl rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Evidence Chain</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Kanıt Zinciri</h3>
         <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
           <input
             type="file"
@@ -77,7 +77,7 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
             className="hidden"
             disabled={uploading}
           />
-          {uploading ? 'Uploading...' : '+ Upload Evidence'}
+          {uploading ? 'Yükleniyor...' : '+ Kanıt Yükle'}
         </label>
       </div>
 
@@ -97,8 +97,8 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
                 d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
               />
             </svg>
-            <p className="text-sm text-gray-500">No evidence uploaded yet</p>
-            <p className="text-xs text-gray-400 mt-1">Click "Upload Evidence" to add files</p>
+            <p className="text-sm text-gray-500">Henüz kanıt yüklenmedi</p>
+            <p className="text-xs text-gray-400 mt-1">"Kanıt Yükle" düğmesine tıklayarak dosya ekleyin</p>
           </div>
         ) : (
           evidence.map((item: EvidenceItem) => (
@@ -124,7 +124,7 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="text-xs text-green-600 font-medium">Cryptographically Sealed</span>
+                    <span className="text-xs text-green-600 font-medium">Kriptografik Mühür Uygulandı</span>
                   </div>
                   <p className="text-xs text-gray-400 font-mono mt-1 truncate" title={item.sha256_hash}>
                     SHA-256: {item.sha256_hash.substring(0, 16)}...
@@ -133,7 +133,7 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
               </div>
               <button
                 className="text-blue-600 hover:text-blue-800 transition-colors"
-                title="Download"
+                title="İndir"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -160,7 +160,7 @@ export function EvidenceManager({ workpaperId }: EvidenceManagerProps) {
               />
             </svg>
             <span>
-              All evidence is immutably stored with cryptographic verification for audit integrity.
+              Tüm kanıtlar, denetim bütünlüğü için kriptografik doğrulama ile değiştirilemez biçimde saklanmaktadır.
             </span>
           </div>
         </div>
