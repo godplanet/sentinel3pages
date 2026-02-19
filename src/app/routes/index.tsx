@@ -103,6 +103,7 @@ import PageAuditPage from '@/pages/dev/PageAuditPage';
 import DiagnosticsPage from '@/pages/dev/DiagnosticsPage';
 import PageInventoryPage from '@/pages/dev/PageInventoryPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
+import AcademyPage from '@/pages/academy';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || localStorage.getItem('sentinel_token');
@@ -212,6 +213,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/regulations" element={<ProtectedRoute><RegulationsPage /></ProtectedRoute>} />
       <Route path="/compliance/gap-analysis" element={<ProtectedRoute><GapAnalysisPage /></ProtectedRoute>} />
       <Route path="/shariah/fatwa-gpt" element={<ProtectedRoute><FatwaGPTPage /></ProtectedRoute>} />
+      <Route path="/academy" element={<ProtectedRoute><AcademyPage /></ProtectedRoute>} />
+
       <Route path="/tprm" element={<ProtectedRoute><TPRMPage /></ProtectedRoute>} />
       <Route path="/automation" element={<ProtectedRoute><AutomationPage /></ProtectedRoute>} />
       <Route path="/sox" element={<ProtectedRoute><SoxPage /></ProtectedRoute>} />

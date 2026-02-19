@@ -220,6 +220,14 @@ export const navigationConfig: NavigationItem[] = [
         path: '/qaip',
         icon: ShieldCheck,
       },
+      {
+        id: 'academy',
+        label: 'Akademi & Sertifika',
+        path: '/academy',
+        icon: GraduationCap,
+        badge: 'YENİ',
+        badgeColor: 'blue',
+      },
     ],
   },
 
