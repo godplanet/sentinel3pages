@@ -108,13 +108,16 @@ export interface Finding {
   assigned_auditee_id?: string;
   published_at?: string;
 
+  // GIAS 2024 Golden Thread
+  traceability_token?: string;
+
   // Tarihler
   negotiation_started_at?: string;
   agreed_at?: string;
   agreement_date?: string;
   finalized_at?: string;
   finding_year?: number;
-  closed_at?: string; 
+  closed_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -321,6 +324,7 @@ export interface DraftFinding {
   initialObservation: string;
   traceabilityToken: string;
   status: DraftFindingStatus;
+  promotedFindingId?: string;
   createdAt: string;
 }
 

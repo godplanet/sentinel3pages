@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { supabase } from '@/shared/api/supabase';
 import type {
   Finding,
   ComprehensiveFinding,
@@ -25,6 +26,7 @@ interface FindingStore {
     initialObservation: string,
   ) => DraftFinding;
   promoteDraftFinding: (draftId: string) => void;
+  promoteDraftToStudio: (draftId: string) => Promise<{ findingId: string } | null>;
 
   // CRUD Operations
   setFindings: (findings: ComprehensiveFinding[]) => void;
@@ -59,7 +61,7 @@ interface FindingStore {
   setLegacyFindings: (findings: FindingWithAssignment[]) => void;
 }
 
-export const useFindingStore = create<FindingStore>((set) => ({
+export const useFindingStore = create<FindingStore>((set, get) => ({
   findings: [],
   selectedFinding: null,
   isLoading: false,
@@ -89,6 +91,61 @@ export const useFindingStore = create<FindingStore>((set) => ({
         d.id === draftId ? { ...d, status: 'PROMOTED' } : d,
       ),
     }));
+  },
+
+  promoteDraftToStudio: async (draftId) => {
+    const draft = get().draftFindings.find((d) => d.id === draftId);
+    if (!draft || draft.status === 'PROMOTED') return null;
+
+    const TENANT_ID = '11111111-1111-1111-1111-111111111111';
+    const now = new Date().toISOString();
+    const findingId = crypto.randomUUID();
+    const findingCode = `BLG-${draft.traceabilityToken.slice(-6)}`;
+
+    const newFinding: ComprehensiveFinding = {
+      id: findingId,
+      tenant_id: TENANT_ID,
+      engagement_id: draft.workpaperId,
+      workpaper_id: draft.workpaperId,
+      code: findingCode,
+      finding_code: findingCode,
+      title: draft.testStepTitle,
+      description: draft.initialObservation,
+      severity: 'MEDIUM',
+      state: 'NEGOTIATION',
+      traceability_token: draft.traceabilityToken,
+      created_at: now,
+      updated_at: now,
+      action_plans: [],
+      comments: [],
+      history: [],
+    };
+
+    await supabase.from('audit_findings').insert({
+      id: findingId,
+      tenant_id: TENANT_ID,
+      engagement_id: draft.workpaperId,
+      workpaper_id: draft.workpaperId,
+      finding_code: findingCode,
+      title: draft.testStepTitle,
+      description: draft.initialObservation,
+      severity: 'MEDIUM',
+      state: 'NEGOTIATION',
+      traceability_token: draft.traceabilityToken,
+      created_at: now,
+      updated_at: now,
+    });
+
+    set((state) => ({
+      findings: [...state.findings, newFinding],
+      draftFindings: state.draftFindings.map((d) =>
+        d.id === draftId
+          ? { ...d, status: 'PROMOTED', promotedFindingId: findingId }
+          : d,
+      ),
+    }));
+
+    return { findingId };
   },
 
   setFindings: (findings) => set({ findings }),
