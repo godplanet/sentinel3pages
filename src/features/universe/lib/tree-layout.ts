@@ -8,6 +8,9 @@ export interface LayoutableEntity {
   type: string;
   risk_score: number;
   velocity_multiplier: number;
+  risk_velocity?: number;
+  shariah_impact?: number;
+  esg_impact?: number;
 }
 
 export interface LayoutedElements {
@@ -54,6 +57,9 @@ export const getLayoutedElements = (
         velocity_multiplier: entity.velocity_multiplier,
         effective_risk: effectiveRisk,
         path: entity.path,
+        risk_velocity: entity.risk_velocity,
+        shariah_impact: entity.shariah_impact,
+        esg_impact: entity.esg_impact,
       },
     };
 

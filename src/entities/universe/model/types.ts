@@ -8,6 +8,9 @@ export interface UniverseNode {
   owner_id: string | null;
   tenant_id?: string;
   cascade_risk?: number;
+  risk_velocity?: number;
+  shariah_impact?: number;
+  esg_impact?: number;
   children?: UniverseNode[];
 }
 

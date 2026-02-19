@@ -1,6 +1,10 @@
 import { memo, useCallback } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Building2, Building, Network, Box, Workflow, TrendingUp, MapPin, Briefcase, Landmark, Server, Truck, Factory, PlusCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Building2, Building, Network, Box, Workflow,
+  MapPin, Briefcase, Landmark, Server, Truck, Factory,
+  PlusCircle, CheckCircle2, Zap, Leaf, Star,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { EntityType } from '@/entities/universe';
 import { useRiskConstitution } from '@/features/risk-constitution';
@@ -14,6 +18,9 @@ export interface EntityNodeData {
   risk_score: number;
   velocity_multiplier: number;
   effective_risk: number;
+  risk_velocity?: number;
+  shariah_impact?: number;
+  esg_impact?: number;
 }
 
 const getTypeIcon = (type: EntityType) => {
@@ -45,34 +52,29 @@ const getTypeIcon = (type: EntityType) => {
   }
 };
 
-const getTypeColor = (type: EntityType) => {
+const getTypeAccent = (type: EntityType): { border: string; icon: string; badge: string } => {
   switch (type) {
-    case 'HOLDING':
-      return 'from-slate-600/20 to-slate-700/20 border-slate-400/30';
-    case 'BANK':
-      return 'from-blue-500/20 to-blue-600/20 border-blue-300/30';
-    case 'GROUP':
-      return 'from-teal-500/20 to-teal-600/20 border-teal-300/30';
-    case 'UNIT':
-      return 'from-amber-500/20 to-amber-600/20 border-amber-300/30';
-    case 'PROCESS':
-      return 'from-slate-500/20 to-slate-600/20 border-slate-300/30';
-    case 'BRANCH':
-      return 'from-cyan-500/20 to-cyan-600/20 border-cyan-300/30';
-    case 'DEPARTMENT':
-      return 'from-rose-500/20 to-rose-600/20 border-rose-300/30';
-    case 'HEADQUARTERS':
-      return 'from-slate-700/20 to-slate-800/20 border-slate-500/30';
-    case 'IT_ASSET':
-      return 'from-purple-500/20 to-purple-600/20 border-purple-300/30';
-    case 'VENDOR':
-      return 'from-orange-500/20 to-orange-600/20 border-orange-300/30';
-    case 'SUBSIDIARY':
-      return 'from-indigo-500/20 to-indigo-600/20 border-indigo-300/30';
-    default:
-      return 'from-gray-500/20 to-gray-600/20 border-gray-300/30';
+    case 'HOLDING':      return { border: 'border-l-slate-400',   icon: 'text-slate-500',  badge: 'bg-slate-100 text-slate-600' };
+    case 'BANK':         return { border: 'border-l-blue-400',    icon: 'text-blue-500',   badge: 'bg-blue-50 text-blue-700' };
+    case 'GROUP':        return { border: 'border-l-teal-400',    icon: 'text-teal-500',   badge: 'bg-teal-50 text-teal-700' };
+    case 'UNIT':         return { border: 'border-l-amber-400',   icon: 'text-amber-500',  badge: 'bg-amber-50 text-amber-700' };
+    case 'PROCESS':      return { border: 'border-l-slate-300',   icon: 'text-slate-400',  badge: 'bg-slate-50 text-slate-500' };
+    case 'BRANCH':       return { border: 'border-l-sky-400',     icon: 'text-sky-500',    badge: 'bg-sky-50 text-sky-700' };
+    case 'DEPARTMENT':   return { border: 'border-l-rose-400',    icon: 'text-rose-500',   badge: 'bg-rose-50 text-rose-700' };
+    case 'HEADQUARTERS': return { border: 'border-l-slate-500',   icon: 'text-slate-600',  badge: 'bg-slate-100 text-slate-700' };
+    case 'IT_ASSET':     return { border: 'border-l-violet-400',  icon: 'text-violet-500', badge: 'bg-violet-50 text-violet-700' };
+    case 'VENDOR':       return { border: 'border-l-orange-400',  icon: 'text-orange-500', badge: 'bg-orange-50 text-orange-700' };
+    case 'SUBSIDIARY':   return { border: 'border-l-indigo-400',  icon: 'text-indigo-500', badge: 'bg-indigo-50 text-indigo-700' };
+    default:             return { border: 'border-l-slate-300',   icon: 'text-slate-400',  badge: 'bg-slate-50 text-slate-600' };
   }
 };
+
+function getRiskBadgeStyle(score: number): string {
+  if (score >= 80) return 'bg-red-50 text-red-700 border border-red-200';
+  if (score >= 60) return 'bg-amber-50 text-amber-700 border border-amber-200';
+  if (score >= 40) return 'bg-blue-50 text-blue-600 border border-blue-200';
+  return 'bg-slate-100 text-slate-600 border border-slate-200';
+}
 
 function getRequiredSkills(type: string): string[] {
   switch (type) {
@@ -99,11 +101,10 @@ export const CustomEntityNode = memo(({ data }: NodeProps) => {
   const { constitution } = useRiskConstitution();
   const { addNodeToPlan, draftEngagements } = usePlanningStore();
   const Icon = getTypeIcon(nodeData.type);
-  const typeColor = getTypeColor(nodeData.type);
+  const accent = getTypeAccent(nodeData.type);
 
-  const riskColor = constitution ? getRiskColor(nodeData.effective_risk, constitution.risk_ranges) : '#64748b';
+  const riskColor = constitution ? getRiskColor(nodeData.effective_risk, constitution.risk_ranges) : '#94a3b8';
   const riskLabel = constitution ? getRiskLabel(nodeData.effective_risk, constitution.risk_ranges) : 'N/A';
-  const isHighVelocity = nodeData.velocity_multiplier > 1.2;
 
   const alreadyInPlan = draftEngagements.some((d) => d.universeNodeId === nodeData.id);
 
@@ -114,92 +115,107 @@ export const CustomEntityNode = memo(({ data }: NodeProps) => {
       const skills = getRequiredSkills(nodeData.type);
       addNodeToPlan(nodeData.id, nodeData.name, nodeData.effective_risk, skills);
       toast.success(`"${nodeData.name}" yıllık plana eklendi`, {
-        icon: '📋',
-        style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155' },
+        style: {
+          background: '#ffffff',
+          color: '#1e293b',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        },
       });
     },
     [addNodeToPlan, alreadyInPlan, nodeData],
   );
+
+  const hasDimensions =
+    nodeData.risk_velocity !== undefined ||
+    nodeData.shariah_impact !== undefined ||
+    nodeData.esg_impact !== undefined;
 
   return (
     <div className="relative group">
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 !bg-blue-500 border-2 border-white"
+        className="w-2.5 h-2.5 !bg-slate-300 border-2 !border-white"
       />
 
       <div
         className={`
-          bg-gradient-to-br ${typeColor}
-          backdrop-blur-md
-          border-2
-          rounded-xl
-          shadow-lg
-          hover:shadow-xl
-          transition-all
-          duration-300
-          min-w-[240px]
-          max-w-[280px]
-          group-hover:scale-105
+          bg-white/80 backdrop-blur-sm
+          border border-slate-200 border-l-4 ${accent.border}
+          rounded-xl shadow-sm
+          hover:shadow-md hover:-translate-y-0.5
+          transition-all duration-200
+          min-w-[240px] max-w-[280px]
           cursor-pointer
         `}
       >
-        <div className="p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-white/80 rounded-lg shadow-sm">
-              <Icon size={20} className="text-slate-700" />
+        <div className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex-shrink-0">
+              <Icon size={16} className={accent.icon} />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-slate-900 leading-tight line-clamp-2">
+              <h4 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">
                 {nodeData.name}
               </h4>
-              <p className="text-xs text-slate-600 font-medium mt-0.5">
+              <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide ${accent.badge}`}>
                 {nodeData.type}
-              </p>
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="px-2 py-1 text-xs font-bold rounded-md shadow-sm text-white"
-                style={{ backgroundColor: riskColor }}
-              >
-                {riskLabel}
-              </span>
-              <span className="text-xs font-bold text-slate-700">
-                {nodeData.effective_risk.toFixed(1)}
-              </span>
-            </div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getRiskBadgeStyle(nodeData.effective_risk)}`}>
+              {riskLabel}
+            </span>
+            <span className="text-sm font-bold text-slate-700 tabular-nums">
+              {nodeData.effective_risk.toFixed(1)}
+            </span>
+            <span
+              className="ml-auto w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: riskColor }}
+            />
+          </div>
 
-            {isHighVelocity && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 rounded-md">
-                <TrendingUp size={12} className="text-orange-600" />
-                <span className="text-xs font-bold text-orange-600">
-                  {nodeData.velocity_multiplier.toFixed(2)}x
+          {hasDimensions && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {nodeData.risk_velocity !== undefined && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  <Zap size={9} className="text-slate-500" />
+                  V {nodeData.risk_velocity}
                 </span>
-              </div>
-            )}
-          </div>
+              )}
+              {nodeData.shariah_impact !== undefined && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nodeData.shariah_impact >= 4 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-50 text-stone-600 border-stone-200'}`}>
+                  <Star size={9} className={nodeData.shariah_impact >= 4 ? 'text-amber-500' : 'text-stone-400'} />
+                  S {nodeData.shariah_impact}
+                </span>
+              )}
+              {nodeData.esg_impact !== undefined && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <Leaf size={9} className="text-emerald-500" />
+                  E {nodeData.esg_impact}
+                </span>
+              )}
+            </div>
+          )}
 
-          <div className="pt-2 border-t border-white/30">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600">Cascade Risk:</span>
-              <span className="font-bold text-slate-700">
-                {nodeData.risk_score.toFixed(1)}
-              </span>
+          <div className="pt-2.5 border-t border-slate-100">
+            <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+              <span>Cascade Risk</span>
+              <span className="font-semibold text-slate-700 tabular-nums">{nodeData.risk_score.toFixed(1)}</span>
             </div>
             <button
               onClick={handleAddToPlan}
               title={alreadyInPlan ? 'Zaten planda' : 'Plana ekle'}
               className={`
-                mt-2 w-full flex items-center justify-center gap-1.5
-                px-2 py-1.5 rounded-lg text-[10px] font-bold
-                transition-all duration-200
+                w-full flex items-center justify-center gap-1.5
+                px-2 py-1.5 rounded-lg text-[10px] font-semibold
+                transition-all duration-150
                 ${alreadyInPlan
-                  ? 'bg-emerald-100 text-emerald-700 cursor-default'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-sm'}
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-sm'}
               `}
             >
               {alreadyInPlan ? (
@@ -216,14 +232,12 @@ export const CustomEntityNode = memo(({ data }: NodeProps) => {
             </button>
           </div>
         </div>
-
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-3 h-3 !bg-blue-500 border-2 border-white"
+        className="w-2.5 h-2.5 !bg-slate-300 border-2 !border-white"
       />
     </div>
   );

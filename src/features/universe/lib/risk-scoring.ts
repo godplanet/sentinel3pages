@@ -141,9 +141,25 @@ export function getRiskColor(level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'): str
   }
 }
 
+export function calculateBaseRisk(node: UniverseNode): number {
+  const likelihood = (node.inherent_risk / 100) * 5;
+  const impact = (node.inherent_risk / 100) * 5;
+  const velocity = node.risk_velocity ?? 3;
+
+  const raw = (likelihood + velocity) * impact;
+  const normalized = (raw / 50) * 100;
+  let score = Math.min(100, Math.max(0, normalized));
+
+  if ((node.shariah_impact ?? 0) >= 4) {
+    score = Math.min(100, score * 1.25);
+  }
+
+  return score;
+}
+
 export function calculateCascadeRisk(node: UniverseNode): number {
   if (!node.children || node.children.length === 0) {
-    return node.inherent_risk;
+    return calculateBaseRisk(node);
   }
   const childRisks = node.children.map(calculateCascadeRisk);
   const maxChildRisk = Math.max(...childRisks);
