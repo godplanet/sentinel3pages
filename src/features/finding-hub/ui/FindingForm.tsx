@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { findingApi, type Finding, type FindingSeverity, type AuditType } from '@/entities/finding';
 import { Save, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { XPEngine, getRiskLevelFromSeverity } from '@/features/talent-os/lib/XPEngine';
+import { supabase } from '@/shared/api/supabase';
 
 interface FindingFormProps {
   finding?: Partial<Finding>;
@@ -40,6 +43,29 @@ export function FindingForm({ finding, auditId, onSave, onCancel }: FindingFormP
           process_stage: 'DRAFT',
         });
         onSave?.(created);
+
+        (async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const userId = user?.id ?? localStorage.getItem('sentinel_user_id');
+            if (!userId) return;
+
+            const riskLevel = getRiskLevelFromSeverity(formData.severity);
+            const result = await XPEngine.awardFindingXP(userId, riskLevel);
+
+            if (result.awarded) {
+              const xpLabel = `+${result.amount} XP`;
+              const levelMsg = result.levelUp ? ` · Seviye Atladın! Lv.${result.newLevel}` : '';
+              toast.success(`${xpLabel}${levelMsg}`, {
+                duration: 3000,
+                style: { background: '#0f172a', color: '#f1f5f9', border: '1px solid rgba(255,255,255,0.1)' },
+                icon: result.levelUp ? '⭐' : '✅',
+              });
+            }
+          } catch {
+            /* XP award is non-critical */
+          }
+        })();
       }
     } catch (error) {
       console.error('Failed to save finding:', error);

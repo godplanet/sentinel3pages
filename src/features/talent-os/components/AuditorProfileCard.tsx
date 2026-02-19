@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertTriangle, Star, Shield, Trophy, Zap, Gift } from 'lucide-react';
+import { AlertTriangle, Star, Shield, Trophy, Zap, Gift, Lock } from 'lucide-react';
 import type { TalentProfileEnriched } from '../hooks/useTalentData';
 import { LEVEL_LABELS } from '@/shared/types/talent';
 
@@ -9,6 +9,7 @@ interface Props {
   onSelect: () => void;
   onGiveKudos: () => void;
   isDiminishingActive?: boolean;
+  memoryGateLocked?: boolean;
 }
 
 const LEVEL_GRADIENTS: Record<number, string> = {
@@ -133,15 +134,16 @@ function FatigueMeter({ score }: { score: number }) {
 }
 
 function XPBar({
-  current, next, level, showShield = false,
+  current, next, level, showShield = false, memoryGateLocked = false,
 }: {
-  current: number; next: number; level: number; showShield?: boolean;
+  current: number; next: number; level: number; showShield?: boolean; memoryGateLocked?: boolean;
 }) {
   const thresholds: Record<number, number> = { 1: 0, 2: 500, 3: 1500, 4: 3500, 5: 7000 };
   const levelStart = thresholds[level] ?? 0;
   const levelRange = next - levelStart;
   const progress   = levelRange > 0 ? Math.min(1, (current - levelStart) / levelRange) : 1;
   const gradient   = LEVEL_GRADIENTS[level] ?? LEVEL_GRADIENTS[1];
+  const isGated    = memoryGateLocked && level >= 4;
 
   return (
     <div className="space-y-1">
@@ -157,6 +159,15 @@ function XPBar({
               <span className="text-[8px] text-amber-400 font-semibold tracking-wide">DR</span>
             </span>
           )}
+          {isGated && (
+            <span
+              title="Memory Gate: Seviye 5'e ulaşmak için Playbook'a en az bir girdi ekleyin"
+              className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-slate-600/40 border border-slate-500/40"
+            >
+              <Lock size={8} className="text-slate-400" />
+              <span className="text-[8px] text-slate-400 font-semibold tracking-wide">LV5</span>
+            </span>
+          )}
         </div>
         <span className="text-[10px] text-slate-300 font-mono">
           {current.toLocaleString()} / {next.toLocaleString()}
@@ -164,21 +175,29 @@ function XPBar({
       </div>
       <div className="h-2 bg-slate-800 rounded-full overflow-hidden relative">
         <motion.div
-          className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
+          className={`h-full rounded-full bg-gradient-to-r ${isGated ? 'from-slate-600 to-slate-500' : gradient}`}
           initial={{ width: 0 }}
           animate={{ width: `${progress * 100}%` }}
           transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
         />
-        <div
-          className={`absolute inset-0 rounded-full bg-gradient-to-r ${gradient} opacity-30 blur-sm`}
-          style={{ width: `${progress * 100}%` }}
-        />
+        {!isGated && (
+          <div
+            className={`absolute inset-0 rounded-full bg-gradient-to-r ${gradient} opacity-30 blur-sm`}
+            style={{ width: `${progress * 100}%` }}
+          />
+        )}
       </div>
+      {isGated && (
+        <p className="text-[9px] text-slate-500 flex items-center gap-1">
+          <Lock size={7} />
+          Seviye 5 için Playbook&apos;a girdi ekleyin
+        </p>
+      )}
     </div>
   );
 }
 
-export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos, isDiminishingActive = false }: Props) {
+export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos, isDiminishingActive = false, memoryGateLocked = false }: Props) {
   const gradient   = LEVEL_GRADIENTS[profile.current_level] ?? LEVEL_GRADIENTS[1];
   const levelLabel = LEVEL_LABELS[profile.current_level] ?? `Lv ${profile.current_level}`;
   const initials   = getInitials(profile.full_name);
@@ -253,6 +272,7 @@ export function AuditorProfileCard({ profile, isSelected, onSelect, onGiveKudos,
           next={profile.next_level_xp}
           level={profile.current_level}
           showShield={isDiminishingActive}
+          memoryGateLocked={memoryGateLocked}
         />
       </div>
 

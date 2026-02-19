@@ -154,33 +154,42 @@ interface ValidationModalProps {
 }
 
 function ValidationModal({ errors, warnings, onClose }: ValidationModalProps) {
+  const isBlocked = errors.length > 0;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl max-w-md w-full mx-4">
         <div className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900">
-              {errors.length > 0 ? 'Transition Blocked' : 'Validation Warnings'}
-            </h3>
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isBlocked ? 'bg-rose-500/20' : 'bg-amber-500/20'}`}>
+                <AlertTriangle className={`w-5 h-5 ${isBlocked ? 'text-rose-400' : 'text-amber-400'}`} />
+              </div>
+              <h3 className="text-base font-semibold text-white">
+                {isBlocked ? 'Geçiş Engellendi' : 'Doğrulama Uyarıları'}
+              </h3>
+            </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {errors.length > 0 && (
             <div className="mb-4">
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
-                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25">
+                <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-900 mb-2">
-                    Cannot proceed:
+                  <h4 className="font-semibold text-rose-300 text-sm mb-2">
+                    Devam edilemiyor:
                   </h4>
-                  <ul className="space-y-1 text-sm text-red-700">
+                  <ul className="space-y-1 text-sm text-rose-400/80">
                     {errors.map((error, index) => (
-                      <li key={index}>• {error}</li>
+                      <li key={index} className="flex items-start gap-1.5">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-rose-500 flex-shrink-0" />
+                        {error}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -190,15 +199,18 @@ function ValidationModal({ errors, warnings, onClose }: ValidationModalProps) {
 
           {warnings.length > 0 && (
             <div className="mb-4">
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
-                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-amber-900 mb-2">
-                    Warnings:
+                  <h4 className="font-semibold text-amber-300 text-sm mb-2">
+                    Uyarılar:
                   </h4>
-                  <ul className="space-y-1 text-sm text-amber-700">
+                  <ul className="space-y-1 text-sm text-amber-400/80">
                     {warnings.map((warning, index) => (
-                      <li key={index}>• {warning}</li>
+                      <li key={index} className="flex items-start gap-1.5">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
+                        {warning}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -206,12 +218,12 @@ function ValidationModal({ errors, warnings, onClose }: ValidationModalProps) {
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-1">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+              className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-sm font-medium transition-colors border border-white/8"
             >
-              Close
+              Kapat
             </button>
           </div>
         </div>

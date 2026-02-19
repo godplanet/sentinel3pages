@@ -95,6 +95,7 @@ export function CompetencyRadar({ profileName, snapshot, decayMap }: Props) {
   const [showDecayLayer, setShowDecayLayer]     = useState(true);
   const [showDecayPanel, setShowDecayPanel]     = useState(false);
 
+  const hasRealData = !!snapshot?.radar_labels?.length;
   const data = buildRadarData(snapshot, decayMap);
 
   const hasDecayData = !!decayMap && Object.keys(decayMap).length > 0;
@@ -163,7 +164,17 @@ export function CompetencyRadar({ profileName, snapshot, decayMap }: Props) {
         </div>
       )}
 
-      <div className="flex-1 min-h-[220px]">
+      {!hasRealData && (
+        <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
+          <div className="w-12 h-12 rounded-xl bg-slate-800/60 border border-white/8 flex items-center justify-center mb-3">
+            <GitCompare className="w-6 h-6 text-slate-600" />
+          </div>
+          <p className="text-sm font-medium text-slate-400">Henüz yetenek değerlendirmesi yok</p>
+          <p className="text-xs text-slate-600 mt-1">Bir değerlendirme anketi tamamlayın</p>
+        </div>
+      )}
+
+      <div className={`flex-1 min-h-[220px] ${!hasRealData ? 'opacity-30 pointer-events-none' : ''}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} margin={{ top: 8, right: 20, bottom: 8, left: 20 }}>
             <PolarGrid gridType="polygon" stroke="#1e293b" strokeWidth={1} />

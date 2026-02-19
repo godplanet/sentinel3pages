@@ -228,6 +228,12 @@ export const navigationConfig: NavigationItem[] = [
         badge: 'YENİ',
         badgeColor: 'blue',
       },
+      {
+        id: 'playbook',
+        label: 'Denetim Playbook\'u',
+        path: '/playbook',
+        icon: BookOpen,
+      },
     ],
   },
 

@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Zap, Award, Activity, ChevronRight, X, Send, AlertTriangle, DollarSign, ShieldCheck, Check, Loader2, RefreshCw, TrendingDown } from 'lucide-react';
+import { supabase } from '@/shared/api/supabase';
 import { useTalentData, type TalentProfileEnriched } from '@/features/talent-os/hooks/useTalentData';
 import { AuditorProfileCard } from '@/features/talent-os/components/AuditorProfileCard';
 import { CompetencyRadar } from '@/features/talent-os/components/CompetencyRadar';
@@ -351,6 +352,22 @@ export default function TalentDashboardPage() {
   const [decayData, setDecayData] = useState<Map<string, AuditorDecaySummary>>(new Map());
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [playbookCount, setPlaybookCount] = useState<number>(1);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const uid = user?.id ?? localStorage.getItem('sentinel_user_id');
+      if (!uid) return;
+      setCurrentUserId(uid);
+      const { count } = await supabase
+        .from('playbook_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', uid);
+      setPlaybookCount(count ?? 0);
+    })();
+  }, []);
 
   const handleRefreshAnalytics = useCallback(async () => {
     if (refreshing || profiles.length === 0) return;
@@ -500,6 +517,11 @@ export default function TalentDashboardPage() {
               isSelected={selectedId === profile.id}
               onSelect={() => setSelectedId(selectedId === profile.id ? null : profile.id)}
               onGiveKudos={() => setKudosTarget(profile)}
+              memoryGateLocked={
+                profile.user_id === currentUserId &&
+                profile.current_level >= 4 &&
+                playbookCount === 0
+              }
             />
           ))}
 
