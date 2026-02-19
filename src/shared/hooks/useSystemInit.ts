@@ -20,11 +20,21 @@ export function useSystemInit() {
   useEffect(() => {
     let mounted = true;
 
+    const safeComplete = () => {
+      if (mounted) {
+        setState({ isInitializing: false, isComplete: true, error: null, progress: '' });
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      console.warn('[SystemInit] Timeout reached – forcing app render');
+      safeComplete();
+    }, 12000);
+
     const checkAndInit = async () => {
       try {
         console.log('[SystemInit] Checking database state...');
 
-        // Check if users exist
         const { count, error: checkError } = await supabase
           .from('user_profiles')
           .select('*', { count: 'exact', head: true });
@@ -42,12 +52,9 @@ export function useSystemInit() {
             progress: 'Sistem Onarılıyor ve Veriler Yükleniyor...'
           });
 
-          console.log('[SystemInit] Running Force Reseed (Nuclear Wipe + Turkey Bank)...');
-
           if (!mounted) return;
           setState(prev => ({ ...prev, progress: 'Veritabanı Temizleniyor (Nuclear Wipe)...' }));
 
-          // Small delay to ensure UI renders
           await new Promise(resolve => setTimeout(resolve, 500));
 
           if (!mounted) return;
@@ -57,29 +64,19 @@ export function useSystemInit() {
 
           if (!mounted) return;
           console.log('[SystemInit] Force reseed complete!');
-
-          setState({
-            isInitializing: false,
-            isComplete: true,
-            error: null,
-            progress: ''
-          });
         } else {
           console.log('[SystemInit] Database already populated, skipping seed');
-          if (!mounted) return;
-          setState({
-            isInitializing: false,
-            isComplete: true,
-            error: null,
-            progress: ''
-          });
         }
+
+        clearTimeout(timeout);
+        safeComplete();
       } catch (error) {
         console.error('[SystemInit] FATAL ERROR:', error);
+        clearTimeout(timeout);
         if (!mounted) return;
         setState({
           isInitializing: false,
-          isComplete: true, // Set true to allow app to load
+          isComplete: true,
           error: error instanceof Error ? error.message : 'Unknown error',
           progress: ''
         });
@@ -90,6 +87,7 @@ export function useSystemInit() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeout);
     };
   }, []);
 
