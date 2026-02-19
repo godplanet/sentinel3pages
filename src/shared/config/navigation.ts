@@ -52,6 +52,7 @@ import {
   ClipboardCheck,
   ShieldCheck,
   GraduationCap,
+  KanbanSquare,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -292,6 +293,14 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Agile Denetimler',
         path: '/execution/agile',
         icon: Rocket,
+      },
+      {
+        id: 'sprint-board',
+        label: 'Çevik Pano (Sprint)',
+        path: '/execution/sprint-board',
+        icon: KanbanSquare,
+        badge: 'YENİ',
+        badgeColor: 'blue',
       },
       {
         id: 'audit-programs',

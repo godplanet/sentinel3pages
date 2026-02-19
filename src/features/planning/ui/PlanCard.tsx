@@ -1,4 +1,5 @@
-import { ArrowRight, Leaf, ShieldCheck, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
+import { ArrowRight, Leaf, ShieldCheck, TrendingUp, TrendingDown, Minus, Zap, Rocket } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { DraftEngagement, RiskVelocity } from '@/entities/planning/model/types';
 import { usePlanningStore } from '@/entities/planning/model/store';
 
@@ -21,6 +22,7 @@ const velocityConfig: Record<RiskVelocity, { icon: typeof TrendingUp; label: str
 
 export function PlanCard({ engagement, isBacklog = false }: PlanCardProps) {
   const pullToSprint = usePlanningStore((s) => s.pullToSprint);
+  const navigate = useNavigate();
 
   const risk = riskLabel(engagement.baseRisk);
   const vel = velocityConfig[engagement.velocity];
@@ -112,6 +114,16 @@ export function PlanCard({ engagement, isBacklog = false }: PlanCardProps) {
           >
             Q-Sprint'e Al
             <ArrowRight size={13} />
+          </button>
+        )}
+
+        {!isBacklog && (
+          <button
+            onClick={() => navigate('/execution/sprint-board')}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-semibold shadow-sm hover:shadow-md hover:from-blue-700 hover:to-blue-600 transition-all duration-150"
+          >
+            <Rocket size={13} />
+            Sahaya Git (Execute)
           </button>
         )}
       </div>
