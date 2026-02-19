@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+import { XPEngine, formatXPToast, getRiskLevelFromSeverity } from '@/features/talent-os/lib/XPEngine';
 import {
   Activity,
   Tags,
@@ -591,6 +593,25 @@ export const FindingFormWidget: React.FC<FindingFormWidgetProps> = ({ finding, o
         onSubmit={() => {
           onUpdate('status', 'review');
           if (onAdvanceWorkflow) onAdvanceWorkflow();
+          const riskLevel = getRiskLevelFromSeverity(finding?.severity ?? 'MEDIUM');
+          XPEngine.awardFindingXP('00000000-0000-0000-0000-000000000001', riskLevel)
+            .then((result) => {
+              if (result.awarded) {
+                const msg = formatXPToast(result);
+                toast.success(`XP Gained! ${msg}`, {
+                  icon: '⚡',
+                  style: {
+                    background: '#0f172a',
+                    color: '#4ade80',
+                    border: '1px solid rgba(74,222,128,0.3)',
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                  },
+                  duration: 3500,
+                });
+              }
+            })
+            .catch(console.warn);
         }}
         finding={finding}
       />

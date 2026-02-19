@@ -4,6 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { XPEngine, formatXPToast } from '@/features/talent-os/lib/XPEngine';
 import {
   CheckCircle2,
   XCircle,
@@ -75,6 +77,24 @@ export function SignOffPanel({
       if (result.success) {
         await loadValidation();
         onSignOffComplete?.();
+        XPEngine.awardWorkpaperXP(currentUserId, 85)
+          .then((xpResult) => {
+            if (xpResult.awarded) {
+              const msg = formatXPToast(xpResult);
+              toast.success(`XP Gained! ${msg}`, {
+                icon: '📋',
+                style: {
+                  background: '#0f172a',
+                  color: '#4ade80',
+                  border: '1px solid rgba(74,222,128,0.3)',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                },
+                duration: 3500,
+              });
+            }
+          })
+          .catch(console.warn);
       } else {
         alert(`Cannot sign off:\n${result.errors.join('\n')}`);
       }
@@ -93,6 +113,24 @@ export function SignOffPanel({
       if (result.success) {
         await loadValidation();
         onSignOffComplete?.();
+        XPEngine.awardWorkpaperXP(currentUserId, 92)
+          .then((xpResult) => {
+            if (xpResult.awarded) {
+              const msg = formatXPToast(xpResult);
+              toast.success(`XP Gained! ${msg}`, {
+                icon: '⭐',
+                style: {
+                  background: '#0f172a',
+                  color: '#4ade80',
+                  border: '1px solid rgba(74,222,128,0.3)',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                },
+                duration: 3500,
+              });
+            }
+          })
+          .catch(console.warn);
       } else {
         alert(`Cannot sign off:\n${result.errors.join('\n')}`);
       }
