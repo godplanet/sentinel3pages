@@ -6,6 +6,7 @@ import { CommandBar } from '@/shared/ui/CommandBar';
 import { SentinelScribble } from '@/widgets/SentinelScribble';
 import { ScribbleFindingModal } from '@/widgets/SentinelScribble/ScribbleFindingModal';
 import { SentinelChatPanel } from '@/widgets/SentinelChat';
+import { SentinelOmnibar } from '@/widgets/OmniCommand/ui/SentinelOmnibar';
 import { useUIStore } from '@/shared/stores/ui-store';
 import { useChatStore } from '@/shared/stores/chat-store';
 import { Brain } from 'lucide-react';
@@ -62,6 +63,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
       <CommandBar />
       <SentinelScribble />
       <ScribbleFindingModal />
+      <SentinelOmnibar />
     </div>
   );
 };

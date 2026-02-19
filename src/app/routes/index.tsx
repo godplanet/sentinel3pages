@@ -10,6 +10,9 @@ import ActionWorkbenchPage from '@/pages/action-workbench';
 import ActionPortalPage from '@/pages/action-workbench/AuditeePortalPage';
 import AuditorWorkbenchPage from '@/pages/action-workbench/AuditorWorkbenchPage';
 import GovernanceWorkbenchPage from '@/pages/action-workbench/GovernanceWorkbenchPage';
+import Module7HubPage from '@/pages/action-workbench/Module7HubPage';
+import EcosystemImpactPage from '@/pages/action-workbench/EcosystemImpactPage';
+import { RemediationDossier } from '@/features/regulatory-export/ui/RemediationDossier';
 import ExecutionConsolidatedPage from '@/pages/execution-consolidated';
 import ExecutionDetailPage from '@/pages/execution/ExecutionPage';
 import ReportingPage from '@/pages/reporting';
@@ -246,6 +249,9 @@ export const AppRoutes = () => {
       <Route path="/action-portal" element={<ActionPortalPage />} />
       <Route path="/auditor-workbench" element={<ProtectedRoute><AuditorWorkbenchPage /></ProtectedRoute>} />
       <Route path="/governance-workbench" element={<ProtectedRoute><GovernanceWorkbenchPage /></ProtectedRoute>} />
+      <Route path="/actions" element={<ProtectedRoute><Module7HubPage /></ProtectedRoute>} />
+      <Route path="/ecosystem-impact" element={<ProtectedRoute><EcosystemImpactPage /></ProtectedRoute>} />
+      <Route path="/dossier-demo" element={<ProtectedRoute><RemediationDossier /></ProtectedRoute>} />
 
       <Route path="/auditee" element={<AuditeeLayout />}>
         <Route index element={<AuditeeDashboardPage />} />
