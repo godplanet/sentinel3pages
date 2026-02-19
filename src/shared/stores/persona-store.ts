@@ -15,20 +15,20 @@ export interface PersonaConfig {
 
 export const PERSONAS: Record<PersonaRole, PersonaConfig> = {
   CAE: {
-    id: 'cae-001',
+    id: 'a0000000-0000-0000-0000-000000000010',
     role: 'CAE',
-    name: 'Hakan Yılmaz',
-    email: 'hakan@sentinel',
-    title: 'Chief Audit Executive',
-    allowedPaths: ['*'], // Full access
+    name: 'Hilmi Duru',
+    email: 'hilmi.duru@sentinelbank.com.tr',
+    title: 'Baş Denetçi',
+    allowedPaths: ['*'],
     hiddenPaths: [],
   },
   AUDITOR: {
-    id: 'auditor-001',
+    id: 'a0000000-0000-0000-0000-000000000002',
     role: 'AUDITOR',
     name: 'Ahmet Demir',
-    email: 'ahmet@sentinel',
-    title: 'Senior Auditor',
+    email: 'ahmet.demir@sentinelbank.com.tr',
+    title: 'Kıdemli Müfettiş',
     allowedPaths: [
       '/dashboard',
       '/execution',
@@ -51,11 +51,11 @@ export const PERSONAS: Record<PersonaRole, PersonaConfig> = {
     ],
   },
   EXECUTIVE: {
-    id: 'executive-001',
+    id: 'a0000000-0000-0000-0000-000000000003',
     role: 'EXECUTIVE',
     name: 'Zeynep Aydın',
-    email: 'zeynep@bank',
-    title: 'Genel Müdür Yardımcısı (GMY)',
+    email: 'zeynep.aydin@sentinelbank.com.tr',
+    title: 'Genel Müdür Yardımcısı',
     allowedPaths: [
       '/dashboard',
       '/reporting',
@@ -72,10 +72,10 @@ export const PERSONAS: Record<PersonaRole, PersonaConfig> = {
     ],
   },
   AUDITEE: {
-    id: 'auditee-001',
+    id: 'a0000000-0000-0000-0000-000000000004',
     role: 'AUDITEE',
     name: 'Mehmet Kaya',
-    email: 'mehmet@branch',
+    email: 'mehmet.kaya@sentinelbank.com.tr',
     title: 'Şube Müdürü',
     allowedPaths: [
       '/dashboard',
@@ -96,10 +96,10 @@ export const PERSONAS: Record<PersonaRole, PersonaConfig> = {
     ],
   },
   SUPPLIER: {
-    id: 'supplier-001',
+    id: 'a0000000-0000-0000-0000-000000000005',
     role: 'SUPPLIER',
     name: 'Vendor Co.',
-    email: 'vendor@x',
+    email: 'vendor@partnerfirm.com',
     title: 'Tedarikçi Temsilcisi',
     allowedPaths: [
       '/vendor-portal',

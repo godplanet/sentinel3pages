@@ -1,26 +1,33 @@
 import { useState } from 'react';
 import { useUIStore } from '@/shared/stores/ui-store';
-import {
-  Bell, Menu, Brain, Calculator, Bot, Package,
-} from 'lucide-react';
+import { usePersonaStore } from '@/shared/stores/persona-store';
+import { Bell, Menu, Brain, Calculator } from 'lucide-react';
 import clsx from 'clsx';
 import { AIAssistantModal } from '@/widgets/AIAssistant';
-import { BDDKPackageModal } from '@/features/bddk-export/BDDKPackageModal';
 import { LanguageSwitcher } from '@/shared/ui';
 
-const ENV_STYLES = {
-  DEV: 'bg-blue-600 text-white shadow-blue-500/30',
-  TEST: 'bg-amber-500 text-white shadow-amber-500/30',
-  PROD: 'bg-rose-600 text-white shadow-rose-500/30',
-} as const;
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+}
 
 export const Header = () => {
   const { toggleSidebar, toggleCmdBar } = useUIStore();
+  const { currentPersona, getCurrentPersonaConfig } = usePersonaStore();
 
   const [aiMode, setAiMode] = useState<'reasoning' | 'math'>('reasoning');
-  const [env, setEnv] = useState<'PROD' | 'TEST' | 'DEV'>('DEV');
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
-  const [isBDDKModalOpen, setIsBDDKModalOpen] = useState(false);
+
+  const persona = getCurrentPersonaConfig();
+  const displayName  = persona.name;
+  const displayTitle = persona.title;
+  const initials     = getInitials(persona.name);
+
+  void currentPersona;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl h-13 print:hidden">
@@ -82,43 +89,7 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <div className="hidden lg:flex items-center bg-slate-100 p-0.5 rounded-lg">
-            {(['DEV', 'TEST', 'PROD'] as const).map((e) => (
-              <button
-                key={e}
-                onClick={() => setEnv(e)}
-                className={clsx(
-                  'px-2.5 py-1 rounded-md text-[10px] font-black transition-all',
-                  env === e
-                    ? `${ENV_STYLES[e]} shadow-sm`
-                    : 'text-slate-500 hover:text-slate-700'
-                )}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-5 w-px bg-slate-200 mx-1 hidden lg:block" />
-
           <LanguageSwitcher />
-
-          <button
-            onClick={() => setIsAIAssistantOpen(true)}
-            className="p-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-md transition-all relative"
-            title="Sentinel AI Asistan"
-          >
-            <Bot size={16} />
-            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 border border-white rounded-full" />
-          </button>
-
-          <button
-            onClick={() => setIsBDDKModalOpen(true)}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors hidden md:flex"
-            title="BDDK Paket"
-          >
-            <Package size={16} />
-          </button>
 
           <button
             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors relative"
@@ -130,25 +101,25 @@ export const Header = () => {
 
           <div className="h-5 w-px bg-slate-200 mx-1" />
 
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAIAssistantOpen(true)}
+            className="flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+            title="Profil"
+          >
             <div className="hidden md:flex flex-col items-end">
-              <span className="text-[11px] font-bold text-slate-800 leading-tight">Hilmi Duru</span>
-              <span className="text-[9px] text-slate-500 leading-tight">Baş Denetçi</span>
+              <span className="text-[11px] font-bold text-slate-800 leading-tight">{displayName}</span>
+              <span className="text-[9px] text-slate-500 leading-tight">{displayTitle}</span>
             </div>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-              <span className="text-[10px] font-bold text-white">HD</span>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow">
+              <span className="text-[10px] font-bold text-white">{initials}</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
       <AIAssistantModal
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
-      />
-      <BDDKPackageModal
-        isOpen={isBDDKModalOpen}
-        onClose={() => setIsBDDKModalOpen(false)}
       />
     </header>
   );

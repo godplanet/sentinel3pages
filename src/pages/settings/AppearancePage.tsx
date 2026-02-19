@@ -1,8 +1,39 @@
 import { PageHeader } from '@/shared/ui';
 import { SidebarColorPicker } from '@/features/theme-switcher';
-import { Palette, Paintbrush, Monitor, Moon, Sun } from 'lucide-react';
+import { Palette, Paintbrush, Monitor, Moon, Sun, Server } from 'lucide-react';
+import { useUIStore } from '@/shared/stores/ui-store';
+import { THEME_CONFIG } from '@/shared/lib/theme';
+import clsx from 'clsx';
+
+const ENV_META = {
+  PROD: {
+    label: 'PROD',
+    desc: 'Canlı Ortam',
+    ringColor: 'ring-slate-700',
+    activeClass: 'border-slate-700 bg-slate-50',
+    dot: 'bg-emerald-500',
+    textColor: 'text-slate-800',
+  },
+  UAT: {
+    label: 'TEST / UAT',
+    desc: 'Kullanıcı Kabul Testi',
+    ringColor: 'ring-emerald-600',
+    activeClass: 'border-emerald-600 bg-emerald-50',
+    dot: 'bg-yellow-500',
+    textColor: 'text-emerald-800',
+  },
+  DEV: {
+    label: 'DEV',
+    desc: 'Geliştirme Ortamı',
+    ringColor: 'ring-rose-600',
+    activeClass: 'border-rose-600 bg-rose-50',
+    dot: 'bg-blue-500',
+    textColor: 'text-rose-800',
+  },
+} as const;
 
 export default function AppearancePage() {
+  const { environment, setEnvironment } = useUIStore();
   return (
     <div className="p-6 space-y-6">
       <PageHeader
@@ -43,6 +74,54 @@ export default function AppearancePage() {
         </div>
 
         <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Server size={20} className="text-slate-600" />
+                Ortam Seçimi
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Aktif ortam sidebar rengini ve sistem davranışını belirler.
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              {(Object.keys(ENV_META) as (keyof typeof ENV_META)[]).map((env) => {
+                const meta = ENV_META[env];
+                const theme = THEME_CONFIG.environments[env];
+                const isActive = environment === env;
+                return (
+                  <button
+                    key={env}
+                    onClick={() => setEnvironment(env)}
+                    className={clsx(
+                      'w-full flex items-center justify-between p-4 border-2 rounded-xl transition-all',
+                      isActive ? meta.activeClass : 'border-slate-200 hover:border-slate-300'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={clsx(
+                        'w-10 h-10 rounded-lg flex items-center justify-center',
+                        theme.sidebar
+                      )}>
+                        <span className={clsx('w-2 h-2 rounded-full', meta.dot)} />
+                      </div>
+                      <div className="text-left">
+                        <div className={clsx('font-semibold text-sm', isActive ? meta.textColor : 'text-slate-700')}>
+                          {meta.label}
+                        </div>
+                        <div className="text-xs text-slate-500">{meta.desc}</div>
+                      </div>
+                    </div>
+                    <div className={clsx(
+                      'w-5 h-5 rounded-full border-2 transition-all',
+                      isActive ? `border-4 border-white shadow-sm ring-2 ${meta.ringColor}` : 'border-slate-300'
+                    )} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
             <div className="p-6 border-b border-slate-200">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
