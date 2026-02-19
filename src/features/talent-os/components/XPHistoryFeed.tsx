@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   AlertTriangle, FileText, Award, FlaskConical, Star,
   Zap, ChevronDown, RefreshCw, TrendingUp,
+  Lightbulb, Sprout, GraduationCap,
 } from 'lucide-react';
 import { XPEngine } from '../lib/XPEngine';
 import type { LedgerEntry, XPSourceType } from '../lib/XPEngine';
@@ -18,12 +19,34 @@ const SOURCE_CONFIG: Record<XPSourceType, {
   label: string;
   color: string;
   tagBg: string;
+  glow?: string;
 }> = {
-  FINDING:     { icon: AlertTriangle, label: 'FINDING',     color: '#f97316', tagBg: 'rgba(249,115,22,0.15)' },
-  WORKPAPER:   { icon: FileText,      label: 'WORKPAPER',   color: '#38bdf8', tagBg: 'rgba(56,189,248,0.15)' },
-  CERTIFICATE: { icon: Award,         label: 'CERTIFICATE', color: '#fbbf24', tagBg: 'rgba(251,191,36,0.15)' },
-  EXAM:        { icon: FlaskConical,  label: 'EXAM',        color: '#a78bfa', tagBg: 'rgba(167,139,250,0.15)' },
-  KUDOS:       { icon: Star,          label: 'KUDOS',       color: '#f472b6', tagBg: 'rgba(244,114,182,0.15)' },
+  FINDING:        { icon: AlertTriangle,  label: 'FINDING',       color: '#f97316', tagBg: 'rgba(249,115,22,0.15)' },
+  WORKPAPER:      { icon: FileText,       label: 'WORKPAPER',     color: '#38bdf8', tagBg: 'rgba(56,189,248,0.15)' },
+  CERTIFICATE:    { icon: Award,          label: 'CERTIFICATE',   color: '#fbbf24', tagBg: 'rgba(251,191,36,0.15)' },
+  EXAM:           { icon: FlaskConical,   label: 'EXAM',          color: '#a78bfa', tagBg: 'rgba(167,139,250,0.15)' },
+  KUDOS:          { icon: Star,           label: 'KUDOS',         color: '#f472b6', tagBg: 'rgba(244,114,182,0.15)' },
+  OBSERVATION:    {
+    icon: Lightbulb,
+    label: 'OBSERVATION',
+    color: '#fde047',
+    tagBg: 'rgba(253,224,71,0.12)',
+    glow: '0 0 10px rgba(253,224,71,0.55)',
+  },
+  MENTORSHIP:     {
+    icon: Sprout,
+    label: 'MENTORSHIP',
+    color: '#34d399',
+    tagBg: 'rgba(52,211,153,0.12)',
+    glow: '0 0 10px rgba(52,211,153,0.55)',
+  },
+  TRAINING_GIVEN: {
+    icon: GraduationCap,
+    label: 'TRAINING',
+    color: '#6ee7b7',
+    tagBg: 'rgba(110,231,183,0.12)',
+    glow: '0 0 8px rgba(110,231,183,0.45)',
+  },
 };
 
 function timeAgo(dateStr: string): string {
@@ -206,12 +229,16 @@ function XPEntryRow({
         animation: isNew ? 'xpFlash 0.6s ease-out' : undefined,
       }}
     >
-      {isLevelUp && (
+      {(isLevelUp || cfg.glow) && (
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'linear-gradient(90deg, rgba(251,191,36,0.06) 0%, transparent 60%)',
-            borderLeft: '2px solid rgba(251,191,36,0.5)',
+            background: isLevelUp
+              ? 'linear-gradient(90deg, rgba(251,191,36,0.06) 0%, transparent 60%)'
+              : `linear-gradient(90deg, ${cfg.tagBg} 0%, transparent 60%)`,
+            borderLeft: isLevelUp
+              ? '2px solid rgba(251,191,36,0.5)'
+              : `2px solid ${cfg.color}60`,
           }}
         />
       )}
@@ -265,10 +292,10 @@ function XPEntryRow({
               <span
                 className="font-mono font-bold text-sm leading-none"
                 style={{
-                  color: isLevelUp ? '#fbbf24' : '#4ade80',
+                  color: isLevelUp ? '#fbbf24' : cfg.glow ? cfg.color : '#4ade80',
                   textShadow: isLevelUp
                     ? '0 0 8px rgba(251,191,36,0.6)'
-                    : '0 0 8px rgba(74,222,128,0.5)',
+                    : cfg.glow ?? '0 0 8px rgba(74,222,128,0.5)',
                 }}
               >
                 +{entry.amount.toLocaleString()}

@@ -4,9 +4,19 @@ import { supabase } from '@/shared/api/supabase';
 // Types
 // ============================================================
 
-export type XPSourceType = 'FINDING' | 'WORKPAPER' | 'CERTIFICATE' | 'EXAM' | 'KUDOS';
+export type XPSourceType =
+  | 'FINDING'
+  | 'WORKPAPER'
+  | 'CERTIFICATE'
+  | 'EXAM'
+  | 'KUDOS'
+  | 'OBSERVATION'
+  | 'MENTORSHIP'
+  | 'TRAINING_GIVEN';
 
 export type FindingRiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type ObservationImpactLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export interface XPAwardResult {
   awarded:       boolean;
@@ -32,15 +42,25 @@ export interface LedgerEntry {
 // Rulebook constants
 // ============================================================
 
-const BASE_FINDING_XP   = 50;
-const BASE_WORKPAPER_XP = 100;
-const CERTIFICATE_XP    = 1000;
+const BASE_FINDING_XP      = 50;
+const BASE_WORKPAPER_XP    = 100;
+const CERTIFICATE_XP       = 1000;
+const BASE_OBSERVATION_XP  = 100;
+const BASE_MENTORSHIP_XP   = 250;
+const MENTEE_LEVELUP_XP    = 500;
+const BASE_TRAINING_XP     = 150;
 
 const FINDING_MULTIPLIERS: Record<FindingRiskLevel, number> = {
   CRITICAL: 3,
   HIGH:     2,
   MEDIUM:   1,
   LOW:      0.5,
+};
+
+const OBSERVATION_MULTIPLIERS: Record<ObservationImpactLevel, number> = {
+  LOW:    1,
+  MEDIUM: 2,
+  HIGH:   5,
 };
 
 const XP_PER_LEVEL = 1000;
@@ -119,6 +139,57 @@ export class XPEngine {
   ): Promise<XPAwardResult> {
     const description = `Kudos alındı (${fromName}): ${reason}`;
     return XPEngine._award(userId, amount, 'KUDOS', description, skillId);
+  }
+
+  static async awardObservationXP(
+    userId:       string,
+    impactLevel:  ObservationImpactLevel,
+    skillId?:     string,
+    entityId?:    string,
+  ): Promise<XPAwardResult> {
+    const multiplier  = OBSERVATION_MULTIPLIERS[impactLevel] ?? 1;
+    const amount      = Math.round(BASE_OBSERVATION_XP * multiplier);
+    const description = `Value Added: ${impactLevel} Impact Observation`;
+    return XPEngine._award(userId, amount, 'OBSERVATION', description, skillId, entityId);
+  }
+
+  static async awardMentorshipXP(
+    mentorUserId:  string,
+    menteeUserId:  string,
+    engagementId:  string,
+    skillId?:      string,
+  ): Promise<XPAwardResult> {
+    const description = `Mentorship Bonus for Engagement ${engagementId}`;
+    const result = await XPEngine._award(
+      mentorUserId, BASE_MENTORSHIP_XP, 'MENTORSHIP', description, skillId, engagementId,
+    );
+    await XPEngine._recordMenteeLink(mentorUserId, menteeUserId);
+    return result;
+  }
+
+  static async awardMenteeLevelUpBonus(
+    mentorUserId:  string,
+    menteeUserId:  string,
+    skillId?:      string,
+  ): Promise<XPAwardResult> {
+    const description = `Leadership Bonus: Your mentee leveled up!`;
+    const result = await XPEngine._award(
+      mentorUserId, MENTEE_LEVELUP_XP, 'MENTORSHIP', description, skillId, menteeUserId,
+    );
+    await XPEngine._recordMenteeLink(mentorUserId, menteeUserId);
+    return result;
+  }
+
+  static async awardTrainingGivenXP(
+    userId:        string,
+    trainingTitle: string,
+    skillId?:      string,
+    entityId?:     string,
+  ): Promise<XPAwardResult> {
+    const description = `Training Delivered: ${trainingTitle}`;
+    return XPEngine._award(
+      userId, BASE_TRAINING_XP, 'TRAINING_GIVEN', description, skillId, entityId,
+    );
   }
 
   // ----------------------------------------------------------
@@ -235,6 +306,32 @@ export class XPEngine {
       newLevel: leveledUp ? newLevel : prevLevel,
       totalXp:  newXp,
     };
+  }
+
+  private static async _recordMenteeLink(
+    mentorUserId: string,
+    menteeUserId: string,
+  ): Promise<void> {
+    const { data: mentor } = await supabase
+      .from('auditor_profiles')
+      .select('mentees')
+      .eq('user_id', mentorUserId)
+      .maybeSingle();
+
+    if (!mentor) return;
+
+    const existing: string[] = (mentor.mentees as string[]) ?? [];
+    if (existing.includes(menteeUserId)) return;
+
+    await supabase
+      .from('auditor_profiles')
+      .update({ mentees: [...existing, menteeUserId] })
+      .eq('user_id', mentorUserId);
+
+    await supabase
+      .from('auditor_profiles')
+      .update({ mentor_id: mentorUserId })
+      .eq('user_id', menteeUserId);
   }
 }
 
