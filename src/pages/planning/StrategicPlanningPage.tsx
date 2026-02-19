@@ -4,6 +4,7 @@ import { UniverseScoring } from '@/widgets/UniverseScoring';
 import { PlanAdherence } from '@/widgets/PlanAdherence';
 import { RollingPlanBoard } from '@/features/planning/ui/RollingPlanBoard';
 import { PlanListView } from '@/features/planning/ui/PlanListView';
+import { AnnualPlanView } from '@/features/planning/ui/AnnualPlanView';
 import { CCMSignalSimulator } from '@/features/ccm/ui/CCMSignalSimulator';
 import { fetchEngagementsList, fetchEntitiesSimple, fetchActivePlan } from '@/entities/planning/api/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -26,9 +27,10 @@ import {
   List,
   Kanban,
   Calendar,
+  CalendarRange,
 } from 'lucide-react';
 
-type TabId = 'universe' | 'rolling' | 'list' | 'adherence';
+type TabId = 'universe' | 'rolling' | 'annual' | 'list' | 'adherence';
 type PlanMode = 'mode1_core' | 'mode2_agile';
 
 interface AuditEngagement {
@@ -81,10 +83,11 @@ export default function StrategicPlanningPage() {
   };
 
   const tabs = [
-    { id: 'universe' as const, label: 'Risk Evreni & Puanlama', icon: Target, color: 'blue' },
-    { id: 'rolling' as const, label: 'Bimodal Rolling Plan', icon: GitBranch, color: 'indigo' },
-    { id: 'list' as const, label: 'Denetim Listesi', icon: FileText, color: 'teal' },
-    { id: 'adherence' as const, label: 'Plan Uyumu', icon: Gauge, color: 'amber' },
+    { id: 'universe' as const,  label: 'Risk Evreni & Puanlama', icon: Target,        color: 'blue' },
+    { id: 'rolling' as const,   label: 'Bimodal Rolling Plan',   icon: GitBranch,     color: 'indigo' },
+    { id: 'annual' as const,    label: 'Yıllık Plan',            icon: CalendarRange, color: 'sky' },
+    { id: 'list' as const,      label: 'Denetim Listesi',        icon: FileText,      color: 'teal' },
+    { id: 'adherence' as const, label: 'Plan Uyumu',             icon: Gauge,         color: 'amber' },
   ];
 
   const { data: engagements = [], isLoading: loadingEngagements } = useQuery({
@@ -133,9 +136,11 @@ export default function StrategicPlanningPage() {
                         ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
                         : tab.color === 'indigo'
                           ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                          : tab.color === 'amber'
-                            ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
-                            : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
+                          : tab.color === 'sky'
+                            ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg shadow-sky-500/30'
+                            : tab.color === 'amber'
+                              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30'
+                              : 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
                       : 'bg-transparent text-slate-600 hover:bg-slate-50'
                   }
                 `}
@@ -217,6 +222,10 @@ export default function StrategicPlanningPage() {
                 )}
               </div>
             </div>
+          )}
+
+          {activeTab === 'annual' && (
+            <AnnualPlanView />
           )}
 
           {activeTab === 'adherence' && (
