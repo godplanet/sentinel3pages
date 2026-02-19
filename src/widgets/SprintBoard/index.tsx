@@ -14,10 +14,10 @@ interface SprintBoardProps {
 }
 
 const COLUMNS: { id: TaskStatus; title: string; icon: React.ComponentType<{ size?: number; className?: string }>; color: string }[] = [
-  { id: 'TODO', title: 'Yapilacak', icon: FileText, color: 'bg-slate-100 border-slate-300' },
-  { id: 'IN_PROGRESS', title: 'Devam Ediyor', icon: Clock, color: 'bg-blue-50 border-blue-300' },
-  { id: 'CLIENT_REVIEW', title: 'Musteri Dogrulama', icon: Users, color: 'bg-amber-50 border-amber-300' },
-  { id: 'DONE', title: 'Tamamlandi', icon: CheckCircle2, color: 'bg-emerald-50 border-emerald-300' },
+  { id: 'TODO',          title: 'Birikim',          icon: FileText,    color: 'bg-slate-100 border-slate-300' },
+  { id: 'IN_PROGRESS',   title: 'İşlemde',           icon: Clock,       color: 'bg-blue-50 border-blue-300' },
+  { id: 'CLIENT_REVIEW', title: 'İnceleme (QAIP)',   icon: Users,       color: 'bg-amber-50 border-amber-300' },
+  { id: 'DONE',          title: 'Tamamlandı',        icon: CheckCircle2,color: 'bg-emerald-50 border-emerald-300' },
 ];
 
 const XP_PER_STORY_POINT = 50;

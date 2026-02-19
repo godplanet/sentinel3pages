@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { User, Paperclip, Star, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import type { AuditTask } from '@/features/audit-creation/types';
 import { PRIORITY_LABELS } from '@/features/audit-creation/types';
+import { useFindingStore } from '@/entities/finding/model/store';
 
 interface TaskCardProps {
   task: AuditTask;
@@ -30,6 +32,14 @@ const VALIDATION_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export function TaskCard({ task, isDragging }: TaskCardProps) {
+  const draftFindingFromWorkpaper = useFindingStore((s) => s.draftFindingFromWorkpaper);
+
+  const handleDraftFinding = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    draftFindingFromWorkpaper(task.id, task.title, '');
+    toast.success('İzlenebilirlik Bağı Kuruldu! Stüdyoda taslak bulgu oluşturuldu.');
+  };
+
   const initials = task.assigned_name
     ? task.assigned_name.split(' ').map((w) => w[0]).join('').toUpperCase()
     : '?';
@@ -96,6 +106,16 @@ export function TaskCard({ task, isDragging }: TaskCardProps) {
           </span>
         </div>
       )}
+
+      <div className="mt-2 pt-2 border-t border-slate-100">
+        <button
+          onClick={handleDraftFinding}
+          className="w-full text-left text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-1.5 py-1 rounded transition-colors flex items-center gap-1"
+        >
+          <AlertTriangle size={10} className="shrink-0" />
+          🚨 İstisna Bildir (Taslak Bulgu)
+        </button>
+      </div>
     </div>
   );
 }
