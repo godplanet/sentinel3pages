@@ -1,6 +1,14 @@
 import dagre from 'dagre';
 import type { Node, Edge } from '@xyflow/react';
-import type { AuditEntity } from '@/entities/universe';
+
+export interface LayoutableEntity {
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+  risk_score: number;
+  velocity_multiplier: number;
+}
 
 export interface LayoutedElements {
   nodes: Node[];
@@ -11,7 +19,7 @@ const NODE_WIDTH = 260;
 const NODE_HEIGHT = 180;
 
 export const getLayoutedElements = (
-  entities: AuditEntity[],
+  entities: LayoutableEntity[],
   direction: 'TB' | 'LR' = 'TB'
 ): LayoutedElements => {
   const dagreGraph = new dagre.graphlib.Graph();
@@ -108,10 +116,10 @@ export const getLayoutedElements = (
 };
 
 export const filterEntitiesByRisk = (
-  entities: AuditEntity[],
+  entities: LayoutableEntity[],
   minRisk: number = 0,
   maxRisk: number = 100
-): AuditEntity[] => {
+): LayoutableEntity[] => {
   return entities.filter((entity) => {
     const effectiveRisk = entity.risk_score * (1 + (entity.velocity_multiplier - 1));
     return effectiveRisk >= minRisk && effectiveRisk <= maxRisk;
@@ -123,8 +131,8 @@ export const getEntityDepth = (path: string): number => {
 };
 
 export const filterEntitiesByDepth = (
-  entities: AuditEntity[],
+  entities: LayoutableEntity[],
   maxDepth: number
-): AuditEntity[] => {
+): LayoutableEntity[] => {
   return entities.filter((entity) => getEntityDepth(entity.path) <= maxDepth);
 };

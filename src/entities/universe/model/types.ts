@@ -1,3 +1,16 @@
+export interface UniverseNode {
+  id: string;
+  name: string;
+  path: string;
+  type: string;
+  inherent_risk: number;
+  residual_risk: number;
+  owner_id: string | null;
+  tenant_id?: string;
+  cascade_risk?: number;
+  children?: UniverseNode[];
+}
+
 export type EntityType =
   | 'HOLDING'
   | 'BANK'

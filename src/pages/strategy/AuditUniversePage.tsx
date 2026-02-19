@@ -13,8 +13,24 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '@/shared/api/supabase';
 
-import { type AuditEntity } from '@/entities/universe/api/mock-data';
 import { calculateEntityGrade } from '@/features/grading-engine/calculator';
+
+interface AuditEntity {
+  id: string;
+  name: string;
+  type: string;
+  path: string;
+  weight: number;
+  findings: {
+    bordo: number;
+    kizil: number;
+    turuncu: number;
+    sari: number;
+    gozlem: number;
+    shariah_systemic: number;
+  };
+  lastAudit: string;
+}
 import { GRADING_THRESHOLDS } from '@/shared/config/constitution';
 import { createEngagementsFromEntities, getDefaultPlanId } from '@/features/planning/linkage';
 import { useCreateEntity } from '@/entities/universe/api';

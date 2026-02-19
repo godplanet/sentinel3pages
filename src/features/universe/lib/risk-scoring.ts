@@ -1,4 +1,4 @@
-import type { AuditEntity } from '@/entities/universe/model/types';
+import type { AuditEntity, UniverseNode } from '@/entities/universe/model/types';
 
 export interface RiskSignal {
   source: string;
@@ -139,6 +139,20 @@ export function getRiskColor(level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'): str
     case 'LOW':
       return 'text-green-700 bg-green-100 border-green-200';
   }
+}
+
+export function calculateCascadeRisk(node: UniverseNode): number {
+  if (!node.children || node.children.length === 0) {
+    return node.inherent_risk;
+  }
+  const childRisks = node.children.map(calculateCascadeRisk);
+  const maxChildRisk = Math.max(...childRisks);
+  const avgChildRisk = childRisks.reduce((sum, r) => sum + r, 0) / childRisks.length;
+  return 0.7 * maxChildRisk + 0.3 * avgChildRisk;
+}
+
+export function applyTalentGapMultiplier(baseRisk: number, hasRequiredSkill: boolean): number {
+  return hasRequiredSkill ? baseRisk : Math.min(100, baseRisk * 1.2);
 }
 
 export function getTypeColor(type: string): { bg: string; text: string; icon: string } {

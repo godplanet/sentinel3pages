@@ -1,6 +1,5 @@
 export { useUniverseStore } from './model/store';
-export { mockUniverseData } from './api/mock-data';
-export type { AuditEntity, EntityType, UniverseTreeNode, UniverseFilters, UniverseStats } from './model/types';
+export type { AuditEntity, EntityType, UniverseTreeNode, UniverseFilters, UniverseStats, UniverseNode } from './model/types';
 export {
   useAuditEntities,
   useAuditEntity,
@@ -8,3 +7,5 @@ export {
   useUpdateEntity,
   useDeleteEntity,
 } from './api';
+export { fetchAuditUniverse, useAuditUniverse } from './api/universe-api';
+export { buildHierarchyFromLTree, flattenTree } from './lib/ltree-parser';
