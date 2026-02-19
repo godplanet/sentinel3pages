@@ -7,6 +7,72 @@ import type {
   UpdateEngagementDatesInput,
   DraftEngagement,
 } from './types';
+
+const INITIAL_BACKLOG: DraftEngagement[] = [
+  {
+    id: 'draft-backlog-1',
+    universeNodeId: 'node-api-sec',
+    universeNodeName: 'Digital Teverruk API Security',
+    cascadeRisk: 78,
+    requiredSkills: ['API Security', 'Fintech', 'BDDK'],
+    addedAt: new Date().toISOString(),
+    baseRisk: 78,
+    velocity: 'HIGH',
+    shariah: true,
+    esg: false,
+  },
+  {
+    id: 'draft-backlog-2',
+    universeNodeId: 'node-macro',
+    universeNodeName: 'Macroeconomic Stress Test',
+    cascadeRisk: 85,
+    requiredSkills: ['Risk Modelling', 'Econometrics'],
+    addedAt: new Date().toISOString(),
+    baseRisk: 85,
+    velocity: 'HIGH',
+    shariah: false,
+    esg: true,
+  },
+  {
+    id: 'draft-backlog-3',
+    universeNodeId: 'node-core-banking',
+    universeNodeName: 'Core Banking System Migration',
+    cascadeRisk: 92,
+    requiredSkills: ['IT Audit', 'Change Management', 'COBIT'],
+    addedAt: new Date().toISOString(),
+    baseRisk: 92,
+    velocity: 'MEDIUM',
+    shariah: false,
+    esg: false,
+  },
+  {
+    id: 'draft-backlog-4',
+    universeNodeId: 'node-esg',
+    universeNodeName: 'ESG Reporting Compliance',
+    cascadeRisk: 55,
+    requiredSkills: ['ESG', 'Sustainability', 'TCFD'],
+    addedAt: new Date().toISOString(),
+    baseRisk: 55,
+    velocity: 'LOW',
+    shariah: false,
+    esg: true,
+  },
+];
+
+const INITIAL_QSPRINT: DraftEngagement[] = [
+  {
+    id: 'draft-sprint-1',
+    universeNodeId: 'node-bddk',
+    universeNodeName: 'BDDK Regulatory Compliance Audit',
+    cascadeRisk: 95,
+    requiredSkills: ['Regulatory', 'BDDK', 'Basel III'],
+    addedAt: new Date().toISOString(),
+    baseRisk: 95,
+    velocity: 'HIGH',
+    shariah: false,
+    esg: false,
+  },
+];
 import { markSkillsUsedForEngagement } from '@/features/talent-os/lib/EntropyEngine';
 import {
   executeAuditClosureProtocol,
@@ -17,6 +83,8 @@ interface PlanningStore {
   plans: AuditPlan[];
   engagements: AuditEngagement[];
   draftEngagements: DraftEngagement[];
+  backlog: DraftEngagement[];
+  qSprint: DraftEngagement[];
   loading: boolean;
   error: string | null;
 
@@ -29,6 +97,7 @@ interface PlanningStore {
     requiredSkills: string[],
   ) => void;
   removeDraftEngagement: (id: string) => void;
+  pullToSprint: (engagementId: string) => void;
 
   createPlan: (input: CreatePlanInput) => AuditPlan;
   addEngagement: (input: CreateEngagementInput) => AuditEngagement;
@@ -54,6 +123,8 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
   plans: [],
   engagements: [],
   draftEngagements: [],
+  backlog: INITIAL_BACKLOG,
+  qSprint: INITIAL_QSPRINT,
   loading: false,
   error: null,
 
@@ -74,6 +145,10 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
         cascadeRisk,
         requiredSkills,
         addedAt: new Date().toISOString(),
+        baseRisk: cascadeRisk,
+        velocity: cascadeRisk >= 70 ? 'HIGH' : cascadeRisk >= 40 ? 'MEDIUM' : 'LOW',
+        shariah: false,
+        esg: false,
       };
       return { draftEngagements: [...state.draftEngagements, draft] };
     });
@@ -83,6 +158,17 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
     set((state) => ({
       draftEngagements: state.draftEngagements.filter((d) => d.id !== id),
     }));
+  },
+
+  pullToSprint: (engagementId) => {
+    set((state) => {
+      const item = state.backlog.find((d) => d.id === engagementId);
+      if (!item) return state;
+      return {
+        backlog: state.backlog.filter((d) => d.id !== engagementId),
+        qSprint: [...state.qSprint, item],
+      };
+    });
   },
 
   createPlan: (input) => {

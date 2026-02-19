@@ -66,6 +66,8 @@ export interface UpdateEngagementDatesInput {
   end_date: string;
 }
 
+export type RiskVelocity = 'HIGH' | 'MEDIUM' | 'LOW';
+
 export interface DraftEngagement {
   id: string;
   universeNodeId: string;
@@ -73,4 +75,8 @@ export interface DraftEngagement {
   cascadeRisk: number;
   requiredSkills: string[];
   addedAt: string;
+  baseRisk: number;
+  velocity: RiskVelocity;
+  shariah: boolean;
+  esg: boolean;
 }

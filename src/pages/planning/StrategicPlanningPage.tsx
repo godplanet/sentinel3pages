@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { PageHeader } from '@/shared/ui';
 import { UniverseScoring } from '@/widgets/UniverseScoring';
-import { AnnualPlanner } from '@/widgets/AnnualPlanner';
 import { PlanAdherence } from '@/widgets/PlanAdherence';
+import { RollingPlanBoard } from '@/features/planning/ui/RollingPlanBoard';
 import { fetchEngagementsList, fetchEntitiesSimple, fetchActivePlan } from '@/entities/planning/api/queries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import {
   LayoutGrid,
   Target,
-  Calendar,
+  GitBranch,
   FileText,
   Plus,
   Eye,
@@ -23,7 +23,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
-type TabId = 'universe' | 'annual' | 'list' | 'adherence';
+type TabId = 'universe' | 'rolling' | 'list' | 'adherence';
 
 interface AuditEngagement {
   id: string;
@@ -39,7 +39,7 @@ interface AuditEngagement {
 }
 
 export default function StrategicPlanningPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('universe');
+  const [activeTab, setActiveTab] = useState<TabId>('rolling');
   const [showAddEngagementModal, setShowAddEngagementModal] = useState(false);
   const [closingId, setClosingId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ export default function StrategicPlanningPage() {
 
   const tabs = [
     { id: 'universe' as const, label: 'Risk Evreni & Puanlama', icon: Target, color: 'blue' },
-    { id: 'annual' as const, label: 'Yıllık Plan (Takvim)', icon: Calendar, color: 'emerald' },
+    { id: 'rolling' as const, label: 'Bimodal Rolling Plan', icon: GitBranch, color: 'emerald' },
     { id: 'list' as const, label: 'Denetim Listesi', icon: FileText, color: 'teal' },
     { id: 'adherence' as const, label: 'Plan Uyumu', icon: Gauge, color: 'amber' },
   ];
@@ -101,8 +101,8 @@ export default function StrategicPlanningPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <PageHeader
-        title="Stratejik Planlama Paketi"
-        subtitle="Unified planning suite for risk assessment, annual planning, and engagement management"
+        title="Bimodal Stratejik Planlama"
+        description="Risk evreninden Q-Sprint'e — dinamik 3+9 aylık denetim programı"
         icon={LayoutGrid}
       />
 
@@ -154,15 +154,21 @@ export default function StrategicPlanningPage() {
             </div>
           )}
 
-          {activeTab === 'annual' && (
+          {activeTab === 'rolling' && (
             <div className="p-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Yıllık Denetim Takvimi</h2>
-                <p className="text-slate-600">
-                  Visual Gantt chart for planning and tracking audit engagements throughout the year
-                </p>
+              <div className="mb-6 flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 mb-1">Bimodal Rolling Plan</h2>
+                  <p className="text-sm text-slate-500">
+                    9 aylık dinamik havuzdan 3 aylık kilitli Q-Sprint'e görev çekin.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <GitBranch size={12} className="text-slate-400" />
+                  3+9 Model
+                </div>
               </div>
-              <AnnualPlanner />
+              <RollingPlanBoard />
             </div>
           )}
 
