@@ -431,8 +431,9 @@ export const useActiveReportStore = create<ActiveReportState>((set, get) => ({
       },
     });
     upsertBlockDb(sectionId, block).catch((err: any) => {
-      toast.error(isIronVaultError(err?.message ?? '') ? err.message : 'Blok eklenemedi.');
-      set({ activeReport });
+      if (isIronVaultError(err?.message ?? '')) {
+        toast.error(err.message);
+      }
     });
   },
 
