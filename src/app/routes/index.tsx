@@ -9,6 +9,7 @@ import RkmLibraryPage from '@/pages/rkm-library';
 import ActionWorkbenchPage from '@/pages/action-workbench';
 import ActionPortalPage from '@/pages/action-workbench/AuditeePortalPage';
 import AuditorWorkbenchPage from '@/pages/action-workbench/AuditorWorkbenchPage';
+import GovernanceWorkbenchPage from '@/pages/action-workbench/GovernanceWorkbenchPage';
 import ExecutionConsolidatedPage from '@/pages/execution-consolidated';
 import ExecutionDetailPage from '@/pages/execution/ExecutionPage';
 import ReportingPage from '@/pages/reporting';
@@ -244,6 +245,7 @@ export const AppRoutes = () => {
       <Route path="/auditee-portal/finding/:id" element={<AuditeePortalPage />} />
       <Route path="/action-portal" element={<ActionPortalPage />} />
       <Route path="/auditor-workbench" element={<ProtectedRoute><AuditorWorkbenchPage /></ProtectedRoute>} />
+      <Route path="/governance-workbench" element={<ProtectedRoute><GovernanceWorkbenchPage /></ProtectedRoute>} />
 
       <Route path="/auditee" element={<AuditeeLayout />}>
         <Route index element={<AuditeeDashboardPage />} />
