@@ -11,10 +11,10 @@ interface SystemInitState {
 
 export function useSystemInit() {
   const [state, setState] = useState<SystemInitState>({
-    isInitializing: false,
+    isInitializing: true,
     isComplete: false,
     error: null,
-    progress: ''
+    progress: 'Sistem kontrol ediliyor...'
   });
 
   useEffect(() => {
