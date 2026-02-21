@@ -21,7 +21,6 @@ import ResourceManagementPage from '@/pages/resources/ResourceManagementPage';
 import GovernancePage from '@/pages/governance';
 import PolicyPage from '@/pages/governance/PolicyPage';
 import GovernanceVaultPage from '@/pages/governance-vault';
-import QAIPConsolidatedPage from '@/pages/qaip-consolidated';
 import QAIPPage from '@/pages/qaip';
 import SurveysPage from '@/pages/surveys';
 import WatchtowerPage from '@/pages/monitoring/WatchtowerPage';
@@ -53,8 +52,6 @@ import ReportEditorPage from '@/pages/reporting/ReportEditorPage';
 import BoardBriefingPage from '@/pages/reporting/BoardBriefingPage';
 import TrendAnalysisPage from '@/pages/reporting/TrendAnalysisPage';
 import EntityScorecardPage from '@/pages/reporting/EntityScorecardPage';
-import KPIDashboardPage from '@/pages/qaip/KPIDashboardPage';
-import ExternalReviewPage from '@/pages/qaip/ExternalReviewPage';
 import BoardReportingPage from '@/pages/governance/BoardReportingPage';
 import StakeholderManagementPage from '@/pages/governance/StakeholderManagementPage';
 import WhistleblowerPage from '@/pages/governance/WhistleblowerPage';
@@ -195,11 +192,7 @@ export const AppRoutes = () => {
       <Route path="/reporting/trends" element={<ProtectedRoute><TrendAnalysisPage /></ProtectedRoute>} />
       <Route path="/reporting/entity-scorecard" element={<ProtectedRoute><EntityScorecardPage /></ProtectedRoute>} />
 
-      <Route path="/qaip/internal" element={<ProtectedRoute><QAIPPage /></ProtectedRoute>} />
-      <Route path="/qaip/reviews" element={<ProtectedRoute><QAIPConsolidatedPage /></ProtectedRoute>} />
-      <Route path="/qaip/kpi" element={<ProtectedRoute><KPIDashboardPage /></ProtectedRoute>} />
-      <Route path="/qaip/external" element={<ProtectedRoute><ExternalReviewPage /></ProtectedRoute>} />
-      <Route path="/qaip/surveys" element={<ProtectedRoute><SurveysPage /></ProtectedRoute>} />
+      <Route path="/qaip" element={<ProtectedRoute><QAIPPage /></ProtectedRoute>} />
 
       <Route path="/settings" element={<ProtectedRoute><SettingsConsolidatedPage /></ProtectedRoute>} />
       <Route path="/settings/system-health" element={<ProtectedRoute><SystemHealthPage /></ProtectedRoute>} />
@@ -282,7 +275,6 @@ export const AppRoutes = () => {
       <Route path="/resources/talent" element={<Navigate to="/resources?tab=talent" replace />} />
       <Route path="/resources/timesheets" element={<Navigate to="/resources?tab=timesheets" replace />} />
       <Route path="/resources/capacity" element={<Navigate to="/resources?tab=capacity" replace />} />
-      <Route path="/qaip" element={<Navigate to="/qaip/internal" replace />} />
       <Route path="/findings" element={<Navigate to="/execution/findings" replace />} />
 
       <Route path="/dev-map" element={<ProtectedRoute><SiteMapPage /></ProtectedRoute>} />

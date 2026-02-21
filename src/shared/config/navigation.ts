@@ -217,7 +217,7 @@ export const navigationConfig: NavigationItem[] = [
       },
       {
         id: 'qaip-cockpit',
-        label: 'QAIP Kokpit',
+        label: 'QAIP / Kalite',
         path: '/qaip',
         icon: ShieldCheck,
       },
@@ -506,13 +506,6 @@ export const navigationConfig: NavigationItem[] = [
         label: 'Yönetici Özeti',
         path: '/reporting/executive',
         icon: LayoutDashboard,
-      },
-      {
-        id: 'qaip',
-        label: 'QAIP / Kalite',
-        path: '/qaip',
-        icon: CheckSquare,
-        // Note: QAIP page has tabs: Internal, Reviews, KPI, External, Surveys
       },
     ],
   },
