@@ -4,6 +4,23 @@ import { persist } from 'zustand/middleware';
 export type BrainMode = 'GENERATIVE' | 'COMPUTATIONAL' | 'IDLE';
 export type Environment = 'PROD' | 'UAT' | 'DEV';
 
+// 🛡️ SİSTEMDEKİ TÜM ÇEKMECE TİPLERİ (TEK MERKEZ)
+export type DrawerType = 
+  | 'NONE' 
+  | 'FINDING_DETAIL' 
+  | 'WORKPAPER_DETAIL' 
+  | 'ACTION_DETAIL' 
+  | 'INVESTIGATION_DETAIL' 
+  | 'ADVISORY_DETAIL' 
+  | 'TPRM_DETAIL';
+
+interface DrawerState {
+  isOpen: boolean;
+  type: DrawerType;
+  entityId: string | null;
+  payload?: any;
+}
+
 interface UIState {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
@@ -28,10 +45,12 @@ interface UIState {
 
   isAuditeeMode: boolean;
   setAuditeeMode: (mode: boolean) => void;
-}
 
-export { usePersonaStore, PERSONAS } from './persona-store';
-export type { PersonaRole, PersonaConfig } from './persona-store';
+  // 🛡️ THE MASTER DRAWER YÖNETİMİ
+  drawer: DrawerState;
+  openDrawer: (type: DrawerType, entityId?: string | null, payload?: any) => void;
+  closeDrawer: () => void;
+}
 
 export const useUIStore = create<UIState>()(
   persist(
@@ -39,7 +58,7 @@ export const useUIStore = create<UIState>()(
       isSidebarOpen: true,
       toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
-      sidebarColor: '#0f172a', // Varsayılan: Obsidian (PROD rengi)
+      sidebarColor: '#0f172a',
       setSidebarColor: (color) => set({ sidebarColor: color }),
 
       environment: 'PROD',
@@ -59,9 +78,29 @@ export const useUIStore = create<UIState>()(
 
       isAuditeeMode: false,
       setAuditeeMode: (mode) => set({ isAuditeeMode: mode }),
+
+      // DRAWER BAŞLANGIÇ STATE
+      drawer: {
+        isOpen: false,
+        type: 'NONE',
+        entityId: null,
+        payload: null,
+      },
+      openDrawer: (type, entityId = null, payload = null) => 
+        set({ drawer: { isOpen: true, type, entityId, payload } }),
+      closeDrawer: () => 
+        set({ drawer: { isOpen: false, type: 'NONE', entityId: null, payload: null } }),
     }),
     {
       name: 'sentinel-ui-storage',
+      // Drawer'ın state'i persist edilmez (güvenlik ve tutarlılık için sayfa yenilenince kapanır)
+      partialize: (state) => ({
+        isSidebarOpen: state.isSidebarOpen,
+        sidebarColor: state.sidebarColor,
+        environment: state.environment,
+        isVDI: state.isVDI,
+        isAuditeeMode: state.isAuditeeMode
+      }),
     }
   )
 );
