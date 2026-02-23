@@ -109,9 +109,25 @@ import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 import AcademyPage from '@/pages/academy';
 import PlaybookPage from '@/pages/playbook';
 
+import { useLocation, Navigate } from 'react-router-dom';
+import { usePersonaStore } from '@/entities/user/model/persona-store'; // FSD YENİ YOLU
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || localStorage.getItem('sentinel_token');
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  const { isPathAllowed, currentPersona } = usePersonaStore();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  // 🛡️ SERT GEÇİT (HARD-GATE): Rol Bazlı URL İzolasyonu
+  if (!isPathAllowed(location.pathname)) {
+    console.warn(`[SIFIR GÜVEN İHLALİ]: ${currentPersona} yetkisi ${location.pathname} dizinine erişmeye çalıştı ve engellendi.`);
+    return <Navigate to="/403" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 export const AppRoutes = () => {
