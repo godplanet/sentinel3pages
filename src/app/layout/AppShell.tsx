@@ -7,15 +7,16 @@ import { SentinelScribble } from '@/widgets/SentinelScribble';
 import { ScribbleFindingModal } from '@/widgets/SentinelScribble/ScribbleFindingModal';
 import { SentinelChatPanel } from '@/widgets/SentinelChat';
 import { SentinelOmnibar } from '@/widgets/OmniCommand/ui/SentinelOmnibar';
+import { MasterSuperDrawer } from './MasterSuperDrawer'; // YENİ MİMARİ
 import { useUIStore } from '@/shared/stores/ui-store';
-import { useChatStore } from '@/shared/stores/chat-store';
+import { useChatStore } from '@/features/ai-agents/model/chat-store'; // FSD YENİ YOLU
 import { Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const CHROMELESS_ROUTES = ['/secure-report', '/login'];
 
 export const AppShell = ({ children }: { children: React.ReactNode }) => {
-  const { isSidebarOpen, isVDI } = useUIStore();
+  const { isSidebarOpen, isVDI, drawer } = useUIStore();
   const { chatOpen, setChatOpen } = useChatStore();
   const location = useLocation();
 
@@ -49,7 +50,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </div>
       </main>
 
-      {!chatOpen && (
+      {!chatOpen && !drawer.isOpen && (
         <button
           onClick={() => setChatOpen(true)}
           className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-2xl shadow-lg shadow-blue-300/40 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all print:hidden"
@@ -59,6 +60,10 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         </button>
       )}
 
+      {/* 🛡️ SİSTEMİN YENİ KALBİ: THE SUPER DRAWER KONTEYNERİ */}
+      <MasterSuperDrawer />
+
+      {/* Diğer Global Modüller */}
       <SentinelChatPanel />
       <CommandBar />
       <SentinelScribble />
