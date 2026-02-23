@@ -7,10 +7,7 @@ import type {
   WorkpaperData,
   TestResult,
 } from '../model/types';
-import {
-  type MockEngagement,
-  mockEngagements,
-} from './mock-data';
+import type { MockEngagement } from './mock-data';
 
 export async function fetchWorkpapers(): Promise<Workpaper[]> {
   const { data, error } = await supabase
@@ -171,12 +168,30 @@ export async function deleteWorkpaper(id: string): Promise<void> {
 }
 
 export async function fetchEngagements(): Promise<MockEngagement[]> {
-  return Promise.resolve(mockEngagements);
+  try {
+    const { data, error } = await supabase
+      .from('audit_engagements')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []) as unknown as MockEngagement[];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchEngagement(id: string): Promise<MockEngagement | null> {
-  return Promise.resolve(mockEngagements.find((e) => e.id === id) || null);
+  try {
+    const { data, error } = await supabase
+      .from('audit_engagements')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data as unknown as MockEngagement | null;
+  } catch {
+    return null;
+  }
 }
 
-export { mockEngagements };
 export type { MockEngagement };

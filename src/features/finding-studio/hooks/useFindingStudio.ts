@@ -6,7 +6,6 @@ import { differenceInDays, parseISO, isValid } from 'date-fns';
 // --- Imports ---
 import { useMethodologyStore } from '@/features/admin/methodology/model/store';
 import { useRiskConfigStore } from '@/features/admin/risk-configuration/model/store';
-import { mockComprehensiveFindings } from '@/entities/finding/api/mock-comprehensive-data';
 import type { Finding } from '@/entities/finding/model/types';
 import {
   fetchFinding,
@@ -146,37 +145,16 @@ export const useFindingStudio = () => {
           // --- MEVCUT KAYIT: SUPABASE'DEN ÇEK ---
           try {
             const foundInDB = await fetchFinding(id);
-
             if (foundInDB) {
-              // Veritabanında bulundu
               setFinding(sanitizeData(foundInDB));
             } else {
-              // Veritabanında yok - FALLBACK: Mock data kontrol et (geçiş dönemi için)
-              console.warn(`Finding ${id} not found in database, checking mock data...`);
-              const foundInMock = mockComprehensiveFindings.find((f: any) => f.id === id);
-
-              if (foundInMock) {
-                setFinding(sanitizeData(foundInMock as unknown as ComprehensiveFinding));
-                toast('Bu kayıt mock veridedir. Değişiklikler veritabanına yazılmayacak.', {
-                  icon: '⚠️',
-                  duration: 4000
-                });
-              } else {
-                // Hiçbir yerde bulunamadı
-                toast.error('Bulgu bulunamadı. Ana sayfaya yönlendiriliyorsunuz...');
-                setTimeout(() => navigate('/findings'), 2000);
-                return;
-              }
+              toast.error('Bulgu bulunamadı. Ana sayfaya yönlendiriliyorsunuz...');
+              setTimeout(() => navigate('/execution/findings'), 2000);
+              return;
             }
           } catch (dbError: any) {
             console.error('Database Fetch Error:', dbError);
             toast.error(`Veritabanı hatası: ${dbError.message || 'Bilinmeyen hata'}`);
-
-            // Fallback: Mock data
-            const foundInMock = mockComprehensiveFindings.find((f: any) => f.id === id);
-            if (foundInMock) {
-              setFinding(sanitizeData(foundInMock as unknown as ComprehensiveFinding));
-            }
           }
         }
 

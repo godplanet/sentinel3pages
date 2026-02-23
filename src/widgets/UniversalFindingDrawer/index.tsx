@@ -18,19 +18,15 @@ export type DrawerTab = 'chat' | 'ai' | 'rca' | 'review' | 'history' | 'activity
 
 interface UniversalFindingDrawerProps {
   findingId: string | null;
-  isOpen: boolean;
+  isOpen?: boolean;
   defaultTab?: DrawerTab;
-  onClose: () => void;
-  
-  // Görünüm Değiştirici (View Switcher) Desteği
-  currentViewMode?: 'zen' | 'studio' | 'glass'; 
+  onClose?: () => void;
+
+  currentViewMode?: 'zen' | 'studio' | 'glass';
   onViewModeChange?: (mode: 'zen' | 'studio' | 'glass') => void;
 
-  // Callbackler (Opsiyonel - Parent bileşene veri aktarmak için)
   onApplyAIDraft?: (draft: any) => void;
   onApplyRCA?: (html: string, rawData: any) => void;
-
-  // GÖREV 2: RCA'dan Editöre İçerik Aktarımı (The Bridge)
   onApplyContent?: (section: string, content: string) => void;
 }
 
@@ -45,25 +41,16 @@ export function UniversalFindingDrawer({
   onApplyRCA,
   onApplyContent
 }: UniversalFindingDrawerProps) {
-  
+
   const [activeTab, setActiveTab] = useState<DrawerTab>(defaultTab);
 
-  // Çekmece kapalıysa render etme (Performans optimizasyonu)
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   return (
-    <>
-      {/* ARKA PLAN KARARTMASI (Backdrop) */}
-      <div 
-        className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-[90] transition-opacity duration-300"
-        onClick={onClose}
-      />
-
-      {/* ÇEKMECE PANELİ */}
       <div className={clsx(
-        "fixed bottom-0 right-0 top-[64px] w-full max-w-[500px] shadow-[rgba(0,0,0,0.56)_0px_22px_70px_4px] z-[100] flex flex-col transform transition-transform duration-300 ease-in-out border-l rounded-tl-2xl",
-        currentViewMode === 'glass' 
-            ? "bg-slate-900/95 backdrop-blur-xl border-white/20" 
+        "flex flex-col h-full border-l",
+        currentViewMode === 'glass'
+            ? "bg-slate-900/95 backdrop-blur-xl border-white/20"
             : "bg-white border-slate-200"
       )}>
         
@@ -189,7 +176,6 @@ export function UniversalFindingDrawer({
         </div>
 
       </div>
-    </>
   );
 }
 

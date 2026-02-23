@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ClipboardList, FileCheck, AlertTriangle, ShieldAlert, Shield, ShieldCheck,
   FileSignature, MessageSquare, Clock, FolderOpen,
@@ -39,7 +38,7 @@ import { NewFindingModal } from '@/features/finding-form/NewFindingModal';
 interface WorkpaperSuperDrawerProps {
   row: ControlRow | null;
   workpaperId: string | null;
-  onClose: () => void;
+  onClose?: () => void;
   onStatusChange?: (workpaperId: string, status: string) => void;
 }
 
@@ -403,25 +402,8 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
   const openNotesCount = reviewNotes.filter(n => n.status === 'Open').length;
 
   return (
-    <AnimatePresence>
-      {row && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[100]"
-          />
-
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-screen w-[820px] max-w-[75vw] bg-white shadow-2xl border-l border-slate-200 z-[100] flex flex-col"
-          >
+    <>
+          <div className="flex flex-col h-full bg-white border-l border-slate-200 overflow-hidden">
             <div className="shrink-0 bg-white border-b border-slate-200">
               <div className="px-6 pt-5 pb-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -461,7 +443,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                       />
                     </div>
                     <button
-                      onClick={onClose}
+                      onClick={() => onClose?.()}
                       className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                     >
                       <X size={20} className="text-slate-400" />
@@ -613,7 +595,7 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
 
           <OfficeOrchestrator
             workpaperId={workpaperId}
@@ -633,15 +615,11 @@ export function WorkpaperSuperDrawer({ row, workpaperId, onClose, onStatusChange
             onAddStep={handleAddStep}
           />
 
-          {/* YENİ: Bulgu Oluşturma Modalı (Drawer'ın Dışında) */}
-          <NewFindingModal 
+          <NewFindingModal
             isOpen={isFindingModalOpen}
             onClose={() => setIsFindingModalOpen(false)}
-            // workpaperId prop'u Modal'a eklenecek, sizin kodda yoksa eklemeniz gerekecek
             onSave={handleFindingCreated}
           />
-        </>
-      )}
-    </AnimatePresence>
+    </>
   );
 }

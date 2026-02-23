@@ -2,10 +2,10 @@ import React, { Suspense, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { useUIStore } from '@/shared/stores/ui-store';
 import { cn } from '@/lib/utils';
-
-// --- LAZY LOADED DRAWERS ---
-// Not: İleride var olan çekmece bileşenlerinizi buralara bağlayacağız.
-// Örn: const FindingStudioDrawer = React.lazy(() => import('@/features/finding-studio/components/FindingDrawer'));
+import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
+import { WorkpaperSuperDrawer } from '@/widgets/WorkpaperSuperDrawer';
+import { ActionSuperDrawer } from '@/widgets/action-super-drawer/ui/ActionSuperDrawer';
+import { TraceabilityDrawer } from '@/widgets/TraceabilityDrawer';
 
 const PlaceholderDrawer = ({ type, entityId }: { type: string, entityId: string | null }) => (
   <div className="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center space-y-4">
@@ -43,11 +43,36 @@ export const MasterSuperDrawer = () => {
   // ANAYASA: Karanlık Tema Kısıtı (Sadece Gizli Soruşturmalarda Otonom Devreye Girer)
   const isStealthMode = type === 'INVESTIGATION_DETAIL';
 
-  // Polimorfik Render Motoru
   const renderContent = () => {
     switch (type) {
-      // İleride buraya gerçek componentleriniz eklenecek:
-      // case 'FINDING_DETAIL': return <FindingStudioDrawer findingId={entityId} {...payload} />;
+      case 'FINDING_DETAIL':
+        return (
+          <UniversalFindingDrawer
+            findingId={entityId}
+            onClose={closeDrawer}
+            {...(payload as object)}
+          />
+        );
+      case 'WORKPAPER_DETAIL':
+        return (
+          <WorkpaperSuperDrawer
+            row={payload?.row ?? null}
+            workpaperId={entityId}
+            onClose={closeDrawer}
+            onStatusChange={payload?.onStatusChange}
+          />
+        );
+      case 'ACTION_DETAIL':
+        return payload?.action ? (
+          <ActionSuperDrawer
+            action={payload.action}
+            evidence={payload?.evidence}
+            onClose={closeDrawer}
+            onDecision={payload?.onDecision}
+          />
+        ) : <PlaceholderDrawer type={type} entityId={entityId} />;
+      case 'TRACEABILITY':
+        return <TraceabilityDrawer onClose={closeDrawer} />;
       default:
         return <PlaceholderDrawer type={type} entityId={entityId} />;
     }

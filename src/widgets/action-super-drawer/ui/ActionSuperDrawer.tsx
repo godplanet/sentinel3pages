@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, FileText, Link2, Cpu, History,
   AlertTriangle, Shield, User, Calendar,
@@ -99,8 +98,8 @@ function buildTimeline(action: ActionAgingMetrics): TimelineEvent[] {
 interface Props {
   action: ActionAgingMetrics;
   evidence?: ActionEvidence[];
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onDecision?: (verdict: 'closed' | 'review_rejected') => void;
 }
 
@@ -114,44 +113,23 @@ export function ActionSuperDrawer({
   const [activeTab, setActiveTab] = useState<Tab>('context');
   const snapshot = action.finding_snapshot;
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-900/30 backdrop-blur-[2px] z-40"
-          />
+  if (isOpen === false) return null;
 
-          <motion.aside
-            key="drawer"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={clsx(
-              'fixed right-0 top-0 bottom-0 z-50 flex flex-col',
-              'w-full max-w-3xl',
-              'bg-white/90 backdrop-blur-2xl border-l border-slate-200 shadow-2xl',
-              action.is_bddk_breach && 'border-t-[3px] border-t-[#700000]',
-            )}
-          >
+  return (
+        <div
+          className={clsx(
+            'flex flex-col h-full',
+            'bg-white/90 backdrop-blur-2xl border-l border-slate-200',
+            action.is_bddk_breach && 'border-t-[3px] border-t-[#700000]',
+          )}
+        >
             {action.is_bddk_breach && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-[#700000] text-white px-6 py-2 flex items-center gap-2"
-              >
+              <div className="bg-[#700000] text-white px-6 py-2 flex items-center gap-2">
                 <AlertTriangle size={14} className="animate-pulse shrink-0" />
                 <p className="text-xs font-black tracking-wide">
                   BDDK KIRMIZI ÇİZGİ İHLALİ — Acil Yönetim Kurulu Eskalasyonu Gereklidir
                 </p>
-              </motion.div>
+              </div>
             )}
 
             <DrawerHeader action={action} onClose={onClose} />
@@ -182,11 +160,8 @@ export function ActionSuperDrawer({
               </div>
             </div>
 
-            <AuditorDecisionBar action={action} onDecision={(v) => { onDecision?.(v); onClose(); }} />
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+            <AuditorDecisionBar action={action} onDecision={(v) => { onDecision?.(v); onClose?.(); }} />
+        </div>
   );
 }
 
@@ -195,7 +170,7 @@ function DrawerHeader({
   onClose,
 }: {
   action: ActionAgingMetrics;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const snapshot = action.finding_snapshot;
 
@@ -239,7 +214,7 @@ function DrawerHeader({
       </div>
 
       <button
-        onClick={onClose}
+        onClick={() => onClose?.()}
         className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors shrink-0"
         aria-label="Kapat"
       >

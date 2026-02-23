@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   GitBranch,
@@ -22,8 +21,9 @@ import type { M6Report, FindingRefBlock } from '@/entities/report';
 import type { ComprehensiveFinding } from '@/entities/finding/model/types';
 
 interface TraceabilityDrawerProps {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  onClose?: () => void;
+  sourceId?: string | null;
 }
 
 const SEVERITY_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
@@ -123,6 +123,7 @@ function GradeCircle({ score, grade }: { score: number; grade: string }) {
 }
 
 export function TraceabilityDrawer({ open, onClose }: TraceabilityDrawerProps) {
+  if (open === false) return null;
   const { activeReport } = useActiveReportStore();
   const findings = useFindingStore((s) => s.findings);
 
@@ -155,23 +156,7 @@ export function TraceabilityDrawer({ open, onClose }: TraceabilityDrawerProps) {
   const es = activeReport.executiveSummary;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-40"
-            onClick={onClose}
-          />
-          <motion.aside
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200"
-          >
+      <div className="flex flex-col h-full bg-white border-l border-slate-200">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -183,7 +168,7 @@ export function TraceabilityDrawer({ open, onClose }: TraceabilityDrawerProps) {
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={() => onClose?.()}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <X size={15} />
@@ -327,10 +312,7 @@ export function TraceabilityDrawer({ open, onClose }: TraceabilityDrawerProps) {
                 Son güncelleme: {new Date(activeReport.updatedAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
   );
 }
 
