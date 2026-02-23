@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/api/supabase';
-import { PERSONAS } from '@/shared/stores/persona-store';
+import { PERSONAS } from '@/entities/user/model/persona-store';
 
 /**
  * PERSONA-SPECIFIC DATA SEEDER

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader } from '@/shared/ui';
-import { useAISettingsStore } from '@/shared/stores/ai-settings-store';
+import { useAISettingsStore } from '@/features/ai-agents/model/ai-settings-store';
 import { createEngine, clearEngineCache } from '@/shared/api/ai/engine';
 import type { AIProviderType } from '@/shared/api/ai/types';
 import { PROVIDER_LABELS, DEFAULT_MODELS, GEMINI_MODELS } from '@/shared/api/ai/types';

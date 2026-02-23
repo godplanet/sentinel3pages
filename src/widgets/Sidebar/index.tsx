@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUIStore } from '@/shared/stores/ui-store';
-import { useChatStore } from '@/shared/stores/chat-store';
-import { usePersonaStore, PERSONAS, type PersonaRole } from '@/shared/stores/persona-store';
+import { useChatStore } from '@/features/ai-agents/model/chat-store';
+import { usePersonaStore, PERSONAS, type PersonaRole } from '@/entities/user/model/persona-store';
 import { getEnvClasses } from '@/shared/lib/theme';
 import { navigationConfig, type NavigationItem } from '@/shared/config/navigation';
 import {

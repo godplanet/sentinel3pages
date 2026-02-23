@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePersonaStore, PERSONAS, type PersonaRole } from '@/shared/stores/persona-store';
+import { usePersonaStore, PERSONAS, type PersonaRole } from '@/entities/user/model/persona-store';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield,

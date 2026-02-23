@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { usePersonaStore } from '@/entities/user/model/persona-store';
 
 import DashboardPage from '@/pages/dashboard';
 import StrategicAnalysisPage from '@/pages/dashboard/StrategicAnalysisPage';
@@ -15,7 +16,6 @@ import EcosystemImpactPage from '@/pages/action-workbench/EcosystemImpactPage';
 import { RemediationDossier } from '@/features/regulatory-export/ui/RemediationDossier';
 import ExecutionConsolidatedPage from '@/pages/execution-consolidated';
 import ExecutionDetailPage from '@/pages/execution/ExecutionPage';
-import ReportingPage from '@/pages/reporting';
 import ExecutiveDashboardPage from '@/pages/reporting/ExecutiveDashboardPage';
 import ResourceManagementPage from '@/pages/resources/ResourceManagementPage';
 import GovernancePage from '@/pages/governance';
@@ -29,7 +29,6 @@ import MarketMonitoringPage from '@/pages/monitoring/MarketMonitoringPage';
 import SettingsConsolidatedPage from '@/pages/settings-consolidated';
 import FindingCenterPage from '@/pages/findings/FindingCenterPage';
 import FindingStudioPage from '@/pages/findings/FindingStudioPage';
-import FindingDetailPage from '@/pages/findings/FindingDetailPage';
 import { FindingDetailPage as AuditorFindingDetailPage } from '@/pages/auditor/FindingDetailPage';
 import { AuditeePortalPage } from '@/pages/auditee-portal/AuditeePortalPage';
 
@@ -108,9 +107,6 @@ import PageInventoryPage from '@/pages/dev/PageInventoryPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 import AcademyPage from '@/pages/academy';
 import PlaybookPage from '@/pages/playbook';
-
-import { useLocation, Navigate } from 'react-router-dom';
-import { usePersonaStore } from '@/entities/user/model/persona-store'; // FSD YENİ YOLU
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true' || localStorage.getItem('sentinel_token');

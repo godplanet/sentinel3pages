@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAISettingsStore } from '@/shared/stores/ai-settings-store';
-import { useChatStore } from '@/shared/stores/chat-store';
+import { useAISettingsStore } from '@/features/ai-agents/model/ai-settings-store';
+import { useChatStore } from '@/features/ai-agents/model/chat-store';
 import { usePageContext } from '@/shared/hooks/usePageContext';
 import { useChatEngine } from './useChatEngine';
 import { ChatBubble } from './ChatBubble';

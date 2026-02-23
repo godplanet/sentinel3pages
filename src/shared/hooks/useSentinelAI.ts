@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAISettingsStore } from '@/shared/stores/ai-settings-store';
+import { useAISettingsStore } from '@/features/ai-agents/model/ai-settings-store';
 import { createEngine } from '@/shared/api/ai';
 
 interface UseSentinelAIReturn {

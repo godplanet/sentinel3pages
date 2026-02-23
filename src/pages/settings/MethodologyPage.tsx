@@ -16,7 +16,7 @@ import {
 import type { RiskImpacts, VelocityLevel, RiskConfiguration } from '@/features/risk-engine/useRiskMethodology';
 
 // YENİ EKLENDİ: GLOBAL PARAMETRE HAFIZAMIZ
-import { useParameterStore } from '@/shared/stores/parameter-store';
+import { useParameterStore } from '@/entities/settings/model/parameter-store';
 
 type WeightKey = 'financial' | 'reputation' | 'operational' | 'legal';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';

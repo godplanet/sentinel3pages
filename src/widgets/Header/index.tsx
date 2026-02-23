@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUIStore } from '@/shared/stores/ui-store';
-import { usePersonaStore } from '@/shared/stores/persona-store';
+import { usePersonaStore } from '@/entities/user/model/persona-store';
 import { Bell, Menu, Brain, Calculator } from 'lucide-react';
 import clsx from 'clsx';
 import { AIAssistantModal } from '@/widgets/AIAssistant';

@@ -18,7 +18,7 @@ import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // STORE BAĞLANTILARI
-import { useParameterStore } from '@/shared/stores/parameter-store';
+import { useParameterStore } from '@/entities/settings/model/parameter-store';
 import { useUIStore } from '@/shared/stores/ui-store'; // Sidebar durumu için
 
 // PARAMETRİK RİSK MOTORU

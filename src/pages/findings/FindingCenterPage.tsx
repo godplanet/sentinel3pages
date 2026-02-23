@@ -13,7 +13,7 @@ import { FindingKanbanBoard } from '@/features/finding-hub';
 import { NewFindingModal } from '@/features/finding-form'; 
 import { comprehensiveFindingApi } from '@/entities/finding/api/module5-api';
 import type { ComprehensiveFinding, FindingState } from '@/entities/finding/model/types';
-import { useParameterStore } from '@/shared/stores/parameter-store';
+import { useParameterStore } from '@/entities/settings/model/parameter-store';
 
 type RiskLevel = 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 type StatusFilter = 'ALL' | FindingState;
