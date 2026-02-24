@@ -74,9 +74,11 @@ export default function NewEngagementModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+        
+        {/* HEADER */}
+        <div className="shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Target className="w-6 h-6" />
             <h2 className="text-xl font-bold">Yeni Denetim Görevi Oluştur</h2>
@@ -89,102 +91,114 @@ export default function NewEngagementModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Denetlenecek Birim *
-            </label>
-            <select
-              required
-              value={formData.entity_id}
-              onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Birim Seçin</option>
-              {entities.map((entity) => (
-                <option key={entity.id} value={entity.id}>
-                  {entity.name} {entity.risk_score ? `(Risk: ${entity.risk_score.toFixed(1)})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Denetim Başlığı *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Örn: 2024 Bilgi Güvenliği Denetimi"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Denetim Türü *
-            </label>
-            <select
-              required
-              value={formData.audit_type}
-              onChange={(e) =>
-                setFormData({ ...formData, audit_type: e.target.value as AuditType })
-              }
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="COMPREHENSIVE">Kapsamlı Denetim</option>
-              <option value="TARGETED">Hedefli Denetim</option>
-              <option value="FOLLOW_UP">İzleme Denetimi</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        {/* BODY & FOOTER WRAPPED IN FORM */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          
+          {/* SCROLLABLE CONTENT */}
+          <div className="p-6 space-y-6 overflow-y-auto flex-1 bg-slate-50/30">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Başlangıç Tarihi *
+                Denetlenecek Birim *
+              </label>
+              <select
+                required
+                value={formData.entity_id}
+                onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Birim Seçin</option>
+                {entities.map((entity) => (
+                  <option key={entity.id} value={entity.id}>
+                    {entity.name} {entity.risk_score ? `(Risk: ${entity.risk_score.toFixed(1)})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Denetim Başlığı *
               </label>
               <input
-                type="date"
+                type="text"
                 required
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Örn: 2024 Bilgi Güvenliği Denetimi"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bitiş Tarihi *
+                Denetim Türü *
+              </label>
+              <select
+                required
+                value={formData.audit_type}
+                onChange={(e) =>
+                  setFormData({ ...formData, audit_type: e.target.value as AuditType })
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="COMPREHENSIVE">Kapsamlı Denetim</option>
+                <option value="TARGETED">Hedefli Denetim</option>
+                <option value="FOLLOW_UP">İzleme Denetimi</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Başlangıç Tarihi *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bitiş Tarihi *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tahmini Süre (Saat)
               </label>
               <input
-                type="date"
-                required
-                value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                type="number"
+                min="1"
+                value={formData.estimated_hours}
+                onChange={(e) =>
+                  setFormData({ ...formData, estimated_hours: parseInt(e.target.value) || 40 })
+                }
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+
+            {createMutation.isError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                Denetim oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tahmini Süre (Saat)
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={formData.estimated_hours}
-              onChange={(e) =>
-                setFormData({ ...formData, estimated_hours: parseInt(e.target.value) || 40 })
-              }
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t">
+          {/* FIXED FOOTER */}
+          <div className="flex gap-3 p-6 border-t shrink-0 bg-white">
             <button
               type="button"
               onClick={onClose}
@@ -210,12 +224,6 @@ export default function NewEngagementModal({
               )}
             </button>
           </div>
-
-          {createMutation.isError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              Denetim oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.
-            </div>
-          )}
         </form>
       </div>
     </div>
