@@ -3,7 +3,6 @@ export * from './logic';
 export * from './engine';
 export * from './api';
 export * from './store';
-export * from './mock-data';
 export * from './heatmap-types';
 export * from './heatmap-api';
 export * from './velocity-types';
