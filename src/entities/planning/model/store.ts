@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   AuditPlan,
   AuditEngagement,
@@ -181,7 +182,7 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
   createPlan: (input) => {
     const newPlan: AuditPlan = {
       id: crypto.randomUUID(),
-      tenant_id: input.tenant_id,
+      tenant_id: input.tenant_id || ACTIVE_TENANT_ID,
       title: input.title,
       period_start: input.period_start,
       period_end: input.period_end,
@@ -201,7 +202,7 @@ export const usePlanningStore = create<PlanningStore>((set, get) => ({
   addEngagement: (input) => {
     const newEngagement: AuditEngagement = {
       id: crypto.randomUUID(),
-      tenant_id: input.tenant_id,
+      tenant_id: input.tenant_id || ACTIVE_TENANT_ID,
       plan_id: input.plan_id,
       entity_id: input.entity_id,
       title: input.title,

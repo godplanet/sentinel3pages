@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   Action,
   ActionEvidence,
@@ -205,6 +206,7 @@ export const useActionStore = create<ActionState>()((set, get) => ({
     set({ saving: true, error: null });
     try {
       const payload = {
+        tenant_id:         ACTIVE_TENANT_ID,
         finding_id:        input.finding_id,
         finding_snapshot:  input.finding_snapshot,
         original_due_date: input.original_due_date,

@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type { ComprehensiveFinding } from '../model/types';
 
 // =====================================================
@@ -238,6 +239,7 @@ export async function createFinding(
       .insert({
         ...dbData,
         engagement_id: engagementId,
+        tenant_id: ACTIVE_TENANT_ID,
       })
       .select()
       .single();
