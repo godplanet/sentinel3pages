@@ -106,13 +106,14 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-6">
+        {/* HEADER */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
               <Building2 size={18} className="text-blue-600" />
@@ -124,12 +125,13 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
               <p className="text-xs text-slate-500">Denetim evrenine varlık ekleyin</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
             <X size={18} className="text-slate-500" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* BODY - SCROLLABLE */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-5 bg-slate-50/30">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Varlık Adı</label>
             <input
@@ -426,7 +428,7 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 pb-2">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">Risk Skoru (0-100)</label>
               <input
@@ -453,14 +455,15 @@ export function EntityFormModal({ entity, onClose }: EntityFormModalProps) {
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
+        {/* FOOTER */}
+        <div className="flex gap-3 p-6 border-t border-slate-100 shrink-0 bg-white z-10">
           <button onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg font-semibold text-sm hover:bg-slate-200 transition-colors">
             İptal
           </button>
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || isPending}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             {isPending && <Loader2 size={14} className="animate-spin" />}
             {isEdit ? 'Güncelle' : 'Ekle'}
