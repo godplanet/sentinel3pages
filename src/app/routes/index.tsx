@@ -94,16 +94,11 @@ import RiskLibraryPage from '@/pages/library/RiskLibraryPage';
 import ProceduresPage from '@/pages/library/ProceduresPage';
 import ProgramLibraryPage from '@/pages/library/ProgramLibraryPage';
 import ProgramBuilderPage from '@/pages/library/ProgramBuilderPage';
-import ConstitutionDemoPage from '@/pages/demo/ConstitutionDemoPage';
 import UniverseModule2Page from '@/pages/universe/UniverseModule2Page';
 import AuditUniversePage from '@/pages/strategy/AuditUniversePage';
 import RiskSimulationPage from '@/pages/strategy/RiskSimulationPage';
 import NeuralMapPage from '@/pages/strategy/NeuralMapPage';
 import FieldAgentPage from '@/pages/execution/FieldAgentPage';
-import SiteMapPage from '@/pages/dev/SiteMapPage';
-import PageAuditPage from '@/pages/dev/PageAuditPage';
-import DiagnosticsPage from '@/pages/dev/DiagnosticsPage';
-import PageInventoryPage from '@/pages/dev/PageInventoryPage';
 import FatwaGPTPage from '@/pages/shariah/FatwaGPTPage';
 import AcademyPage from '@/pages/academy';
 import PlaybookPage from '@/pages/playbook';
@@ -243,8 +238,6 @@ export const AppRoutes = () => {
       <Route path="/ccm/anomalies" element={<ProtectedRoute><AnomalyDashboard /></ProtectedRoute>} />
       <Route path="/ccm/data-monitor" element={<ProtectedRoute><DataMonitorPage /></ProtectedRoute>} />
 
-      <Route path="/demo/constitution" element={<ProtectedRoute><ConstitutionDemoPage /></ProtectedRoute>} />
-
       <Route path="/secure-report" element={<SecureReportPage />} />
       <Route path="/triage-cockpit" element={<ProtectedRoute><TriageCockpitPage /></ProtectedRoute>} />
       <Route path="/investigation" element={<ProtectedRoute><InvestigationHubPage /></ProtectedRoute>} />
@@ -288,11 +281,6 @@ export const AppRoutes = () => {
       <Route path="/resources/timesheets" element={<Navigate to="/resources?tab=timesheets" replace />} />
       <Route path="/resources/capacity" element={<Navigate to="/resources?tab=capacity" replace />} />
       <Route path="/findings" element={<Navigate to="/execution/findings" replace />} />
-
-      <Route path="/dev-map" element={<ProtectedRoute><SiteMapPage /></ProtectedRoute>} />
-      <Route path="/dev/page-audit" element={<ProtectedRoute><PageAuditPage /></ProtectedRoute>} />
-      <Route path="/dev/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
-      <Route path="/dev/inventory" element={<ProtectedRoute><PageInventoryPage /></ProtectedRoute>} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
