@@ -446,8 +446,10 @@ export default function AuditUniversePage() {
                                       </div>
                                     )}
                                   </div>
+                                  {/* CRITICAL FIX: e.stopPropagation() added here */}
                                   <button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setSelectedIds(new Set([entity.id]));
                                       setShowBulkModal(true);
                                     }}
@@ -502,24 +504,24 @@ export default function AuditUniversePage() {
         )}
       </AnimatePresence>
 
-      {/* BULK CREATE MODAL */}
+      {/* BULK CREATE MODAL - CRITICAL FIX: Changed absolute positioning to flex-center layout */}
       <AnimatePresence>
         {showBulkModal && (
-          <>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => !isBulkCreating && setShowBulkModal(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden relative z-10"
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">Denetim Görevi Oluştur</h3>
                   <p className="text-sm text-slate-500 mt-1">Risk bazlı otomatik kapsam ve bütçe hesaplanır</p>
@@ -532,30 +534,32 @@ export default function AuditUniversePage() {
                 </button>
               </div>
 
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-5 max-h-48 overflow-y-auto">
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Seçili Varlıklar</div>
-                <div className="space-y-2">
-                  {selectedEntities.map(e => {
-                    const { grade, color } = calculateEntityGrade(e);
-                    return (
-                      <div key={e.id} className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Building2 size={14} className="text-slate-400" />
-                          <span className="text-sm font-semibold text-slate-800">{e.name}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{e.path}</span>
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 mb-5">
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Seçili Varlıklar</div>
+                  <div className="space-y-2">
+                    {selectedEntities.map(e => {
+                      const { grade, color } = calculateEntityGrade(e);
+                      return (
+                        <div key={e.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Building2 size={14} className="text-slate-400" />
+                            <span className="text-sm font-semibold text-slate-800">{e.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{e.path}</span>
+                          </div>
+                          <span className={clsx("inline-flex items-center justify-center w-7 h-7 rounded font-bold border text-xs bg-white", color)}>{grade}</span>
                         </div>
-                        <span className={clsx("inline-flex items-center justify-center w-7 h-7 rounded font-bold border text-xs", color)}>{grade}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+                  <strong>Risk Tabanlı Kapsam:</strong> Her varlık için risk skoru, hız çarpanı ve varlık tipi dikkate alınarak tahmini saat ve denetim türü otomatik hesaplanacaktır. Görevler aktif yıllık plana eklenecektir.
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-sm text-blue-900">
-                <strong>Risk Tabanlı Kapsam:</strong> Her varlık için risk skoru, hız çarpanı ve varlık tipi dikkate alınarak tahmini saat ve denetim türü otomatik hesaplanacaktır. Görevler aktif yıllık plana eklenecektir.
-              </div>
-
-              <div className="flex gap-3">
+              <div className="flex gap-3 p-6 border-t border-slate-100 shrink-0 bg-white">
                 <button
                   onClick={() => !isBulkCreating && setShowBulkModal(false)}
                   disabled={isBulkCreating}
@@ -576,80 +580,82 @@ export default function AuditUniversePage() {
                 </button>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* NEW ENTITY MODAL */}
+      {/* NEW ENTITY MODAL - CRITICAL FIX: Changed absolute positioning to flex-center layout */}
       <AnimatePresence>
         {showNewEntityModal && (
-          <>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => setShowNewEntityModal(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden relative z-10"
             >
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
                 <h3 className="text-xl font-bold text-slate-900">Yeni Varlık Ekle</h3>
                 <button onClick={() => setShowNewEntityModal(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                   <X size={18} />
                 </button>
               </div>
-              <form onSubmit={handleCreateEntity} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Varlık Adı *</label>
-                  <input
-                    type="text"
-                    value={newEntityForm.name}
-                    onChange={e => setNewEntityForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="örn. Kurumsal Bankacılık Direktörlüğü"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
-                    required
-                  />
+              <form onSubmit={handleCreateEntity} className="flex flex-col flex-1 overflow-hidden">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1 bg-slate-50/50">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Varlık Adı *</label>
+                    <input
+                      type="text"
+                      value={newEntityForm.name}
+                      onChange={e => setNewEntityForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="örn. Kurumsal Bankacılık Direktörlüğü"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">LTree Path *</label>
+                    <input
+                      type="text"
+                      value={newEntityForm.path}
+                      onChange={e => setNewEntityForm(f => ({ ...f, path: e.target.value }))}
+                      placeholder="örn. bank.corporate_banking"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+                      required
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Nokta ile ayrılmış hiyerarşik yol (ltree formatı)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Varlık Tipi</label>
+                    <select
+                      value={newEntityForm.type}
+                      onChange={e => setNewEntityForm(f => ({ ...f, type: e.target.value as EntityType }))}
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all shadow-sm"
+                    >
+                      <option value="HOLDING">HOLDING</option>
+                      <option value="BANK">BANK</option>
+                      <option value="GROUP">GROUP</option>
+                      <option value="UNIT">UNIT</option>
+                      <option value="PROCESS">PROCESS</option>
+                      <option value="BRANCH">BRANCH</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">LTree Path *</label>
-                  <input
-                    type="text"
-                    value={newEntityForm.path}
-                    onChange={e => setNewEntityForm(f => ({ ...f, path: e.target.value }))}
-                    placeholder="örn. bank.corporate_banking"
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
-                    required
-                  />
-                  <p className="text-xs text-slate-500 mt-1">Nokta ile ayrılmış hiyerarşik yol (ltree formatı)</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Varlık Tipi</label>
-                  <select
-                    value={newEntityForm.type}
-                    onChange={e => setNewEntityForm(f => ({ ...f, type: e.target.value as EntityType }))}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
-                  >
-                    <option value="HOLDING">HOLDING</option>
-                    <option value="BANK">BANK</option>
-                    <option value="GROUP">GROUP</option>
-                    <option value="UNIT">UNIT</option>
-                    <option value="PROCESS">PROCESS</option>
-                    <option value="BRANCH">BRANCH</option>
-                  </select>
-                </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 p-6 border-t border-slate-100 bg-white shrink-0">
                   <button type="button" onClick={() => setShowNewEntityModal(false)} className="flex-1 px-4 py-2.5 text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium">
                     İptal
                   </button>
                   <button
                     type="submit"
                     disabled={createEntity.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-semibold disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-semibold disabled:opacity-50 shadow-md"
                   >
                     {createEntity.isPending ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                     Ekle
@@ -657,7 +663,7 @@ export default function AuditUniversePage() {
                 </div>
               </form>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>
