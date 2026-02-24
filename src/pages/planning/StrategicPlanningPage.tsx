@@ -102,10 +102,10 @@ export default function StrategicPlanningPage() {
     enabled: activeTab === 'list' || showAddEngagementModal,
   });
 
-  const { data: activePlan } = useQuery({
+  const { data: activePlan, isLoading: isLoadingPlan } = useQuery({
     queryKey: ['active-audit-plan'],
     queryFn: () => fetchActivePlan(),
-    enabled: showAddEngagementModal,
+    staleTime: 30_000,
   });
 
   return (
@@ -428,7 +428,16 @@ export default function StrategicPlanningPage() {
         </div>
       </div>
 
-      {showAddEngagementModal && activePlan && (
+      {showAddEngagementModal && isLoadingPlan && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md flex flex-col items-center gap-4">
+            <Loader2 className="animate-spin text-blue-600" size={32} />
+            <p className="text-slate-600 font-medium">Yıllık plan yükleniyor...</p>
+          </div>
+        </div>
+      )}
+
+      {showAddEngagementModal && !isLoadingPlan && activePlan && (
         <NewEngagementModal
           isOpen={showAddEngagementModal}
           onClose={() => setShowAddEngagementModal(false)}
@@ -437,12 +446,12 @@ export default function StrategicPlanningPage() {
         />
       )}
 
-      {showAddEngagementModal && !activePlan && (
+      {showAddEngagementModal && !isLoadingPlan && !activePlan && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md">
-            <h3 className="text-lg font-bold text-red-600 mb-2">Plan Bulunamadı</h3>
+            <h3 className="text-lg font-bold text-red-600 mb-2">Onaylı Plan Bulunamadı</h3>
             <p className="text-slate-600">
-              Denetim görevi oluşturmak için önce onaylanmış bir yıllık plan oluşturulmalıdır.
+              Denetim görevi oluşturmak için önce onaylanmış bir yıllık plan (APPROVED durumunda) oluşturulmalıdır.
             </p>
             <button
               onClick={() => setShowAddEngagementModal(false)}

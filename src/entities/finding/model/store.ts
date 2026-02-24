@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   Finding,
   ComprehensiveFinding,
@@ -97,15 +98,22 @@ export const useFindingStore = create<FindingStore>((set, get) => ({
     const draft = get().draftFindings.find((d) => d.id === draftId);
     if (!draft || draft.status === 'PROMOTED') return null;
 
-    const TENANT_ID = '11111111-1111-1111-1111-111111111111';
     const now = new Date().toISOString();
     const findingId = crypto.randomUUID();
     const findingCode = `BLG-${draft.traceabilityToken.slice(-6)}`;
 
+    const { data: workpaperRow } = await supabase
+      .from('workpapers')
+      .select('engagement_id')
+      .eq('id', draft.workpaperId)
+      .maybeSingle();
+
+    const engagementId = workpaperRow?.engagement_id || draft.workpaperId;
+
     const newFinding: ComprehensiveFinding = {
       id: findingId,
-      tenant_id: TENANT_ID,
-      engagement_id: draft.workpaperId,
+      tenant_id: ACTIVE_TENANT_ID,
+      engagement_id: engagementId,
       workpaper_id: draft.workpaperId,
       code: findingCode,
       finding_code: findingCode,
@@ -123,8 +131,8 @@ export const useFindingStore = create<FindingStore>((set, get) => ({
 
     await supabase.from('audit_findings').insert({
       id: findingId,
-      tenant_id: TENANT_ID,
-      engagement_id: draft.workpaperId,
+      tenant_id: ACTIVE_TENANT_ID,
+      engagement_id: engagementId,
       workpaper_id: draft.workpaperId,
       finding_code: findingCode,
       title: draft.testStepTitle,

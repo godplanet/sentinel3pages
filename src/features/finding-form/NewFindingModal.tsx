@@ -11,6 +11,8 @@ import { toast } from 'react-hot-toast';
 import type { FindingSeverity, GIASCategory } from '../../entities/finding/model/types';
 import { comprehensiveFindingApi } from '../../entities/finding/api/module5-api';
 import { RegulationSelectorModal } from '../finding-studio/components/RegulationSelectorModal';
+import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 
 import { RichTextEditor } from '@/shared/ui/RichTextEditor';
 
@@ -19,7 +21,7 @@ import { UniversalFindingDrawer } from '@/widgets/UniversalFindingDrawer';
 
 // STORE BAĞLANTILARI
 import { useParameterStore } from '@/entities/settings/model/parameter-store';
-import { useUIStore } from '@/shared/stores/ui-store'; // Sidebar durumu için
+import { useUIStore } from '@/shared/stores/ui-store';
 
 // PARAMETRİK RİSK MOTORU
 import { calculateFindingRisk } from '@/features/risk-engine/calculator';
@@ -30,6 +32,7 @@ interface NewFindingModalProps {
   onClose: () => void;
   onSave: (finding: any) => void;
   workpaperId?: string | null;
+  engagementId?: string | null;
 }
 
 type FormSection = 'tespit' | 'risk' | 'koken' | 'oneri';
@@ -98,7 +101,7 @@ const RiskSlider = ({ label, value, onChange, icon: Icon }: { label: string, val
 );
 
 
-export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFindingModalProps) => {
+export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId, engagementId }: NewFindingModalProps) => {
   const [activeSection, setActiveSection] = useState<FormSection>('tespit');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegulationModalOpen, setIsRegulationModalOpen] = useState(false);
@@ -169,18 +172,50 @@ export const NewFindingModal = ({ isOpen, onClose, onSave, workpaperId }: NewFin
       return new Intl.NumberFormat('tr-TR').format(val);
   };
 
+  const resolveEngagementId = async (): Promise<string | null> => {
+    if (engagementId) return engagementId;
+
+    if (workpaperId) {
+      const { data } = await supabase
+        .from('workpapers')
+        .select('engagement_id')
+        .eq('id', workpaperId)
+        .maybeSingle();
+      if (data?.engagement_id) return data.engagement_id;
+    }
+
+    const { data } = await supabase
+      .from('audit_engagements')
+      .select('id')
+      .eq('tenant_id', ACTIVE_TENANT_ID)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return data?.id || null;
+  };
+
   const handleSave = async (status: 'DRAFT' | 'PUBLISHED' = 'DRAFT') => {
     if (!formData.title.trim()) { toast.error('Lütfen bulgu başlığı giriniz.'); return; }
 
     setIsSubmitting(true);
 
     try {
+      const resolvedEngagementId = await resolveEngagementId();
+
+      if (!resolvedEngagementId) {
+        toast.error('Bulgu oluşturmak için aktif bir Denetim Görevi bulunamadı.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         title: formData.title,
         severity: liveRisk.severity,
         status: status,
         category: 'Audit',
-        engagement_id: workpaperId || 'GENERAL_AUDIT',
+        tenant_id: ACTIVE_TENANT_ID,
+        engagement_id: resolvedEngagementId,
 
         description: formData.detection_html,
         criteria: formData.code || "N/A",

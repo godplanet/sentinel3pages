@@ -232,17 +232,19 @@ export const useFindingStudio = () => {
 
     try {
       if (id === 'new') {
-        // --- YENİ KAYIT OLUŞTUR ---
-        // Not: engagement_id gerekli! Demo için sabit bir ID kullanıyoruz.
-        // Production'da bu dinamik olmalı (context'ten veya URL'den gelmeli)
-        const DEMO_ENGAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
+        const engagementId = searchParams.get('engagement_id');
 
-        const createdFinding = await createFinding(finding, DEMO_ENGAGEMENT_ID);
+        if (!engagementId) {
+          toast.error('Bulgu oluşturmak için bir Denetim Görevi seçilmelidir. Lütfen Denetim Yürütme sayfasından bu sayfaya gidin.');
+          setIsSaving(false);
+          return;
+        }
+
+        const createdFinding = await createFinding(finding, engagementId);
 
         setHasUnsavedChanges(false);
         toast.success('Yeni bulgu başarıyla oluşturuldu!');
 
-        // Yeni ID ile sayfayı güncelle
         navigate(`/findings/${createdFinding.id}?mode=${mode}`, { replace: true });
         setFinding(createdFinding);
 
@@ -261,7 +263,7 @@ export const useFindingStudio = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [finding, id, mode, navigate]);
+  }, [finding, id, mode, navigate, searchParams]);
 
   return {
     finding,
