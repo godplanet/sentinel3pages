@@ -161,9 +161,16 @@ export default function AuditUniversePage() {
 
   const handleCreateEntity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEntityForm.name || !newEntityForm.path) return;
+    
+    // NATIVE VALIDATION YERİNE MANUEL JS VALIDASYONU (ÖLÜ BUTON FIX)
+    if (!newEntityForm.name.trim() || !newEntityForm.path.trim()) {
+      toast.error('Lütfen Varlık Adı ve LTree Path alanlarını doldurun.');
+      return;
+    }
+
     try {
       await createEntity.mutateAsync({
+        tenant_id: TENANT, // ZORUNLU ALAN EKLENDİ
         name: newEntityForm.name,
         type: newEntityForm.type,
         path: newEntityForm.path,
@@ -174,8 +181,9 @@ export default function AuditUniversePage() {
       toast.success(`"${newEntityForm.name}" evrene eklendi.`);
       setShowNewEntityModal(false);
       setNewEntityForm({ name: '', type: 'UNIT', path: '' });
+      queryClient.invalidateQueries({ queryKey: ['audit-universe-live'] });
     } catch (err: any) {
-      toast.error(`Hata: ${err?.message}`);
+      toast.error(`Kayıt Hatası: ${err?.message || 'Bilinmeyen hata'}`);
     }
   };
 
@@ -446,7 +454,6 @@ export default function AuditUniversePage() {
                                       </div>
                                     )}
                                   </div>
-                                  {/* CRITICAL FIX: e.stopPropagation() added here */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -504,7 +511,7 @@ export default function AuditUniversePage() {
         )}
       </AnimatePresence>
 
-      {/* BULK CREATE MODAL - CRITICAL FIX: Changed absolute positioning to flex-center layout */}
+      {/* BULK CREATE MODAL */}
       <AnimatePresence>
         {showBulkModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -584,7 +591,7 @@ export default function AuditUniversePage() {
         )}
       </AnimatePresence>
 
-      {/* NEW ENTITY MODAL - CRITICAL FIX: Changed absolute positioning to flex-center layout */}
+      {/* NEW ENTITY MODAL */}
       <AnimatePresence>
         {showNewEntityModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -607,7 +614,7 @@ export default function AuditUniversePage() {
                   <X size={18} />
                 </button>
               </div>
-              <form onSubmit={handleCreateEntity} className="flex flex-col flex-1 overflow-hidden">
+              <form onSubmit={handleCreateEntity} className="flex flex-col flex-1 overflow-hidden" noValidate>
                 <div className="p-6 space-y-4 overflow-y-auto flex-1 bg-slate-50/50">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Varlık Adı *</label>
@@ -617,7 +624,6 @@ export default function AuditUniversePage() {
                       onChange={e => setNewEntityForm(f => ({ ...f, name: e.target.value }))}
                       placeholder="örn. Kurumsal Bankacılık Direktörlüğü"
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-all shadow-sm"
-                      required
                     />
                   </div>
                   <div>
@@ -628,7 +634,6 @@ export default function AuditUniversePage() {
                       onChange={e => setNewEntityForm(f => ({ ...f, path: e.target.value }))}
                       placeholder="örn. bank.corporate_banking"
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:border-blue-500 transition-all shadow-sm"
-                      required
                     />
                     <p className="text-xs text-slate-500 mt-1">Nokta ile ayrılmış hiyerarşik yol (ltree formatı)</p>
                   </div>
@@ -649,23 +654,4 @@ export default function AuditUniversePage() {
                   </div>
                 </div>
                 <div className="flex gap-3 p-6 border-t border-slate-100 bg-white shrink-0">
-                  <button type="button" onClick={() => setShowNewEntityModal(false)} className="flex-1 px-4 py-2.5 text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium">
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createEntity.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-semibold disabled:opacity-50 shadow-md"
-                  >
-                    {createEntity.isPending ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                    Ekle
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+                  <button type="button" onClick={() => setShowNewEntity
