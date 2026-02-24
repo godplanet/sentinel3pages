@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   Workpaper,
   AuditStep,
@@ -7,7 +8,24 @@ import type {
   WorkpaperData,
   TestResult,
 } from '../model/types';
-import type { MockEngagement } from './mock-data';
+
+export interface DbEngagement {
+  id: string;
+  tenant_id: string;
+  plan_id: string | null;
+  entity_id: string | null;
+  title: string;
+  audit_type: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  estimated_hours: number;
+  actual_hours: number;
+  risk_snapshot_score: number | null;
+  assigned_auditor_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export async function fetchWorkpapers(): Promise<Workpaper[]> {
   const { data, error } = await supabase
@@ -32,12 +50,15 @@ export async function fetchWorkpaper(id: string): Promise<Workpaper | null> {
 
 export async function createWorkpaper(
   stepId: string,
-  initialData: WorkpaperData = {}
+  initialData: WorkpaperData = {},
+  engagementId?: string
 ): Promise<Workpaper> {
   const { data, error } = await supabase
     .from('workpapers')
     .insert({
+      tenant_id: ACTIVE_TENANT_ID,
       step_id: stepId,
+      engagement_id: engagementId ?? null,
       data: initialData,
       status: 'draft',
     })
@@ -167,31 +188,31 @@ export async function deleteWorkpaper(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function fetchEngagements(): Promise<MockEngagement[]> {
+export async function fetchEngagements(): Promise<DbEngagement[]> {
   try {
     const { data, error } = await supabase
       .from('audit_engagements')
       .select('*')
+      .eq('tenant_id', ACTIVE_TENANT_ID)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as unknown as MockEngagement[];
+    return (data || []) as DbEngagement[];
   } catch {
     return [];
   }
 }
 
-export async function fetchEngagement(id: string): Promise<MockEngagement | null> {
+export async function fetchEngagement(id: string): Promise<DbEngagement | null> {
   try {
     const { data, error } = await supabase
       .from('audit_engagements')
       .select('*')
       .eq('id', id)
+      .eq('tenant_id', ACTIVE_TENANT_ID)
       .maybeSingle();
     if (error) throw error;
-    return data as unknown as MockEngagement | null;
+    return data as DbEngagement | null;
   } catch {
     return null;
   }
 }
-
-export type { MockEngagement };

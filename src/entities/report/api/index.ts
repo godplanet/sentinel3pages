@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import type {
   Report,
   ReportBlock,
@@ -12,7 +13,7 @@ import type {
   UpdateBlockData,
 } from '../model/types';
 
-const TENANT_ID = '11111111-1111-1111-1111-111111111111';
+const TENANT_ID = ACTIVE_TENANT_ID;
 
 export const reportApi = {
   async getTemplates(): Promise<ReportTemplate[]> {

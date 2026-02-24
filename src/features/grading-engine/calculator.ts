@@ -171,8 +171,33 @@ export class GradingCalculator {
 }
 
 import { KERD_CONSTITUTION, GRADING_THRESHOLDS, TAXONOMY_COLORS, VelocityType } from '@/shared/config/constitution';
-import { AuditEntity } from '@/entities/universe/api/mock-data';
-import { StrategicRisk } from '@/entities/risk/mock-data';
+
+export interface EntityGradeInput {
+  id: string;
+  name: string;
+  findings: {
+    bordo: number;
+    kizil: number;
+    turuncu: number;
+    sari: number;
+    gozlem: number;
+    shariah_systemic: number;
+  };
+  [key: string]: unknown;
+}
+
+export interface StrategicRiskInput {
+  id?: string;
+  name?: string;
+  impact: number;
+  likelihood: number;
+  baseVelocity: number;
+  shariah_related?: boolean;
+  [key: string]: unknown;
+}
+
+type AuditEntity = EntityGradeInput;
+type StrategicRisk = StrategicRiskInput;
 
 // 1. Varlık Puanı Hesaplama Motoru (Kısıt Bazlı)
 export const calculateEntityGrade = (entity: AuditEntity) => {

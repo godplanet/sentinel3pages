@@ -1,8 +1,9 @@
 import { supabase } from '@/shared/api/supabase';
+import { ACTIVE_TENANT_ID } from '@/shared/lib/constants';
 import { Finding, FindingSeverity } from '../model/types';
 
 export interface CreateFindingInput {
-  tenant_id: string;
+  tenant_id?: string;
   engagement_id: string;
   title: string;
   severity: FindingSeverity;
@@ -18,7 +19,7 @@ export async function createFinding(input: CreateFindingInput): Promise<Finding 
   const { data, error } = await supabase
     .from('audit_findings')
     .insert({
-      tenant_id: input.tenant_id,
+      tenant_id: input.tenant_id || ACTIVE_TENANT_ID,
       engagement_id: input.engagement_id,
       title: input.title,
       severity: input.severity,

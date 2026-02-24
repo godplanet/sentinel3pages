@@ -6,7 +6,19 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { MockEngagement } from '@/entities/execution';
+
+export interface KanbanEngagement {
+  id: string;
+  title: string;
+  client: string;
+  period: string;
+  status: 'planning' | 'execution' | 'review' | 'completed';
+  assigned_to: string[];
+  risk_level: 'low' | 'medium' | 'high';
+  progress: number;
+  workpaper_count: number;
+  finding_count: number;
+}
 import {
   Briefcase,
   Calendar,
@@ -20,7 +32,7 @@ import {
 interface KanbanColumn {
   id: string;
   title: string;
-  status: MockEngagement['status'];
+  status: KanbanEngagement['status'];
   color: string;
 }
 
@@ -32,14 +44,14 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
 ];
 
 interface KanbanBoardProps {
-  engagements: MockEngagement[];
+  engagements: KanbanEngagement[];
 }
 
 export function KanbanBoard({ engagements }: KanbanBoardProps) {
   const navigate = useNavigate();
-  const [draggedItem, setDraggedItem] = useState<MockEngagement | null>(null);
+  const [draggedItem, setDraggedItem] = useState<KanbanEngagement | null>(null);
 
-  const getEngagementsByStatus = (status: MockEngagement['status']) => {
+  const getEngagementsByStatus = (status: KanbanEngagement['status']) => {
     return engagements.filter((eng) => eng.status === status);
   };
 
@@ -63,7 +75,7 @@ export function KanbanBoard({ engagements }: KanbanBoardProps) {
     );
   };
 
-  const handleDragStart = (engagement: MockEngagement) => {
+  const handleDragStart = (engagement: KanbanEngagement) => {
     setDraggedItem(engagement);
   };
 
@@ -75,7 +87,7 @@ export function KanbanBoard({ engagements }: KanbanBoardProps) {
     e.preventDefault();
   };
 
-  const handleDrop = (status: MockEngagement['status']) => {
+  const handleDrop = (status: KanbanEngagement['status']) => {
     if (draggedItem && draggedItem.status !== status) {
       console.log(`Moving ${draggedItem.title} to ${status}`);
       // TODO: Update engagement status

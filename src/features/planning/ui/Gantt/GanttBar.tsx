@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
-import type { Auditor } from '@/entities/planning/api/mock-data';
+
+interface AuditorDisplay {
+  id: string;
+  name: string;
+  role: string;
+  avatarUrl: string;
+  capacity: number;
+}
 
 interface GanttBarProps {
   start: Date;
@@ -9,7 +16,7 @@ interface GanttBarProps {
   riskScore: number;
   entityName: string;
   yearStart: Date;
-  assignedAuditor?: Auditor;
+  assignedAuditor?: AuditorDisplay;
   onClick?: () => void;
 }
 
