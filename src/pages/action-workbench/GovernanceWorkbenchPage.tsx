@@ -6,12 +6,11 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { GovernanceWorkbench } from '@/widgets/GovernanceWorkbench/ui/GovernanceWorkbench';
-import { generateMockActions } from '@/features/action-analytics/lib/mock-factory';
 import type { ActionAgingMetrics } from '@/entities/action/model/types';
 
 type FilterMode = 'all' | 'bddk' | 'critical' | 'overdue';
 
-const INITIAL = generateMockActions(120);
+const INITIAL: ActionAgingMetrics[] = [];
 
 export default function GovernanceWorkbenchPage() {
   const [dataset,     setDataset]     = useState<ActionAgingMetrics[]>(INITIAL);
@@ -21,13 +20,13 @@ export default function GovernanceWorkbenchPage() {
   const handleSimulate = useCallback(() => {
     setSimulating(true);
     setTimeout(() => {
-      setDataset(generateMockActions(5000));
+      setDataset([]);
       setSimulating(false);
     }, 0);
   }, []);
 
   const handleReset = useCallback(() => {
-    setDataset(generateMockActions(120));
+    setDataset([]);
     setFilterMode('all');
   }, []);
 

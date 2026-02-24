@@ -6,8 +6,51 @@
  */
 
 import type { ThoughtStep, AgentRole } from './types';
-import { mockSAP, mockLinkedIn, mockSlack, mockCoreBanking } from '@/features/integrations/mockAdapters';
 import { dualBrain } from '@/features/ai-persona/DualBrain';
+
+const mockLinkedIn = {
+  async getProfile(name: string) {
+    return { name, currentCompany: 'Acme Bank', currentRole: 'Senior Auditor', pastExperience: [{ company: 'Acme Consulting', role: 'Vendor Manager', years: '2018-2020' }], education: [], connections: 500, conflictFlags: undefined as string[] | undefined };
+  },
+  async detectConflictOfInterest(_name: string, vendorCompany: string) {
+    const hasConflict = vendorCompany.toLowerCase().includes('consulting') || vendorCompany.toLowerCase().includes('fraud');
+    return { hasConflict, evidence: hasConflict ? [`Past employment at ${vendorCompany}`] : [] as string[] };
+  },
+};
+
+const mockSAP = {
+  async getInvoices(_vendorId: string) {
+    return [
+      { id: 'INV-001', amount: 12500, anomalyFlag: undefined as string | undefined },
+      { id: 'INV-002', amount: 9999, anomalyFlag: 'ROUNDED_AMOUNT' },
+      { id: 'INV-003', amount: 34200, anomalyFlag: undefined as string | undefined },
+    ];
+  },
+  async getVendorRiskScore(vendorId: string) {
+    return { vendorId, riskScore: 45, flags: ['ROUNDED_AMOUNT_PATTERN'] as string[] };
+  },
+};
+
+const mockSlack = {
+  _counter: 0,
+  async sendMessage(channel: string, user: string, text: string, threadId?: string) {
+    return { id: `msg_${++this._counter}`, channel, user, text, timestamp: new Date().toISOString(), threadId };
+  },
+};
+
+const mockCoreBanking = {
+  async analyzeBenfordsLaw(accountId: string) {
+    const anomaly = accountId === 'ACC_FRAUD';
+    return {
+      accountId,
+      totalTransactions: 523,
+      digitDistribution: {} as Record<number, number>,
+      expectedDistribution: {} as Record<number, number>,
+      chiSquareScore: anomaly ? 22.4 : 8.2,
+      anomalyDetected: anomaly,
+    };
+  },
+};
 
 async function getInvestigatorChainEnhanced(target: string): Promise<ThoughtStep[]> {
   const steps: ThoughtStep[] = [];

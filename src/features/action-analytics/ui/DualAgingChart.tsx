@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts';
 import type { ActionAgingMetrics } from '@/entities/action/model/types';
-import { DEPT_ID_TO_NAME } from '../lib/mock-factory';
+import { DEPT_ID_TO_NAME } from '../lib/departments';
 
 interface DeptRow {
   dept:        string;

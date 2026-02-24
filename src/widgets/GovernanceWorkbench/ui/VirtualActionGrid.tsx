@@ -14,7 +14,7 @@ import { tr } from 'date-fns/locale';
 import clsx from 'clsx';
 import { AgingTierBadge } from '@/entities/action/ui/AgingTierBadge';
 import { ActionStatusBadge } from '@/entities/action/ui/ActionStatusBadge';
-import { DEPT_ID_TO_NAME } from '@/features/action-analytics/lib/mock-factory';
+import { DEPT_ID_TO_NAME } from '@/features/action-analytics/lib/departments';
 import type { ActionAgingMetrics } from '@/entities/action/model/types';
 
 const ROW_H = 48;

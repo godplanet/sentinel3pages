@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/shared/ui';
-import { WorkpaperGrid, generateMockControls, type ControlRow, type ApprovalStatus } from '@/widgets/WorkpaperGrid';
+import { WorkpaperGrid, type ControlRow, type ApprovalStatus } from '@/widgets/WorkpaperGrid';
 import { WorkpaperSuperDrawer } from '@/widgets/WorkpaperSuperDrawer';
 import { FileText, Search, Filter, Database, Loader2 } from 'lucide-react';
 import { supabase } from '@/shared/api/supabase';
@@ -24,7 +24,7 @@ interface WorkpaperMapping {
 }
 
 export default function WorkpapersPage() {
-  const [controls, setControls] = useState<ControlRow[]>(() => generateMockControls());
+  const [controls, setControls] = useState<ControlRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [drawerRow, setDrawerRow] = useState<ControlRow | null>(null);

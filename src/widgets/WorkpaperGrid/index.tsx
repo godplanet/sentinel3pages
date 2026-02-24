@@ -245,4 +245,3 @@ export function WorkpaperGrid({ data, onUpdate, onOpenDrawer }: WorkpaperGridPro
 }
 
 export type { ControlRow, TestDesignResult, TestEffectivenessResult, ApprovalStatus } from './types';
-export { generateMockControls } from './mock-controls';

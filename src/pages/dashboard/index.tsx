@@ -16,7 +16,6 @@ import { PulseCheckModal, usePulseCheck } from '@/features/talent-os/components/
 import { supabase } from '@/shared/api/supabase';
 import { useDashboardStats, buildKPICards } from './useDashboardStats';
 import { useDashboardLiveData } from './useDashboardLiveData';
-import { mockWelcome, mockAIBrief, mockTasks, mockActivities } from './mockData';
 import clsx from 'clsx';
 
 const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -44,10 +43,10 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const welcome    = liveData?.welcome    || mockWelcome;
-  const aiBrief    = liveData?.aiBrief    || mockAIBrief;
-  const tasks      = liveData?.tasks      || mockTasks;
-  const activities = liveData?.activities || mockActivities;
+  const welcome    = liveData?.welcome    ?? { userName: 'Kullanici', role: 'Denetci', welcomeMessage: 'Hos geldiniz.', systemHealth: 0, lastLogin: '-' };
+  const aiBrief    = liveData?.aiBrief    ?? { headline: 'Veriler yukleniyor...', summary: '', context: 'Sentinel Brain', sentiment: 'positive' as const };
+  const tasks      = liveData?.tasks      ?? [];
+  const activities = liveData?.activities ?? [];
 
   return (
     <>

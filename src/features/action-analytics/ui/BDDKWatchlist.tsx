@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import clsx from 'clsx';
 import type { ActionAgingMetrics } from '@/entities/action/model/types';
-import { DEPT_ID_TO_NAME } from '../lib/mock-factory';
+import { DEPT_ID_TO_NAME } from '../lib/departments';
 
 interface Props {
   actions:         ActionAgingMetrics[];
