@@ -4,6 +4,7 @@ import { WorkpaperGrid, type ControlRow, type ApprovalStatus } from '@/widgets/W
 import { WorkpaperSuperDrawer } from '@/widgets/WorkpaperSuperDrawer';
 import { FileText, Search, Filter, Database, Loader2 } from 'lucide-react';
 import { supabase } from '@/shared/api/supabase';
+import { IT_CONTROLS } from './it-controls-data';
 
 const CATEGORY_FILTERS = [
   'All',
@@ -21,10 +22,13 @@ const CATEGORY_FILTERS = [
 interface WorkpaperMapping {
   id: string;
   approval_status: ApprovalStatus;
+  tod?: string;
+  toe?: string;
+  sample_size?: number;
 }
 
 export default function WorkpapersPage() {
-  const [controls, setControls] = useState<ControlRow[]>([]);
+  const [controls, setControls] = useState<ControlRow[]>(IT_CONTROLS);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [drawerRow, setDrawerRow] = useState<ControlRow | null>(null);
@@ -49,11 +53,15 @@ export default function WorkpapersPage() {
 
       const map: Record<string, WorkpaperMapping> = {};
       for (const wp of data) {
-        const controlRef = (wp.data as Record<string, unknown> | null)?.control_ref as string | undefined;
+        const d = wp.data as Record<string, unknown> | null;
+        const controlRef = d?.control_ref as string | undefined;
         if (controlRef) {
           map[controlRef] = {
             id: wp.id,
             approval_status: (wp.approval_status as ApprovalStatus) || 'in_progress',
+            tod: d?.tod as string | undefined,
+            toe: d?.toe as string | undefined,
+            sample_size: d?.sample_size as number | undefined,
           };
         }
       }
@@ -63,9 +71,14 @@ export default function WorkpapersPage() {
 
       setControls(prev => prev.map(c => {
         const wpInfo = map[c.control_id];
-        return wpInfo
-          ? { ...c, approval_status: wpInfo.approval_status }
-          : c;
+        if (!wpInfo) return c;
+        return {
+          ...c,
+          approval_status: wpInfo.approval_status,
+          ...(wpInfo.tod ? { tod: wpInfo.tod as ControlRow['tod'] } : {}),
+          ...(wpInfo.toe ? { toe: wpInfo.toe as ControlRow['toe'] } : {}),
+          ...(wpInfo.sample_size != null ? { sample_size: wpInfo.sample_size } : {}),
+        };
       }));
     } catch {
       setWorkpaperMap({});
