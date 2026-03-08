@@ -1,4 +1,4 @@
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/app/layout/AppShell';
 import { AppRoutes } from '@/app/routes';
@@ -21,7 +21,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <HashRouter>
         <DebugBar />
         {isInitializing && (
           <SystemInitOverlay progress={progress} error={error} />
@@ -31,7 +31,7 @@ function App() {
             <AppRoutes />
           </AppShell>
         )}
-      </BrowserRouter>
+      </HashRouter>
     </QueryClientProvider>
   );
 }
