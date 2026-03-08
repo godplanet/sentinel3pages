@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/shared/api/supabase';
+import { hasSupabaseEnv, supabase } from '@/shared/api/supabase';
 import { forceReseedViaEdge } from '@/shared/lib/universal-seeder';
 
 interface SystemInitState {
@@ -33,6 +33,13 @@ export function useSystemInit() {
 
     const checkAndInit = async () => {
       try {
+        if (!hasSupabaseEnv) {
+          console.warn('[SystemInit] Supabase env not configured, skipping remote initialization.');
+          clearTimeout(timeout);
+          safeComplete();
+          return;
+        }
+
         console.log('[SystemInit] Checking database state...');
 
         const { count, error: checkError } = await supabase
