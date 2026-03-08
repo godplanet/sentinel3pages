@@ -4,7 +4,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/sentinelpagesv4/',
+  base: '/sentinel3pages/',
   plugins: [react()],
   resolve: {
     alias: {
